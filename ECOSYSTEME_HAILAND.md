@@ -158,6 +158,8 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 | `spatial_ref_sys` | 8 500 | table PostGIS **sans RLS** (alerte) |
 | Tables de commerce (`orders`, `products`, `vendors`…) | **n'existent pas** | HailandX n'a rien en base |
 
+> ℹ️ `list_tables` (statistiques Postgres) affiche parfois `rows: 0` pour des tables non vides (ex. `zones`, `communes`) : se fier aux `count(*)`, pas à ces estimations. Comptages revérifiés le 2026-10-02 : identiques à la 1ʳᵉ lecture (hors `concessions`).
+
 > 🔎 **Les 273 937 bâtiments OSM de Conakry ne sont pas dans la base.** Les 55 fichiers sources et 28 lots SQL existent dans le dépôt HailandMap, mais la migration n'a **jamais été appliquée** : `quartiers.total_batiments` n'existe pas et `batiments_3d` n'a que 4 lignes de démo. Les bâtiments OSM sont affichés **depuis les tuiles Mapbox** (source `composite`, couche `building`).
 
 ### 4.3 Schéma réel de `buildings` ✅ (colonnes observées)
@@ -168,7 +170,7 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 **Absent de la base mais attendu par le code** : `admin_address_code`, `formatted_address`, `region`, `region_id`, `prefecture`, `prefecture_id`. Les deux apps les **calculent à la volée**.
 
 **Observations sur les données réelles** :
-- `quartier_id` et `commune_id` sont **vides pour tous les relevés HailandMap** (seul le texte `quartier` est rempli).
+- `quartier_id` et `commune_id` sont **vides pour tous les relevés HailandMap** (seul le texte `quartier` est rempli) ; seule la ligne de test NavigationX a un `quartier_id` (`qtr-osm-6245321`).
 - `osm_id` est vide pour tous les relevés HailandMap ; certains `id` sont des identifiants Mapbox (ex. `584803771`) ou `custom-draw-…`.
 - `zones.commune` est faux pour la plupart des zones réelles (ex. `Z4646` déclarée à Dixinn, bâtiments à Matam) : la commune des zones vient de l'estimation par bandes de longitude.
 - Géométries : `buildings.geom` / `courtyard_geom` / `centroid` sont du **JSONB GeoJSON** ; `batiments_3d.geom`, `quartiers.geom`, `communes.geom`… sont du **PostGIS** (renvoyé en GeoJSON avec un champ `crs`).
@@ -413,6 +415,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 | Date | Changement |
 |---|---|
+| 2026-10-02 (2ᵉ relecture) | Relecture **lecture seule** de la base : politiques RLS réelles (toutes ouvertes à `public`, y compris `DELETE` sur `buildings`), contraintes/index/triggers/fonctions, buckets (aucun), absence de migrations ; détection de la **nouvelle table `concessions`** (vide) ; répartition des statuts/types ; mise à jour de §4, §7, §8 P0, §10. Aucune écriture en base. |
 | 2026-10-02 | Création : synthèse de la vision (bilan global), des deux dépôts, de la base réelle (lecture seule) et des écarts ; plan d'amélioration proposé. |
 | 2026-10-02 | Hook de démarrage de session (dépendances + rappel du contexte), contrôle des liens `.md`, §14 « Reprise de session » — impacte : NavigationX / HailandMap. |
 | 2026-10-02 | Contrôle automatique de la documentation (`scripts/check-docs.mjs`, hook de commit, workflow GitHub) dans les deux dépôts — impacte : NavigationX / HailandMap. |
