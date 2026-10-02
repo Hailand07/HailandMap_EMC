@@ -24,6 +24,6 @@ Utiliser la légende ✅ constaté / 📄 documenté / ⚠️ à vérifier / �
 
 ## Conventions
 - Langue : **français** (interface, commentaires, documentation, commits).
-- Commandes : `npm run dev` (port 3000), `npm run build`, `npm run lint` (`tsc --noEmit`) — lancer `lint` avant de pousser.
+- Commandes : `npm run dev` (port 3000), `npm run build`, `npm run lint` (`tsc --noEmit`), `npm run check:docs -- --staged` — lancer `lint` et `check:docs` avant de pousser. `check:docs` **échoue** si du code change sans mise à jour de la fiche du projet (+ ligne de journal), si la révision d'`ECOSYSTEME_HAILAND.md` n'augmente pas quand il change, ou si un secret apparaît dans un `.md` ; dérogation : `[docs: n/a]` dans le message de commit. Hook local : `git config core.hooksPath .githooks`.
 - Branche de travail courante : `claude/busy-cerf-cd22ke` ; ne pas créer de PR sans demande ; ne pas pousser sur `main` sans accord.
 - Commits : messages clairs au format conventionnel (`feat:`, `fix:`, `docs:`, `refactor:`).

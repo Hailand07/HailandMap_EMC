@@ -155,7 +155,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Lire `ECOSYSTEME_HAILAND.md` puis ce fichier avant toute tâche.
 - **Pas d'écriture dans la base de production** sans accord explicite du fondateur ; ne jamais afficher ni committer une clé.
 - Tout changement de comportement, de flux, de table ou de règle de code met à jour ce fichier (et `ECOSYSTEME_HAILAND.md` s'il touche aux règles partagées) **dans le même commit**, puis recopier `ECOSYSTEME_HAILAND.md` dans le dépôt Lynx.
-- Vérifier avec `npm run lint` avant de pousser.
+- Vérifier avec `npm run lint` et `npm run check:docs -- --staged` avant de pousser (voir `CLAUDE.md`).
 
 ---
 
@@ -164,4 +164,5 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création de la fiche : rôle, structure, flux d'enregistrement, règles de génération des codes, persistance, problèmes constatés. |
+| 2026-10-02 | Ajout du contrôle automatique de documentation (`scripts/check-docs.mjs`, script `check:docs`, hook `.githooks/pre-commit`, workflow GitHub) — aucun changement fonctionnel de l'application. |
 | 2026-10-02 | Base relue (connecteur Supabase) : politiques ouvertes confirmées, `buildings` sans trigger de rattachement quartier, `fn_get_building_navigation_entry` disponible ; voir `ECOSYSTEME_HAILAND.md` §4.4–4.5. |

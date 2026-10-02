@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 5** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 6** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -366,7 +366,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 4. **Écrire la fonctionnalité** ; toute évolution de schéma passe par une **migration SQL versionnée**, relue, appliquée **seulement après accord explicite et sauvegarde**.
 5. **Mettre à jour les fichiers dans le même commit** : fiche du projet (état, flux, problèmes résolus ou ajoutés + journal), ce document si l'écosystème est touché (+ augmenter la révision), `CLAUDE.md` si une règle de travail change.
 6. **Synchroniser l'autre dépôt** : si la session n'a accès qu'à un dépôt, noter la modification à reporter dans le §13 ; la prochaine session qui a accès à l'autre dépôt la reporte puis vide la ligne.
-7. **Vérifier** (`npm run lint`, build) puis commit en français, format conventionnel.
+7. **Vérifier** : `npm run lint`, build, puis `npm run check:docs -- --staged` (contrôle automatique : code modifié ⇒ fiche du projet + ligne de journal ; `ECOSYSTEME_HAILAND.md` modifié ⇒ révision augmentée ; aucun secret dans les `.md`). Un hook de commit (`git config core.hooksPath .githooks`) et un workflow GitHub (`.github/workflows/docs-check.yml`, sur les PR) font la même vérification. Dérogation : `[docs: n/a]` dans le message de commit (changement sans effet documentaire). Puis commit en français, format conventionnel.
 
 **Modèle de ligne de journal** : `| AAAA-MM-JJ | <ce qui change> — impacte : NavigationX / HailandMap / base / HailandX |`
 
@@ -385,5 +385,6 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création : synthèse de la vision (bilan global), des deux dépôts, de la base réelle (lecture seule) et des écarts ; plan d'amélioration proposé. |
+| 2026-10-02 | Contrôle automatique de la documentation (`scripts/check-docs.mjs`, hook de commit, workflow GitHub) dans les deux dépôts — impacte : NavigationX / HailandMap. |
 | 2026-10-02 | Guide de lecture, procédure de fonctionnalité (§12), file de synchronisation (§13), numéro de révision ; suppression des anciens plans (contenu utile conservé dans les fiches). |
 | 2026-10-02 | Relecture complète de la base via le connecteur Supabase : politiques RLS (écriture publique partout), fonctions/triggers/vues, table `concessions` orpheline, 0 compte Auth, aucun bucket, aucune migration ; §4.4 passé en « constaté », ajout §4.5, plan P0 précisé. |
