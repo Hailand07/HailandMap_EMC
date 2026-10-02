@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 7** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 8** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -158,8 +158,6 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 | `spatial_ref_sys` | 8 500 | table PostGIS **sans RLS** (alerte) |
 | Tables de commerce (`orders`, `products`, `vendors`…) | **n'existent pas** | HailandX n'a rien en base |
 
-> ℹ️ `list_tables` (statistiques Postgres) affiche parfois `rows: 0` pour des tables non vides (ex. `zones`, `communes`) : se fier aux `count(*)`, pas à ces estimations. Comptages revérifiés le 2026-10-02 : identiques à la 1ʳᵉ lecture (hors `concessions`).
-
 > 🔎 **Les 273 937 bâtiments OSM de Conakry ne sont pas dans la base.** Les 55 fichiers sources et 28 lots SQL existent dans le dépôt HailandMap, mais la migration n'a **jamais été appliquée** : `quartiers.total_batiments` n'existe pas et `batiments_3d` n'a que 4 lignes de démo. Les bâtiments OSM sont affichés **depuis les tuiles Mapbox** (source `composite`, couche `building`).
 
 ### 4.3 Schéma réel de `buildings` ✅ (colonnes observées)
@@ -167,10 +165,12 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 
 **Contraintes ✅** : `id` clé primaire (texte) ; `hailand_code` **unique** ; `building_type` ∈ {R,C,M,A,H,P,T} ; `status` ∈ {non_reclame, en_attente, actif, conteste, inactif} (défaut `non_reclame`) ; clés étrangères vers `zones(id)`, `quartiers(id)`, `communes(id)` et vers elle-même (`parent_building_id`). **Aucune clé étrangère** sur `claimed_by`, `submitted_by`, `validated_by` (texte libre). Autres tables : `profiles.role` ∈ {client, livreur, admin, proprietaire} ; `validations.status` ∈ {pending, approved, rejected} ; `deliveries.status` ∈ {pending, in_transit, delivered, failed, cancelled} ; `facades.direction` ∈ {nord, sud, est, ouest, autre} ; `batiments_3d.usage`, `type_toiture` bornés. Index sur `hailand_code`, `zone_code`, `status`, `parent_building_id`, `quartier_id`, `commune_id`, coordonnées du centroïde et du portail ; **aucun index spatial sur `buildings`** (géométries en JSONB).
 
+**Suppressions en cascade ✅** : les clés étrangères `parent_building_id`, `zone_id`, `commune_id`, `quartier_id` de `buildings` sont `ON DELETE SET NULL` ; `validations` et `facades` → `buildings` sont en **`ON DELETE CASCADE`** (supprimer un bâtiment supprime son historique de validation et ses façades). Les index sur les centroïdes/portails sont des B-tree sur expressions JSONB. `concessions` n'a aucune clé étrangère ; intention probable : référentiel des cours (préfixe `GN-Z…-CR…`) — ⚠️ à confirmer avec le fondateur avant tout usage. Les comptages sont stables entre la 1ʳᵉ et la 2ᵉ relecture (`list_tables` affiche parfois `rows: 0` à tort : se fier aux `count(*)`).
+
 **Absent de la base mais attendu par le code** : `admin_address_code`, `formatted_address`, `region`, `region_id`, `prefecture`, `prefecture_id`. Les deux apps les **calculent à la volée**.
 
 **Observations sur les données réelles** :
-- `quartier_id` et `commune_id` sont **vides pour tous les relevés HailandMap** (seul le texte `quartier` est rempli) ; seule la ligne de test NavigationX a un `quartier_id` (`qtr-osm-6245321`).
+- `quartier_id` et `commune_id` sont **vides pour tous les relevés HailandMap** (seul le texte `quartier` est rempli).
 - `osm_id` est vide pour tous les relevés HailandMap ; certains `id` sont des identifiants Mapbox (ex. `584803771`) ou `custom-draw-…`.
 - `zones.commune` est faux pour la plupart des zones réelles (ex. `Z4646` déclarée à Dixinn, bâtiments à Matam) : la commune des zones vient de l'estimation par bandes de longitude.
 - Géométries : `buildings.geom` / `courtyard_geom` / `centroid` sont du **JSONB GeoJSON** ; `batiments_3d.geom`, `quartiers.geom`, `communes.geom`… sont du **PostGIS** (renvoyé en GeoJSON avec un champ `crs`).
@@ -415,9 +415,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 | Date | Changement |
 |---|---|
-| 2026-10-02 (2ᵉ relecture) | Relecture **lecture seule** de la base : politiques RLS réelles (toutes ouvertes à `public`, y compris `DELETE` sur `buildings`), contraintes/index/triggers/fonctions, buckets (aucun), absence de migrations ; détection de la **nouvelle table `concessions`** (vide) ; répartition des statuts/types ; mise à jour de §4, §7, §8 P0, §10. Aucune écriture en base. |
 | 2026-10-02 | Création : synthèse de la vision (bilan global), des deux dépôts, de la base réelle (lecture seule) et des écarts ; plan d'amélioration proposé. |
 | 2026-10-02 | Hook de démarrage de session (dépendances + rappel du contexte), contrôle des liens `.md`, §14 « Reprise de session » — impacte : NavigationX / HailandMap. |
 | 2026-10-02 | Contrôle automatique de la documentation (`scripts/check-docs.mjs`, hook de commit, workflow GitHub) dans les deux dépôts — impacte : NavigationX / HailandMap. |
 | 2026-10-02 | Guide de lecture, procédure de fonctionnalité (§12), file de synchronisation (§13), numéro de révision ; suppression des anciens plans (contenu utile conservé dans les fiches). |
 | 2026-10-02 | Relecture complète de la base via le connecteur Supabase : politiques RLS (écriture publique partout), fonctions/triggers/vues, table `concessions` orpheline, 0 compte Auth, aucun bucket, aucune migration ; §4.4 passé en « constaté », ajout §4.5, plan P0 précisé. |
+| 2026-10-02 | Réconciliation avec la version déjà fusionnée sur `main` (PR #1, « 2ᵉ relecture ») : conservation de la structure/§12–§14, ajout des suppressions en cascade (`ON DELETE`) et de la note sur `concessions` — révision 8. |

@@ -25,7 +25,7 @@ React 19 · Vite 6 · TypeScript 5.8 · Tailwind 4 · Mapbox GL 3 · Turf.js · 
 | `npm run lint` | `tsc --noEmit` |
 
 **Configuration** : jeton Mapbox via `VITE_MAPBOX_ACCESS_TOKEN` (ou saisi dans l'interface, stocké dans `localStorage` clé `hailandmap_token`) ; style Mapbox personnalisé `mapbox://styles/hailand/cmqbiiccq000b01qr7ckjeut1`. ⚠️ L'**URL et la clé publique Supabase sont codées en dur** dans `src/lib/supabase.ts` (et `scripts/populate_database.js`).
-⚠️ `README.md` contient des **marqueurs de conflit de fusion** (`<<<<<<< HEAD`) et un texte générique AI Studio.
+✅ `README.md` a été réécrit (plus de marqueurs de conflit ni de texte générique AI Studio).
 
 ---
 
@@ -170,3 +170,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-02 | Hook de démarrage de session (`.claude/hooks/session-start.sh` : dépendances + rappel du contexte), contrôle des liens `.md`, §14 de l'écosystème — aucun changement fonctionnel de l'application. |
 | 2026-10-02 | Ajout du contrôle automatique de documentation (`scripts/check-docs.mjs`, script `check:docs`, hook `.githooks/pre-commit`, workflow GitHub) — aucun changement fonctionnel de l'application. |
 | 2026-10-02 | Base relue (connecteur Supabase) : politiques ouvertes confirmées, `buildings` sans trigger de rattachement quartier, `fn_get_building_navigation_entry` disponible ; voir `ECOSYSTEME_HAILAND.md` §4.4–4.5. |
+| 2026-10-02 | Réconciliation avec `main` (PR #1 et #2 déjà fusionnées) ; copie de `ECOSYSTEME_HAILAND.md` révision 8 ; correction de la mention obsolète sur le README — aucun changement fonctionnel de l'appli. |
