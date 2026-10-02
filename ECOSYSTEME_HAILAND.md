@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule, clé publique)
+> **Dernière mise à jour :** 2026-10-02 (2ᵉ relecture) · **État de la base observé :** 2026-10-02 (lecture seule : `SELECT` sur les catalogues et comptages, aucune écriture)
 
 ---
 
@@ -118,9 +118,9 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 ### 4.1 Projet ✅
 - **Nom** : « HX vs HM » · organisation « HailandX Projects » · branche `main` marquée **PRODUCTION**.
 - **URL** : `https://sffowxfozwynmuaesvdk.supabase.co` · région `eu-north-1` (Stockholm).
-- **Offre** : Free · compute Nano · **aucune sauvegarde**, **aucune migration enregistrée**, aucun dépôt GitHub connecté.
+- **Offre** : Free · compute Nano · **aucune sauvegarde**, aucun dépôt GitHub connecté. Postgres 17.6 (statut `ACTIVE_HEALTHY`). **Aucune migration enregistrée** ✅ (le schéma `supabase_migrations` n'existe même pas : tout a été créé hors du système de migrations).
 - **Auth** ✅ : email activé (confirmation requise) ; **téléphone désactivé** (fournisseur SMS configuré : Twilio) ; accès anonyme désactivé ; inscription ouverte ; aucun autre fournisseur.
-- **Storage** ✅ : aucun bucket visible avec la clé publique. La seule « façade » pointe vers une image externe.
+- **Storage** ✅ : **aucun bucket** (`storage.buckets` vide), aucune politique `storage`. La seule « façade » pointe vers une image externe.
 - **Variables d'environnement de session** : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (clé publique), `VITE_MAPBOX_TOKEN`, `VITE_MAPBOX_STYLE`, `Supabase_Secret_keys` (clé secrète — **jamais** dans le code, jamais affichée).
 
 ### 4.2 Contenu réel observé (2026-10-02) ✅
@@ -129,7 +129,8 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 |---|---|---|
 | `regions` / `prefectures` / `communes` | 8 / 34 / 342 | référentiel complet, polygones PostGIS |
 | `quartiers` | **403** | 27 historiques (`qtr-kipe`, `qtr-hafia`…) + 376 `qtr-osm-*` ; polygones présents ; 5 communes de Conakry : `com-ratoma` 61, `com-matoto` 31, `com-dixinn` 26, `com-matam` 22, + Kaloum |
-| `buildings` | **35** | ≈ 31 relevés réels HailandMap (≈ 12 concessions, Matam / Dixinn / Ratoma) + 3 lignes de démo (`b1`,`b2`,`b3`) + 1 ligne de test NavigationX (`bldg-tmp-mumof47d`) |
+| `buildings` | **35** | ≈ 31 relevés réels HailandMap (≈ 12 concessions, Matam / Dixinn / Ratoma) + 3 lignes de démo (`b1`,`b2`,`b3`) + 1 ligne de test NavigationX (`bldg-tmp-mumof47d`). Statuts : `actif` 32 · `en_attente` 2 (`b2`, `bldg-tmp-…`) · `non_reclame` 1 (`b3`) ; types : `R` 30 · `C` 4 · `M` 1 ; `is_validated` 32 ; `claimed_by` renseigné sur 2 lignes seulement (`b1`, `bldg-tmp-…`, toutes deux `user-1`) |
+| `concessions` | **0** | 🆕 **table apparue depuis la 1ʳᵉ lecture**, vide, non utilisée par le code connu (voir §4.3) |
 | `zones` | 9 | carreaux créés à la volée par HailandMap (`Z014`, `Z015`, `Z3955`, `Z4303`, `Z4530`, `Z4531`, `Z4646`, `Z4761`, `Z15438`) |
 | `batiments_3d` | **4** | uniquement de la **démo** (`b3d-kipe-001..003`, `b3d-lambanyi-001`), surfaces incohérentes |
 | `profiles` | 8 | **tous fictifs** (1 admin, 2 livreurs, 5 clients), `id` texte (`user-1`…) |
@@ -138,24 +139,48 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 | `vue_quartiers_statistiques_3d` / `vue_prefectures_statistiques` | 403 / 34 | vues existantes ; `total_batiments_3d` > 0 seulement pour Kipé (3) et Lambanyi (1) |
 | Tables de commerce (`orders`, `products`, `vendors`…) | **n'existent pas** | HailandX n'a rien en base |
 
+> ℹ️ `list_tables` (statistiques Postgres) affiche parfois `rows: 0` pour des tables non vides (ex. `zones`, `communes`) : se fier aux `count(*)`, pas à ces estimations. Comptages revérifiés le 2026-10-02 : identiques à la 1ʳᵉ lecture (hors `concessions`).
+
 > 🔎 **Les 273 937 bâtiments OSM de Conakry ne sont pas dans la base.** Les 55 fichiers sources et 28 lots SQL existent dans le dépôt HailandMap, mais la migration n'a **jamais été appliquée** : `quartiers.total_batiments` n'existe pas et `batiments_3d` n'a que 4 lignes de démo. Les bâtiments OSM sont affichés **depuis les tuiles Mapbox** (source `composite`, couche `building`).
 
 ### 4.3 Schéma réel de `buildings` ✅ (colonnes observées)
 `id` (texte), `hailand_code` (unique), `parent_building_id`, `zone_id`, `zone_code`, `building_type`, `has_courtyard`, `courtyard_geom` (JSONB), `floor_count`, `unit_count`, `floor_level`, `unit_code`, `physical_position`, `status`, `geom` (JSONB GeoJSON), `centroid` (JSONB), `altitude_m`, `commune`, `quartier`, `commune_id`, `quartier_id`, `entry_point_geom`, `entry_point_note`, `internal_directions`, `door_color`, `intercom_code`, `landmark_note`, `access_note`, `is_validated`, `validation_count`, `validated_by`, `validated_at`, `submitted_by`, `claimed_by`, `rejection_reason`, `modification_request`, `osm_id`, `created_at`, `updated_at`.
 
+**Table `concessions`** ✅ (nouvelle, vide) : `id`, `name`, `commune`, `quartier`, `hailand_code_prefix` (**UNIQUE**), `gate_geom` (JSONB), `created_at`. Aucune clé étrangère. ⚠️ Intention probable : référentiel des cours/concessions (préfixe `GN-Z…-CR…`) — **à confirmer avec le fondateur** avant tout usage ; ni HailandMap ni NavigationX ne l'utilisent à ce jour (📄 à re-vérifier dans le code).
+
+**Contraintes, index, fonctions réels** ✅
+- `buildings` : PK `id` ; `UNIQUE (hailand_code)` ; `CHECK` sur `building_type` (`R,C,M,A,H,P,T`) et `status` (5 valeurs) ; FK `parent_building_id`, `zone_id`, `commune_id`, `quartier_id` (toutes `ON DELETE SET NULL`). Index sur `hailand_code` (doublon de l'unique), `zone_code`, `status`, `parent_building_id`, `quartier_id`, `commune_id`, et sur les latitudes/longitudes de `centroid` et `entry_point_geom` (index B-tree sur expressions JSONB, **pas d'index spatial** : `geom` est du JSONB).
+- `zones` : `UNIQUE (zone_code)`. `profiles.role` ∈ `client, livreur, admin, proprietaire`. `validations.status` ∈ `pending, approved, rejected`. `deliveries.status` ∈ `pending, in_transit, delivered, failed, cancelled`. `facades.direction` ∈ `nord, sud, est, ouest, autre`.
+- `validations` et `facades` → `buildings` en **`ON DELETE CASCADE`** : supprimer un bâtiment supprime son historique de validation et ses façades.
+- Triggers : `trg_buildings_auto_fixed_centroid` (BEFORE INSERT/UPDATE sur `buildings`, recalcule le centroïde) ; `trg_batiment_3d_enrich` (BEFORE INSERT/UPDATE sur `batiments_3d`). Fonctions métier : `fn_calculate_fixed_polygon_centroid(jsonb)`, `fn_fix_all_building_centroids()`, `fn_get_building_navigation_entry(text)`, `handle_update_timestamp()`, `trg_fn_auto_compute_building_centroid()`, `trg_fn_enrich_batiment_3d()`. **Aucune fonction ni séquence de génération de code** : les codes sont bien produits côté client (§7).
+
 **Absent de la base mais attendu par le code** : `admin_address_code`, `formatted_address`, `region`, `region_id`, `prefecture`, `prefecture_id`. Les deux apps les **calculent à la volée**.
 
 **Observations sur les données réelles** :
-- `quartier_id` et `commune_id` sont **vides pour tous les relevés HailandMap** (seul le texte `quartier` est rempli).
+- `quartier_id` et `commune_id` sont **vides pour tous les relevés HailandMap** (seul le texte `quartier` est rempli) ; seule la ligne de test NavigationX a un `quartier_id` (`qtr-osm-6245321`).
 - `osm_id` est vide pour tous les relevés HailandMap ; certains `id` sont des identifiants Mapbox (ex. `584803771`) ou `custom-draw-…`.
 - `zones.commune` est faux pour la plupart des zones réelles (ex. `Z4646` déclarée à Dixinn, bâtiments à Matam) : la commune des zones vient de l'estimation par bandes de longitude.
 - Géométries : `buildings.geom` / `courtyard_geom` / `centroid` sont du **JSONB GeoJSON** ; `batiments_3d.geom`, `quartiers.geom`, `communes.geom`… sont du **PostGIS** (renvoyé en GeoJSON avec un champ `crs`).
 - Les types `H` (hôtel) apparaissent parfois sous `C` en base (ex. code `…-H2-E1-102` typé `C`).
 
-### 4.4 Sécurité ⚠️
-- Le SQL du dépôt HailandMap décrit des politiques **ouvertes** : lecture publique partout, et `INSERT/UPDATE/DELETE` publics sur `buildings`, `profiles`, `validations`, `deliveries`, `facades`, écriture sur le référentiel territorial.
-- La clé publique figure dans un dépôt GitHub public. **Si ces politiques sont actives en production, n'importe qui peut modifier ou supprimer le cadastre.** Les politiques réelles n'ont **pas pu être vérifiées** (exige une clé secrète ou le SQL Editor).
-- Aucune sauvegarde n'existe.
+### 4.4 Sécurité ✅ (politiques réelles lues le 2026-10-02) — 🔴 critique
+RLS est **activée** sur toutes les tables sauf `spatial_ref_sys` (table PostGIS ; l'advisor Supabase la signale, correctif `ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;` **non appliqué**, à décider). Mais **toutes les politiques ciblent le rôle `public` avec condition `true`** : la RLS ne protège rien, la clé publique suffit.
+
+| Table | Lecture | Insertion | Modification | **Suppression** |
+|---|---|---|---|---|
+| `buildings` | ✅ ouverte | ✅ ouverte | ✅ ouverte | 🔴 **ouverte** |
+| `batiments_3d` | ouverte | ouverte | ouverte | 🔴 **ouverte** |
+| `regions`, `communes`, `quartiers` | ouverte | ouverte (`ALL`) | ouverte (`ALL`) | 🔴 **ouverte** (`ALL`) |
+| `prefectures` | ouverte | ouverte (`ALL`) | ouverte (`ALL`) | 🔴 **ouverte** (`ALL`) |
+| `facades` | ouverte | ouverte | — | 🔴 **ouverte** |
+| `concessions`, `deliveries`, `profiles` | ouverte | ouverte | ouverte | — |
+| `validations`, `zones` | ouverte | ouverte | — | — |
+| `admin_pays`, `admin_capitals`, `admin_points`, `admin_lines`, `populated_places` | ouverte | — | — | — |
+
+- Conséquence : **n'importe qui possédant la clé publique** (présente dans un dépôt GitHub public) peut **supprimer ou altérer le cadastre** (`buildings`, et en cascade `validations`/`facades`), le référentiel territorial, les profils (dont rôle `admin`), et s'attribuer un bâtiment (`claimed_by`).
+- Aucune fonction `SECURITY DEFINER`/RPC de contrôle, aucune politique liée à `auth.uid()`.
+- **Aucune sauvegarde** : une suppression est irréversible.
+- Correction proposée : voir §8 P0 (💡, **non appliquée** : toute modification de la base exige l'accord explicite du fondateur).
 
 ---
 
@@ -227,7 +252,9 @@ Le design cible (§7) restreint NavigationX à : **rattacher** un résident à u
 Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ### Données / base
-- 🔴 **Politiques de sécurité probablement ouvertes** et clé publique exposée (§4.4). Aucune sauvegarde.
+- 🔴 **Politiques de sécurité ouvertes (✅ confirmé le 2026-10-02)** : lecture/écriture/**suppression** publiques sur `buildings` et le référentiel, clé publique exposée (§4.4). Aucune sauvegarde.
+- 🟡 **Table `concessions` vide et non documentée** (apparue après la 1ʳᵉ lecture) : rôle à clarifier pour ne pas créer un second référentiel de cours concurrent de `buildings.has_courtyard`.
+- 🟡 **`spatial_ref_sys` sans RLS** (advisor Supabase) : bruit PostGIS, correctif simple à décider.
 - 🟠 **Migration OSM jamais appliquée** : plans et scripts décrivent 394 quartiers / 273 937 bâtiments ; la base a 403 quartiers et 4 `batiments_3d` de démo.
 - 🟠 **Colonnes manquantes** (`admin_address_code`, `formatted_address`, `region`, `prefecture`) : adresses officielles non stockées, donc non requêtables ni garanties.
 - 🟠 **Liens territoriaux vides** : `buildings.quartier_id` / `commune_id` non remplis ; `zones.commune` faux.
@@ -263,7 +290,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 **P0 — Sécurité et fiabilité de la base (avant tout nouveau chantier)**
 1. **Sauvegarde** de la base (export SQL/CSV de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
-2. **Lire les politiques réelles** (SQL Editor : `pg_policies`) puis **fermer l'écriture publique** : écriture réservée aux utilisateurs authentifiés selon le rôle ; résident limité à `claimed_by`.
+2. ~~Lire les politiques réelles~~ ✅ fait (§4.4) ; il reste à **fermer l'écriture publique** — d'abord les `DELETE` (`buildings`, `batiments_3d`, `facades`, référentiel), puis `INSERT/UPDATE` — : écriture réservée aux utilisateurs authentifiés selon le rôle ; résident limité à `claimed_by`.
 3. **Nettoyer** les données de démo/test (après accord).
 4. **Migrations versionnées** (dossier + historique Supabase) ; plan de montée de l'offre (sauvegardes quotidiennes, pause d'inactivité du plan Free).
 
@@ -305,7 +332,8 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 10. Limites de vérification actuelles
 
-- **Clé secrète Supabase** : fournie dans l'environnement (`Supabase_Secret_keys`) mais **son usage a été refusé par le système de permissions de la session** ; elle n'a donc **pas** été utilisée. Conséquences : les **politiques RLS, fonctions, triggers, index et contraintes réels** sont ⚠️ **à vérifier** (soit via le SQL Editor — requêtes `information_schema` / `pg_policies` —, soit en autorisant explicitement l'usage de la clé).
+- **Accès base (2026-10-02, 2ᵉ relecture)** : lecture seule via l'intégration Supabase de la session (requêtes `SELECT` sur `pg_policies`, `pg_constraint`, `pg_indexes`, `information_schema`, `storage.buckets` et comptages). Les **politiques RLS, contraintes, index, triggers et fonctions** sont donc désormais ✅ **constatés** (§4.3, §4.4). La clé secrète de l'environnement (`Supabase_Secret_keys`) n'a **pas** été utilisée.
+- **Toujours non vérifié** ⚠️ : le **code** de `fn_get_building_navigation_entry` et des triggers (seuls leurs noms/signatures sont relevés), les **logs** et advisors de performance, les **rôles Postgres** et grants au niveau table, l'usage réel de `concessions` dans le code des deux dépôts.
 - **Code relu en détail** : `App.tsx` (HailandMap) à ~85 % ; formulaires d'enregistrement ; `supabase.ts` ; services d'adressage ; tous les services NavigationX. **Parcourus seulement** : `BuildingsView`, `InteractiveTerritoryTree`, `interactiveMapEngine`, modales 3D, `Dashboard`, `GridPanel`, `Edit3DMenu` (HailandMap) ; `DashboardPaper`, `Map3D`, `ConcessionViewer3D`, `NavigationHUD` (NavigationX).
 - **Non ouverts** : données géographiques (`guineaBoundariesData.ts` 6,4 Mo, `guineaOfflineData.ts` 1,4 Mo, `.geojson`, 55 fichiers OSM, 28 lots SQL) ; `draw_way.js`, `lines.js`, `vertices.js` sont du code de l'éditeur OSM iD gardé comme référence de style.
 
@@ -315,4 +343,5 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 | Date | Changement |
 |---|---|
+| 2026-10-02 (2ᵉ relecture) | Relecture **lecture seule** de la base : politiques RLS réelles (toutes ouvertes à `public`, y compris `DELETE` sur `buildings`), contraintes/index/triggers/fonctions, buckets (aucun), absence de migrations ; détection de la **nouvelle table `concessions`** (vide) ; répartition des statuts/types ; mise à jour de §4, §7, §8 P0, §10. Aucune écriture en base. |
 | 2026-10-02 | Création : synthèse de la vision (bilan global), des deux dépôts, de la base réelle (lecture seule) et des écarts ; plan d'amélioration proposé. |
