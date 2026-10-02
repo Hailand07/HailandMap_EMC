@@ -171,3 +171,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-02 | Ajout du contrôle automatique de documentation (`scripts/check-docs.mjs`, script `check:docs`, hook `.githooks/pre-commit`, workflow GitHub) — aucun changement fonctionnel de l'application. |
 | 2026-10-02 | Base relue (connecteur Supabase) : politiques ouvertes confirmées, `buildings` sans trigger de rattachement quartier, `fn_get_building_navigation_entry` disponible ; voir `ECOSYSTEME_HAILAND.md` §4.4–4.5. |
 | 2026-10-02 | Réconciliation avec `main` (PR #1 et #2 déjà fusionnées) ; copie de `ECOSYSTEME_HAILAND.md` révision 8 ; correction de la mention obsolète sur le README — aucun changement fonctionnel de l'appli. |
+| 2026-10-02 | `check-docs` : règle 5 (synchronisation d'`ECOSYSTEME_HAILAND.md` avec Lynx) ; écosystème révision 9 — aucun changement fonctionnel de l'appli. |

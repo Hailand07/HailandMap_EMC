@@ -8,6 +8,9 @@
  *  2. Si ECOSYSTEME_HAILAND.md change, son numéro « Révision : N » doit augmenter.
  *  3. Aucun secret (clé Supabase secrète, JWT, jeton) ne doit apparaître dans les fichiers .md.
  *  4. Les liens relatifs des .md ([texte](./fichier)) doivent pointer vers des fichiers qui existent.
+ *  5. (hors --staged) La copie d'ECOSYSTEME_HAILAND.md doit rester synchronisée avec celle de l'autre dépôt
+ *     (branche par défaut, lue sur GitHub) : révision plus ancienne ou contenu différent à révision égale = échec.
+ *     Réseau indisponible = simple avertissement.
  *
  * Dérogation : mettre « [docs: n/a] » dans le message de commit (changement sans effet documentaire :
  * mise en forme, faute de frappe…). Elle est signalée dans la sortie.
@@ -121,6 +124,26 @@ for (const f of mdFiles) {
   const text = readFileSync(f, 'utf8');
   for (const m of text.matchAll(/\[[^\]]+\]\((\.\/[^)#\s]+)(?:#[^)]*)?\)/g)) {
     if (!existsSync(m[1])) errors.push(`${f} : lien cassé vers ${m[1]} (fichier supprimé ou renommé ?).`);
+  }
+}
+
+// --- Règle 5 : synchronisation avec l'autre dépôt ---------------------------------------------
+if (!staged && existsSync(ECO) && !process.env.SKIP_SYNC_CHECK) {
+  const other = PROJECT_DOC === 'NAVIGATIONX.md' ? 'HailandMap_EMC' : 'Lynx';
+  const body = (t) => t.split('\n').slice(6).join('\n').trim(); // ignore l'en-tête (ligne « Fichiers liés » et révision)
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/Hailand07/${other}/main/${ECO}`, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const theirs = await res.text();
+    const mine = readFileSync(ECO, 'utf8');
+    const [rm, rt] = [revOf(mine), revOf(theirs)];
+    if (rm !== null && rt !== null) {
+      if (rm < rt) errors.push(`${ECO} : la copie de ce dépôt (révision ${rm}) est en retard sur ${other} (révision ${rt}) — recopier la plus récente.`);
+      else if (rm === rt && body(mine) !== body(theirs)) errors.push(`${ECO} : même révision (${rm}) mais contenu différent de ${other} — resynchroniser.`);
+      else if (rm > rt) notes.push(`${ECO} : révision ${rm} > ${other} (${rt}) — recopier dans ${other} (§13 si impossible).`);
+    }
+  } catch (e) {
+    notes.push(`Synchro avec ${other} non vérifiée (${e.message}).`);
   }
 }
 
