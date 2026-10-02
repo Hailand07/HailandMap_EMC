@@ -25,7 +25,7 @@ React 19 · Vite 6 · TypeScript 5.8 · Tailwind 4 · Mapbox GL 3 · Turf.js · 
 | `npm run lint` | `tsc --noEmit` |
 
 **Configuration** : jeton Mapbox via `VITE_MAPBOX_ACCESS_TOKEN` (ou saisi dans l'interface, stocké dans `localStorage` clé `hailandmap_token`) ; style Mapbox personnalisé `mapbox://styles/hailand/cmqbiiccq000b01qr7ckjeut1`. ⚠️ L'**URL et la clé publique Supabase sont codées en dur** dans `src/lib/supabase.ts` (et `scripts/populate_database.js`).
-⚠️ `README.md` contient des **marqueurs de conflit de fusion** (`<<<<<<< HEAD`) et un texte générique AI Studio.
+✅ `README.md` a été réécrit (plus de marqueurs de conflit ni de texte générique AI Studio).
 
 ---
 
@@ -54,7 +54,6 @@ sql_batches_batiments/batch_01..28.sql  # 273 937 bâtiments OSM → batiments_3
 "fichier.txt données osm structurées/"   # 55 fichiers sources OSM
 gin_admin*.geojson, quartiers_conakry_osm.txt  # sources frontières
 draw_way.js, lines.js, vertices.js   # code de l'éditeur OSM iD (référence de style de tracé, non utilisé)
-PLAN_*.md, SUIVI_*.md                # anciens plans (état « validé » ; partiellement décalés par rapport à la production)
 ```
 
 ---
@@ -120,10 +119,25 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 
 ---
 
+## 6 bis. Chantiers connus (contenu utile des anciens plans, supprimés — voir l'historique git)
+
+**« Carte Interactive »** ✅ réalisée dans le code : navigation Région → Préfecture → Commune → Quartier (tiroirs mère-enfant + recherche) avec zoom `fitBounds`, surbrillance par niveau et affichage 3D selon le niveau. Fichiers : `interactiveMapService.ts` (lecture Supabase + cache + repli hors-ligne), `InteractiveTerritoryTree.tsx`, `interactiveMapEngine.ts`, tests d'étapes dans `scripts/test_step1..4_*.ts`.
+
+**Double adressage + Registre cadastral** ✅ réalisé : règles dans `ECOSYSTEME_HAILAND.md` §3.2 ; `administrativeAddressingService.ts` ; `BuildingsView` (tableur, arbre mère-enfant, fiche 360°, exports CSV/JSON/GeoJSON, « Sync Adressage État » = `backfillAdministrativeAddresses`) ; attestation provisoire JSON dans `ValidationsView` / `BuildingPanel`.
+
+**Migration des bâtiments OSM** ⚠️ **non appliquée en production** (état au 2026-10-02) :
+- Objectif : conserver les quartiers et rattacher **273 937 bâtiments OSM** (55 fichiers `batiments_conakry_part_*.txt`, champs `osm_id | code | fclass | name | type | quartier | commune | region | prefecture`) ; 129 toponymes « parents » à rapprocher des quartiers fins.
+- Stratégie de rattachement prévue : 1) nom exact ; 2) quartier père ↔ secteurs (ex. « Coleah » → « Coleah Centre ») ; 3) réconciliation spatiale (polygone / centroïde le plus proche).
+- Outils : `scripts/consolidate_and_update_all_quartiers.py`, `scripts/generate_osm_buildings_sql.py` → `sql_batches_batiments/batch_01..28.sql`, `supabase_batiments_and_quartiers.sql`.
+- ⚠️ Les lots SQL n'insèrent **ni géométrie ni centroïde** (colonnes `id, quartier_id, osm_id, code, fclass, nom, usage` seulement) : même appliqués, `batiments_3d` ne contiendrait pas de polygones exploitables pour une détection point-dans-polygone.
+- **Décision ouverte** (`ECOSYSTEME_HAILAND.md` §9) : garder les bâtiments OSM dans les tuiles Mapbox (fonctionnement actuel) ou les importer en base avec leurs géométries.
+
+---
+
 ## 7. Problèmes spécifiques à HailandMap (voir `ECOSYSTEME_HAILAND.md` §7)
 - 🔴 Séquences de codes calculées côté navigateur (doublons possibles) ; validation en masse aléatoire.
 - 🔴 Unicité du code administratif non garantie (lot par carreau ≠ unique par quartier ; collisions de trigrammes).
-- 🔴 Politiques de sécurité probablement ouvertes ; aucune authentification des agents (validateur codé en dur `admin-1`).
+- 🔴 Politiques RLS **ouvertes en écriture au rôle public** (constaté le 2026-10-02, y compris sur le référentiel territorial) ; aucune authentification des agents (validateur codé en dur `admin-1`) : fermer l'écriture publique impose d'abord d'authentifier HailandMap.
 - 🟠 `App.tsx` monolithique ; `main.tsx` surcharge `JSON.stringify` globalement.
 - 🟠 Bâtiment OSM non enregistré créé avec `commune: 'Bamako'`, `quartier: 'Centre'` (reste d'un autre projet).
 - 🟠 Détection de commune par bandes de longitude ; frontières embarquées au lieu d'être lues en base ; `zones.commune` faux.
@@ -143,7 +157,8 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Lire `ECOSYSTEME_HAILAND.md` puis ce fichier avant toute tâche.
 - **Pas d'écriture dans la base de production** sans accord explicite du fondateur ; ne jamais afficher ni committer une clé.
 - Tout changement de comportement, de flux, de table ou de règle de code met à jour ce fichier (et `ECOSYSTEME_HAILAND.md` s'il touche aux règles partagées) **dans le même commit**, puis recopier `ECOSYSTEME_HAILAND.md` dans le dépôt Lynx.
-- Vérifier avec `npm run lint` avant de pousser.
+- Vérifier avec `npm run lint` et `npm run check:docs -- --staged` avant de pousser (voir `CLAUDE.md`).
+- ✅ État de `npm run lint` au 2026-10-02 : **propre (0 erreur)**. Aucun test automatisé (pas de script `test`).
 
 ---
 
@@ -152,4 +167,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création de la fiche : rôle, structure, flux d'enregistrement, règles de génération des codes, persistance, problèmes constatés. |
-| 2026-10-02 (2ᵉ relecture) | Relecture lecture seule de la base : politiques RLS réelles, contraintes, table `concessions` ; voir `ECOSYSTEME_HAILAND.md` §4. Aucun changement de code. |
+| 2026-10-02 | Hook de démarrage de session (`.claude/hooks/session-start.sh` : dépendances + rappel du contexte), contrôle des liens `.md`, §14 de l'écosystème — aucun changement fonctionnel de l'application. |
+| 2026-10-02 | Ajout du contrôle automatique de documentation (`scripts/check-docs.mjs`, script `check:docs`, hook `.githooks/pre-commit`, workflow GitHub) — aucun changement fonctionnel de l'application. |
+| 2026-10-02 | Base relue (connecteur Supabase) : politiques ouvertes confirmées, `buildings` sans trigger de rattachement quartier, `fn_get_building_navigation_entry` disponible ; voir `ECOSYSTEME_HAILAND.md` §4.4–4.5. |
+| 2026-10-02 | Réconciliation avec `main` (PR #1 et #2 déjà fusionnées) ; copie de `ECOSYSTEME_HAILAND.md` révision 8 ; correction de la mention obsolète sur le README — aucun changement fonctionnel de l'appli. |

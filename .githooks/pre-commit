@@ -1,0 +1,3 @@
+#!/bin/sh
+# Contrôle de documentation avant chaque commit (activer : git config core.hooksPath .githooks)
+exec node scripts/check-docs.mjs --staged
