@@ -114,6 +114,8 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 
 **Volumes 3D** : régénérés depuis `buildings` (`generate3DEntitiesFromBuildingList`) : `(floor_count + 1) × 3,2 m`, mur de cour 20 cm / 2,2 m. **État local au navigateur** (`localStorage`) : tracés 3D manuels (`hailandmap_custom_3d_buildings`), modèles `.glb` (`hailandmap_placed_3d_models`), bâtiments masqués, jeton Mapbox.
 
+**Sécurité réelle de la base** ✅ (relue le 2026-10-02) : toutes les politiques RLS sont ouvertes au rôle `public`, **y compris `DELETE` sur `buildings`** ; aucun code n'est généré côté base (pas de séquence/fonction) ; une table `concessions` vide existe, non utilisée par HailandMap. Détail : `ECOSYSTEME_HAILAND.md` §4.3–4.4.
+
 **Affichage de seuil** : cours, volumes 3D et portails n'apparaissent qu'à partir du zoom 15 (≈ 200 m).
 
 ---
@@ -150,3 +152,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création de la fiche : rôle, structure, flux d'enregistrement, règles de génération des codes, persistance, problèmes constatés. |
+| 2026-10-02 (2ᵉ relecture) | Relecture lecture seule de la base : politiques RLS réelles, contraintes, table `concessions` ; voir `ECOSYSTEME_HAILAND.md` §4. Aucun changement de code. |
