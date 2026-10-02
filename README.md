@@ -1,33 +1,16 @@
-<div align="center">
-<<<<<<< HEAD
+# HailandMap
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Atelier de relevé et de validation du **cadastre numérique** de Guinée (concessions, bâtiments, Hailand-Code). Alimente la base Supabase partagée lue par NavigationX (dépôt `Hailand07/Lynx`).
 
-  <h1>Built with AI Studio</h2>
+## Documentation (à lire d'abord)
+- [`ECOSYSTEME_HAILAND.md`](./ECOSYSTEME_HAILAND.md) — vision, applications, base partagée, flux, règles de communication.
+- [`HAILANDMAP.md`](./HAILANDMAP.md) — ce dépôt : architecture, flux d'enregistrement, règles de génération des codes.
+- [`CLAUDE.md`](./CLAUDE.md) — règles de travail (mise à jour des fichiers, sécurité).
 
-  <p>The fastest path from prompt to production with Gemini.</p>
-
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
-=======
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/9074e01e-0e79-4197-85fa-f40e306ebfd8
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
->>>>>>> 14b4475 (feat: complete HailandMap 3D platform with national addressing, cadastre and spatial engine)
+## Lancer en local
+```
+npm install
+npm run dev      # http://localhost:3000
+npm run lint     # tsc --noEmit
+```
+Variable d'environnement : `VITE_MAPBOX_ACCESS_TOKEN` (jeton public Mapbox). Ne jamais committer de clé.

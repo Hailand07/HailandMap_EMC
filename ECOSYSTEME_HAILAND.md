@@ -4,7 +4,22 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
+> **Révision : 5** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
+
+---
+
+## Guide de lecture (pour ne pas tout relire à chaque session)
+
+| Vous devez… | Lisez seulement |
+|---|---|
+| Comprendre le projet en 2 minutes | §1 (vision), §2 (carte des applications) |
+| Toucher à **un code, un statut, une règle métier** | §3, puis §6.2 (règles de communication) |
+| Toucher à la **base de données** | §4 (réel observé), §4.4–4.5 (sécurité, logique) |
+| Comprendre un **flux** (enregistrement, réclamation, navigation) | §5 |
+| Savoir **quoi corriger / par où commencer** | §7 (écarts), §8 (plan) |
+| Ajouter une **fonctionnalité** | §12 (procédure), puis la fiche du projet concerné |
+| Savoir ce qui **reste à synchroniser** entre dépôts | §13 |
 
 ---
 
@@ -18,6 +33,7 @@
    - ⚠️ **À vérifier** : non observable avec les accès actuels (voir §10).
    - 💡 **Proposé** : règle ou piste cible, **pas encore décidée**.
 4. Aucun secret (clé, mot de passe, jeton) ne figure dans ce document ni dans le dépôt. Les clés sont dans les variables d'environnement.
+5. **Hiérarchie des sources** : la **base réelle** et le **code** priment sur ce document ; ce document prime sur les anciennes notes et plans. En cas de contradiction constatée, corriger ce document (et le dire dans le journal).
 
 ---
 
@@ -340,9 +356,34 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ---
 
+## 12. Procédure pour ajouter une fonctionnalité (à suivre à chaque session)
+
+1. **Classer la demande** :
+   - **Un seul projet** (ex. un écran de NavigationX, un outil de tracé de HailandMap) → lire la fiche de ce projet (`NAVIGATIONX.md` ou `HAILANDMAP.md`) + les sections utiles ci-dessus.
+   - **Ecosystème** (touche la base, un code, un statut, un rôle, une API, un flux entre apps) → lire en plus §3, §4, §6.2 et vérifier l'impact sur **l'autre** application.
+2. **Vérifier le réel** avant de coder : si la fonctionnalité dépend de la base, relire les tables concernées (connecteur Supabase en lecture seule) et corriger ce document si l'état a changé.
+3. **Respecter le contrat** (§6.2) : propriété des tables, génération des codes, statuts, rôles. Si la fonctionnalité exige de le changer, **le proposer au fondateur d'abord** (§9) — jamais en silence.
+4. **Écrire la fonctionnalité** ; toute évolution de schéma passe par une **migration SQL versionnée**, relue, appliquée **seulement après accord explicite et sauvegarde**.
+5. **Mettre à jour les fichiers dans le même commit** : fiche du projet (état, flux, problèmes résolus ou ajoutés + journal), ce document si l'écosystème est touché (+ augmenter la révision), `CLAUDE.md` si une règle de travail change.
+6. **Synchroniser l'autre dépôt** : si la session n'a accès qu'à un dépôt, noter la modification à reporter dans le §13 ; la prochaine session qui a accès à l'autre dépôt la reporte puis vide la ligne.
+7. **Vérifier** (`npm run lint`, build) puis commit en français, format conventionnel.
+
+**Modèle de ligne de journal** : `| AAAA-MM-JJ | <ce qui change> — impacte : NavigationX / HailandMap / base / HailandX |`
+
+---
+
+## 13. Synchronisation en attente entre les deux dépôts
+
+| Date | Modification à reporter | Dépôt à mettre à jour | Fait |
+|---|---|---|---|
+| — | *(aucune pour l'instant)* | — | — |
+
+---
+
 ## 11. Journal des mises à jour
 
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création : synthèse de la vision (bilan global), des deux dépôts, de la base réelle (lecture seule) et des écarts ; plan d'amélioration proposé. |
+| 2026-10-02 | Guide de lecture, procédure de fonctionnalité (§12), file de synchronisation (§13), numéro de révision ; suppression des anciens plans (contenu utile conservé dans les fiches). |
 | 2026-10-02 | Relecture complète de la base via le connecteur Supabase : politiques RLS (écriture publique partout), fonctions/triggers/vues, table `concessions` orpheline, 0 compte Auth, aucun bucket, aucune migration ; §4.4 passé en « constaté », ajout §4.5, plan P0 précisé. |

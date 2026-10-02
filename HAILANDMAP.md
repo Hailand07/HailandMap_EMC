@@ -54,7 +54,6 @@ sql_batches_batiments/batch_01..28.sql  # 273 937 bâtiments OSM → batiments_3
 "fichier.txt données osm structurées/"   # 55 fichiers sources OSM
 gin_admin*.geojson, quartiers_conakry_osm.txt  # sources frontières
 draw_way.js, lines.js, vertices.js   # code de l'éditeur OSM iD (référence de style de tracé, non utilisé)
-PLAN_*.md, SUIVI_*.md                # anciens plans (état « validé » ; partiellement décalés par rapport à la production)
 ```
 
 ---
@@ -115,6 +114,21 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 **Volumes 3D** : régénérés depuis `buildings` (`generate3DEntitiesFromBuildingList`) : `(floor_count + 1) × 3,2 m`, mur de cour 20 cm / 2,2 m. **État local au navigateur** (`localStorage`) : tracés 3D manuels (`hailandmap_custom_3d_buildings`), modèles `.glb` (`hailandmap_placed_3d_models`), bâtiments masqués, jeton Mapbox.
 
 **Affichage de seuil** : cours, volumes 3D et portails n'apparaissent qu'à partir du zoom 15 (≈ 200 m).
+
+---
+
+## 6 bis. Chantiers connus (contenu utile des anciens plans, supprimés — voir l'historique git)
+
+**« Carte Interactive »** ✅ réalisée dans le code : navigation Région → Préfecture → Commune → Quartier (tiroirs mère-enfant + recherche) avec zoom `fitBounds`, surbrillance par niveau et affichage 3D selon le niveau. Fichiers : `interactiveMapService.ts` (lecture Supabase + cache + repli hors-ligne), `InteractiveTerritoryTree.tsx`, `interactiveMapEngine.ts`, tests d'étapes dans `scripts/test_step1..4_*.ts`.
+
+**Double adressage + Registre cadastral** ✅ réalisé : règles dans `ECOSYSTEME_HAILAND.md` §3.2 ; `administrativeAddressingService.ts` ; `BuildingsView` (tableur, arbre mère-enfant, fiche 360°, exports CSV/JSON/GeoJSON, « Sync Adressage État » = `backfillAdministrativeAddresses`) ; attestation provisoire JSON dans `ValidationsView` / `BuildingPanel`.
+
+**Migration des bâtiments OSM** ⚠️ **non appliquée en production** (état au 2026-10-02) :
+- Objectif : conserver les quartiers et rattacher **273 937 bâtiments OSM** (55 fichiers `batiments_conakry_part_*.txt`, champs `osm_id | code | fclass | name | type | quartier | commune | region | prefecture`) ; 129 toponymes « parents » à rapprocher des quartiers fins.
+- Stratégie de rattachement prévue : 1) nom exact ; 2) quartier père ↔ secteurs (ex. « Coleah » → « Coleah Centre ») ; 3) réconciliation spatiale (polygone / centroïde le plus proche).
+- Outils : `scripts/consolidate_and_update_all_quartiers.py`, `scripts/generate_osm_buildings_sql.py` → `sql_batches_batiments/batch_01..28.sql`, `supabase_batiments_and_quartiers.sql`.
+- ⚠️ Les lots SQL n'insèrent **ni géométrie ni centroïde** (colonnes `id, quartier_id, osm_id, code, fclass, nom, usage` seulement) : même appliqués, `batiments_3d` ne contiendrait pas de polygones exploitables pour une détection point-dans-polygone.
+- **Décision ouverte** (`ECOSYSTEME_HAILAND.md` §9) : garder les bâtiments OSM dans les tuiles Mapbox (fonctionnement actuel) ou les importer en base avec leurs géométries.
 
 ---
 
