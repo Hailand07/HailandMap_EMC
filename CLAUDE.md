@@ -12,7 +12,8 @@ Le dépôt frère est **`Hailand07/Lynx`** (NavigationX, vitrine utilisateurs). 
 1. mettre à jour **`HAILANDMAP.md`** (et son journal en bas) ;
 2. mettre à jour **`ECOSYSTEME_HAILAND.md`** si cela touche à la base partagée, aux règles de communication, aux écarts ou au plan ;
 3. si `ECOSYSTEME_HAILAND.md` a changé : **augmenter sa révision**, puis le recopier dans le dépôt Lynx (hors ligne « Fichiers liés ») ; si l'autre dépôt n'est pas accessible dans la session, ajouter la ligne à reporter dans son **§13** ;
-4. faire ces mises à jour **dans le même commit** que le code.
+4. faire ces mises à jour **dans le même commit** que le code ;
+5. **en fin de session**, mettre à jour `ECOSYSTEME_HAILAND.md` **§14** (fait / décidé / bloqué / prochaine étape) — c'est ce qui permet de reprendre sans tout refaire.
 Procédure complète pour une nouvelle fonctionnalité : `ECOSYSTEME_HAILAND.md` **§12**.
 Utiliser la légende ✅ constaté / 📄 documenté / ⚠️ à vérifier / 💡 proposé ; ne jamais présenter une supposition comme un fait.
 
@@ -24,6 +25,6 @@ Utiliser la légende ✅ constaté / 📄 documenté / ⚠️ à vérifier / �
 
 ## Conventions
 - Langue : **français** (interface, commentaires, documentation, commits).
-- Commandes : `npm run dev` (port 3000), `npm run build`, `npm run lint` (`tsc --noEmit`), `npm run check:docs -- --staged` — lancer `lint` et `check:docs` avant de pousser. `check:docs` **échoue** si du code change sans mise à jour de la fiche du projet (+ ligne de journal), si la révision d'`ECOSYSTEME_HAILAND.md` n'augmente pas quand il change, ou si un secret apparaît dans un `.md` ; dérogation : `[docs: n/a]` dans le message de commit. Hook local : `git config core.hooksPath .githooks`.
+- Commandes : `npm run dev` (port 3000), `npm run build`, `npm run lint` (`tsc --noEmit`), `npm run check:docs -- --staged` — lancer `lint` et `check:docs` avant de pousser. `check:docs` **échoue** si du code change sans mise à jour de la fiche du projet (+ ligne de journal), si la révision d'`ECOSYSTEME_HAILAND.md` n'augmente pas quand il change, ou si un secret apparaît dans un `.md` ; dérogation : `[docs: n/a]` dans le message de commit. Le hook de session (`.claude/hooks/session-start.sh`) active automatiquement le hook de commit, installe les dépendances et rappelle le contexte.
 - Branche de travail courante : `claude/busy-cerf-cd22ke` ; ne pas créer de PR sans demande ; ne pas pousser sur `main` sans accord.
 - Commits : messages clairs au format conventionnel (`feat:`, `fix:`, `docs:`, `refactor:`).

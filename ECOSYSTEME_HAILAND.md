@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 6** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 7** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -13,6 +13,7 @@
 
 | Vous devez… | Lisez seulement |
 |---|---|
+| **Reprendre le travail** d'une session précédente | **§14** (où en est-on, prochaines étapes) |
 | Comprendre le projet en 2 minutes | §1 (vision), §2 (carte des applications) |
 | Toucher à **un code, un statut, une règle métier** | §3, puis §6.2 (règles de communication) |
 | Toucher à la **base de données** | §4 (réel observé), §4.4–4.5 (sécurité, logique) |
@@ -366,7 +367,8 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 4. **Écrire la fonctionnalité** ; toute évolution de schéma passe par une **migration SQL versionnée**, relue, appliquée **seulement après accord explicite et sauvegarde**.
 5. **Mettre à jour les fichiers dans le même commit** : fiche du projet (état, flux, problèmes résolus ou ajoutés + journal), ce document si l'écosystème est touché (+ augmenter la révision), `CLAUDE.md` si une règle de travail change.
 6. **Synchroniser l'autre dépôt** : si la session n'a accès qu'à un dépôt, noter la modification à reporter dans le §13 ; la prochaine session qui a accès à l'autre dépôt la reporte puis vide la ligne.
-7. **Vérifier** : `npm run lint`, build, puis `npm run check:docs -- --staged` (contrôle automatique : code modifié ⇒ fiche du projet + ligne de journal ; `ECOSYSTEME_HAILAND.md` modifié ⇒ révision augmentée ; aucun secret dans les `.md`). Un hook de commit (`git config core.hooksPath .githooks`) et un workflow GitHub (`.github/workflows/docs-check.yml`, sur les PR) font la même vérification. Dérogation : `[docs: n/a]` dans le message de commit (changement sans effet documentaire). Puis commit en français, format conventionnel.
+7. **Fin de session** : mettre à jour le §14 (ce qui est fait, décidé, bloqué, prochaine étape).
+8. **Vérifier** : `npm run lint`, build, puis `npm run check:docs -- --staged` (contrôle automatique : code modifié ⇒ fiche du projet + ligne de journal ; `ECOSYSTEME_HAILAND.md` modifié ⇒ révision augmentée ; aucun secret dans les `.md`). Un hook de commit (`git config core.hooksPath .githooks`) et un workflow GitHub (`.github/workflows/docs-check.yml`, sur les PR) font la même vérification. Dérogation : `[docs: n/a]` dans le message de commit (changement sans effet documentaire). Puis commit en français, format conventionnel.
 
 **Modèle de ligne de journal** : `| AAAA-MM-JJ | <ce qui change> — impacte : NavigationX / HailandMap / base / HailandX |`
 
@@ -380,11 +382,39 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ---
 
+## 14. Reprise de session (à mettre à jour en fin de chaque session)
+
+**Dernière mise à jour de cette section : 2026-10-02.**
+
+**Fait**
+- Compréhension des deux dépôts et de la base ; documentation de référence (ce fichier, fiches de projet, `CLAUDE.md`) + contrôle automatique (`check:docs`, hook de session, workflow GitHub).
+- Maquettes de la refonte de NavigationX (15 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur).
+- Relecture complète de la base en lecture seule (§4).
+
+**Décisions du fondateur déjà prises**
+- HailandMap = atelier (écrit le cadastre) ; NavigationX = vitrine (lit, présente, guide) ; HailandX = e-commerce, **pas encore débuté**.
+- Ces fichiers doivent rester à jour à chaque évolution ; la base de production n'est lue qu'en **lecture seule** sans accord explicite.
+- NavigationX doit être refondu en application de navigation **map-first** pour les utilisateurs (orientation et maquettes proposées, **en attente de validation écran par écran**).
+
+**En cours / non commencé** : aucun code applicatif modifié ; aucune écriture en base ; refonte de NavigationX non codée.
+
+**Prochaines étapes recommandées (dans l'ordre)**
+1. Fusionner la documentation sur la branche par défaut de chaque dépôt (sans cela, une nouvelle session ne la voit pas).
+2. Faire pivoter les clés exposées (`sb_secret_…`, `service_role`) ; **sauvegarder** la base (export de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
+3. Trancher les décisions ouvertes du §9.
+4. Préparer la migration de sécurité (§8, P0) — appliquée seulement après accord, sauvegarde faite, et une authentification en place pour les deux apps.
+5. Refonte de NavigationX par phases (§8 P2, `NAVIGATIONX.md` §6).
+
+**Bloqué par le fondateur** : validation des maquettes ; décisions §9 ; accord pour écrire en base ; fusion sur la branche par défaut.
+
+---
+
 ## 11. Journal des mises à jour
 
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création : synthèse de la vision (bilan global), des deux dépôts, de la base réelle (lecture seule) et des écarts ; plan d'amélioration proposé. |
+| 2026-10-02 | Hook de démarrage de session (dépendances + rappel du contexte), contrôle des liens `.md`, §14 « Reprise de session » — impacte : NavigationX / HailandMap. |
 | 2026-10-02 | Contrôle automatique de la documentation (`scripts/check-docs.mjs`, hook de commit, workflow GitHub) dans les deux dépôts — impacte : NavigationX / HailandMap. |
 | 2026-10-02 | Guide de lecture, procédure de fonctionnalité (§12), file de synchronisation (§13), numéro de révision ; suppression des anciens plans (contenu utile conservé dans les fiches). |
 | 2026-10-02 | Relecture complète de la base via le connecteur Supabase : politiques RLS (écriture publique partout), fonctions/triggers/vues, table `concessions` orpheline, 0 compte Auth, aucun bucket, aucune migration ; §4.4 passé en « constaté », ajout §4.5, plan P0 précisé. |

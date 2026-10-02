@@ -7,6 +7,7 @@
  *     (NAVIGATIONX.md ou HAILANDMAP.md) doit changer aussi et gagner une ligne de journal (« | AAAA-MM-JJ | … »).
  *  2. Si ECOSYSTEME_HAILAND.md change, son numéro « Révision : N » doit augmenter.
  *  3. Aucun secret (clé Supabase secrète, JWT, jeton) ne doit apparaître dans les fichiers .md.
+ *  4. Les liens relatifs des .md ([texte](./fichier)) doivent pointer vers des fichiers qui existent.
  *
  * Dérogation : mettre « [docs: n/a] » dans le message de commit (changement sans effet documentaire :
  * mise en forme, faute de frappe…). Elle est signalée dans la sortie.
@@ -112,6 +113,14 @@ for (const f of mdFiles) {
   const text = readFileSync(f, 'utf8');
   for (const [re, label] of SECRET_PATTERNS) {
     if (re.test(text)) errors.push(`${f} : ${label} détecté — à retirer (et à faire pivoter).`);
+  }
+}
+
+// --- Règle 4 : les liens relatifs des .md doivent pointer vers des fichiers existants --------------
+for (const f of mdFiles) {
+  const text = readFileSync(f, 'utf8');
+  for (const m of text.matchAll(/\[[^\]]+\]\((\.\/[^)#\s]+)(?:#[^)]*)?\)/g)) {
+    if (!existsSync(m[1])) errors.push(`${f} : lien cassé vers ${m[1]} (fichier supprimé ou renommé ?).`);
   }
 }
 
