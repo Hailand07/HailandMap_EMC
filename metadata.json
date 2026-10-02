@@ -1,0 +1,6 @@
+{
+  "name": "HailandMap",
+  "description": "Application d'adressage numérique et de livraison avec Mapbox GL JS 3D",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
