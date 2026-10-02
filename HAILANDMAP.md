@@ -121,7 +121,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 ## 7. Problèmes spécifiques à HailandMap (voir `ECOSYSTEME_HAILAND.md` §7)
 - 🔴 Séquences de codes calculées côté navigateur (doublons possibles) ; validation en masse aléatoire.
 - 🔴 Unicité du code administratif non garantie (lot par carreau ≠ unique par quartier ; collisions de trigrammes).
-- 🔴 Politiques de sécurité probablement ouvertes ; aucune authentification des agents (validateur codé en dur `admin-1`).
+- 🔴 Politiques RLS **ouvertes en écriture au rôle public** (constaté le 2026-10-02, y compris sur le référentiel territorial) ; aucune authentification des agents (validateur codé en dur `admin-1`) : fermer l'écriture publique impose d'abord d'authentifier HailandMap.
 - 🟠 `App.tsx` monolithique ; `main.tsx` surcharge `JSON.stringify` globalement.
 - 🟠 Bâtiment OSM non enregistré créé avec `commune: 'Bamako'`, `quartier: 'Centre'` (reste d'un autre projet).
 - 🟠 Détection de commune par bandes de longitude ; frontières embarquées au lieu d'être lues en base ; `zones.commune` faux.
@@ -150,3 +150,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | Date | Changement |
 |---|---|
 | 2026-10-02 | Création de la fiche : rôle, structure, flux d'enregistrement, règles de génération des codes, persistance, problèmes constatés. |
+| 2026-10-02 | Base relue (connecteur Supabase) : politiques ouvertes confirmées, `buildings` sans trigger de rattachement quartier, `fn_get_building_navigation_entry` disponible ; voir `ECOSYSTEME_HAILAND.md` §4.4–4.5. |

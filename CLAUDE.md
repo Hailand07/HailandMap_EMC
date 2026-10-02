@@ -17,6 +17,7 @@ Utiliser la légende ✅ constaté / 📄 documenté / ⚠️ à vérifier / �
 
 ## Règles de sécurité
 - Ne jamais écrire, afficher ni committer une clé ou un jeton (la clé Supabase publique est actuellement en dur dans `src/lib/supabase.ts` : ne pas en ajouter d'autres ; viser les variables d'environnement).
+- L'accès de travail à la base passe par le **connecteur Supabase (lecture seule par défaut)** ; ne jamais mettre de clé secrète dans la zone « variables d'environnement » de l'environnement cloud.
 - **Pas d'écriture dans la base de production** (insert/update/delete, migrations) sans accord explicite du fondateur pour cette opération. La base n'a **aucune sauvegarde**.
 - HailandMap est le **propriétaire** du cadastre : codes, géométries, statuts de certification. Toute évolution de format de code doit être répercutée dans le contrat (`ECOSYSTEME_HAILAND.md` §6.2) et prévenir NavigationX.
 
