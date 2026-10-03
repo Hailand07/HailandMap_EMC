@@ -176,3 +176,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 11 : NavigationX utilise l'adressage administratif (grille conservée par HailandMap), code provisoire aléatoire côté NavigationX — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 12 : test de la déduction du quartier par polygone (chevauchements de quartiers à arbitrer) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 13 : règles de déduction du quartier validées (fonction SQL proposée dans le dépôt Lynx, non appliquée) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 14 : fonction `fn_resolve_admin_address` créée en base (utilisable aussi par HailandMap pour le quartier/commune) — aucun changement fonctionnel de l'appli. |
