@@ -172,3 +172,9 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-02 | Base relue (connecteur Supabase) : politiques ouvertes confirmées, `buildings` sans trigger de rattachement quartier, `fn_get_building_navigation_entry` disponible ; voir `ECOSYSTEME_HAILAND.md` §4.4–4.5. |
 | 2026-10-02 | Réconciliation avec `main` (PR #1 et #2 déjà fusionnées) ; copie de `ECOSYSTEME_HAILAND.md` révision 8 ; correction de la mention obsolète sur le README — aucun changement fonctionnel de l'appli. |
 | 2026-10-02 | `check-docs` : règle 5 (synchronisation d'`ECOSYSTEME_HAILAND.md` avec Lynx) ; écosystème révision 9 — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 10 : niveaux de précision 1/2/3 définis par le fondateur (§3.4) ; HailandMap reste l'acteur du niveau 3 (vérification, enregistrement, certification) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 11 : NavigationX utilise l'adressage administratif (grille conservée par HailandMap), code provisoire aléatoire côté NavigationX — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 12 : test de la déduction du quartier par polygone (chevauchements de quartiers à arbitrer) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 13 : règles de déduction du quartier validées (fonction SQL proposée dans le dépôt Lynx, non appliquée) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 14 : fonction `fn_resolve_admin_address` créée en base (utilisable aussi par HailandMap pour le quartier/commune) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 15 : table `declarations` proposée (HailandMap la lira pour vérifier et relier au cadastre, niveau 3) — aucun changement fonctionnel de l'appli. |

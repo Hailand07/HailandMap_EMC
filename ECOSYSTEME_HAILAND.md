@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 9** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 15** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -55,7 +55,7 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - Expansion : petite zone → commune → Conakry → Guinée → pays similaires.
 - **Priorité actuelle** : démontrer une petite boucle complète (quelques bâtiments vérifiés → quelques vendeurs → commandes → livraisons → revenus), pas « construire tout Hailand ».
 
-**Niveaux de donnée d'un lieu** 📄 : *Niveau 1* localisation (point GPS) · *Niveau 2* géométrie (polygone du bâtiment ou de la cour) · *Niveau 3* données détaillées vérifiées sur le terrain (type, étages, unités, portail, repères, consignes). Le niveau 3 est la donnée la plus précieuse.
+**Niveaux de précision d'un lieu** 📄 (définition du fondateur, 2026-10-03 — voir §3.4) : *Niveau 1* le GPS n'identifie aucun bâtiment (précision faible) · *Niveau 2* le GPS identifie le polygone OSM du bâtiment (précision bonne, **non vérifiée**) · *Niveau 3* domicile **vérifié, enregistré et certifié par l'équipe Hailand** (très haute précision, très sûr). Le niveau 3 n'est **pas la suite** des niveaux 1 et 2.
 
 ---
 
@@ -128,6 +128,27 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - ⚠️ **Écart actuel** : NavigationX calcule `max(floor_count, 1) × 3,2 m` (`getBuildingHeight`) → décalé d'un niveau dès `floor_count ≥ 1`. À aligner (voir §7).
 - Les volumes sont **régénérés à partir de `buildings`** (pas stockés en base).
 
+### 3.4 Niveaux de précision d'une adresse 📄 (fondateur, 2026-10-03) — décision de conception, rien d'implémenté
+| Niveau | Condition | Précision | Ce que l'utilisateur obtient |
+|---|---|---|---|
+| **1** | le GPS ne permet d'identifier **aucun** polygone OSM | faible | position approximative : guidage vers une **zone** (cercle), maisonnette 3D provisoire marquée « Estimation » |
+| **2** | le GPS tombe **dans** un polygone OSM | bonne, **non vérifiée** | guidage jusqu'au bon **bâtiment** (surbrillance) ; pas de tracé jusqu'à la porte |
+| **3** | vérifié, enregistré et **certifié par l'équipe Hailand** | très haute, très sûre | entrée GPS précise (pointillés + distance), cour et bâtiment surlignés, index complet |
+
+- Les niveaux 1 et 2 sont **détectés automatiquement** ; le niveau 3 est une **vérification humaine**, indépendante (un domicile en niveau 1 ou 2 peut être vérifié ; le résident peut le demander). L'utilisateur doit toujours voir **son niveau, la précision et ce qu'il implique**.
+- Les informations facultatives que saisit le résident (type, étages, appartements) **ne changent pas le niveau** ; elles aident l'équipe lors de la vérification.
+- Deux codes : **Hailand-Code général** (bâtiment ou cour) et **code d'emplacement** (étage / porte, `-E{n}-{porte}`), à ne pas confondre (voir §3.2).
+- 💡 Correspondance base à décider : le niveau 3 ≈ `status = 'actif'` + `is_validated = true` (certifié HailandMap) ; les niveaux 1 et 2 relèvent d'une table de déclarations distincte de `buildings` (⚠️ à concevoir, absente aujourd'hui). Les maquettes sont dans `NAVIGATIONX.md` §6.
+
+### 3.5 Adressage retenu pour NavigationX 📄 (fondateur, 2026-10-03)
+- **NavigationX utilise l'adressage administratif** (région > préfecture > commune > quartier). Le **système de grille** (zones de 200 m) n'est pas mis en place côté NavigationX pour l'instant ; il reste celui de HailandMap (§3.2).
+- Principe voulu : retrouver l'identifiant du bâtiment suffit à connaître sa structure administrative. ✅ Constat base (2026-10-02) : le référentiel territorial est complet (8 régions, 34 préfectures, 342 communes, 403 quartiers avec polygones PostGIS, liés par clés étrangères) **mais** `buildings.quartier_id` / `commune_id` sont **vides** pour les relevés existants et les 273 937 bâtiments OSM **ne sont pas en base**. Le lien « bâtiment → quartier » n'existe donc pas encore.
+- 💡 Solution recommandée : déduire la hiérarchie par **intersection spatiale** (le point GPS ou le centroïde du bâtiment dans `quartiers.geom`, puis remonter par les clés étrangères). Cela fonctionne aussi au **niveau 1** (aucun polygone de bâtiment : le quartier est quand même reconnu) et sans importer les bâtiments OSM.
+- ✅ **Test en lecture seule (2026-10-03)** de la déduction par polygone sur les 35 `buildings` : **22** points tombent dans **1** quartier, **10** dans **2 quartiers** (polygones qui se chevauchent, ex. `qtr-hafia` contient `qtr-osm-5567220` « Coleah Centre » et `qtr-camayenne`), **3** dans **aucun** quartier (Keïtayah, au nord ; ils tombent bien dans la commune `com-ratoma`). Au total **96 paires de quartiers se chevauchent** (surtout un quartier historique `qtr-*` qui recouvre un `qtr-osm-*`). Polygones tous valides, tous rattachés à une commune, index spatial (GIST) présent.
+- 💡 **Règles à appliquer** pour que la méthode suffise : (1) en cas de chevauchement, retenir le **polygone le plus petit** (le plus précis) qui contient le point ; (2) si aucun quartier ne contient le point, retomber sur la **commune** (adresse « quartier non identifié ») ; (3) mettre cette logique dans **une seule fonction en base** (appelée par NavigationX et HailandMap) et **stocker le résultat** avec la déclaration. Un import partiel des bâtiments OSM déjà rattachés peut venir **en complément** (identifiants stables), pas à la place.
+- ✅ **Règles validées par le fondateur (2026-10-03)** : plus petit polygone en cas de chevauchement ; repli sur la commune si aucun quartier. **Vérifiées en lecture seule** sur les 35 `buildings` : **32** retrouvent exactement le quartier saisi (ex. « Coleah Centre » au lieu de `qtr-hafia`), **3** (Keïtayah) retombent sur la commune Ratoma. ✅ **Fonction appliquée le 2026-10-03** (accord explicite du fondateur) : `public.fn_resolve_admin_address(p_lng, p_lat)` → région, préfecture, commune, quartier + `source` (`quartier` ou `commune`) ; lecture seule, `STABLE`, exécutable avec la clé publique. Testée sur 3 points (Coleah Centre → Matam ; Keïtayah → repli commune Ratoma ; point hors du pays → aucune ligne). Source : `migrations/2026-10-03_fn_resolve_admin_address.sql` (dépôt Lynx). Aucune donnée existante modifiée ; retour arrière : `drop function`. Reste à faire : stocker le résultat avec les déclarations (table à concevoir) et l'appeler depuis NavigationX.
+- **Code Hailand côté NavigationX = provisoire** : un code **aléatoire** (ex. `GN-K7M2-48R9`) est utilisé dans les maquettes tant que le format du code administratif n'est pas défini (décision ouverte, §9). Ne pas le confondre avec le format de HailandMap (`GN.{CKY}.{COM}.{QTR}-C{lot}` calculé côté client, §3.2).
+
 ---
 
 ## 4. Base de données partagée (Supabase)
@@ -199,7 +220,15 @@ La RLS est **activée** sur toutes les tables de données, mais **toutes les pol
 ### 4.5 Logique côté base ✅
 - **Triggers** : `trg_buildings_auto_fixed_centroid` (avant insert/update sur `buildings`) calcule `centroid` si absent ou si la géométrie change, par **moyenne des sommets** du contour (`fn_calculate_fixed_polygon_centroid`, ≠ centroïde géométrique exact) ; `trg_batiment_3d_enrich` (sur `batiments_3d`) calcule centroïde, `superficie_sol_m2` et **`quartier_id` par intersection spatiale**. ➜ **`buildings` n'a pas ce rattachement automatique au quartier**, d'où `quartier_id` vide.
 - **Fonctions** : `fn_get_building_navigation_entry(p_building_id)` → renvoie le **point d'entrée** du bâtiment, sinon celui de la concession mère, sinon le centroïde (**déjà un pont de navigation** à utiliser côté NavigationX) ; `fn_fix_all_building_centroids()` (recalcule les centroïdes manquants) ; `handle_update_timestamp()`.
+- ✅ **Ajoutée le 2026-10-03** : `fn_resolve_admin_address(p_lng, p_lat)` (déduction de la hiérarchie administrative, §3.5) — première fonction métier d'adressage en base.
 - **Aucune fonction** de génération de code, de numérotation, de détection point-dans-polygone ni de réclamation. Aucune Edge Function.
+
+### 4.6 Table des déclarations (NavigationX) 💡 proposée, non appliquée
+Fichier : `migrations/proposed/2026-10-03_declarations.sql` (dépôt Lynx). NavigationX n'écrit **jamais** dans `buildings` : il écrit dans `declarations`, HailandMap la lit, vérifie, puis la relie au bâtiment certifié.
+- **Contenu** : position GPS et précision, polygone OSM détecté (id + instantané du contour), niveau détecté (1 ou 2), adresse administrative (région→quartier, remplie par le serveur avec `fn_resolve_admin_address`), code Hailand provisoire généré par la base, emplacement (étage/porte), informations facultatives, lien `certified_building_id` (réservé à HailandMap), statut.
+- **Niveau effectif** : vue `v_declarations_niveau` → 3 si le bâtiment lié est `actif` et `is_validated`, sinon le niveau détecté. Le niveau 3 reste donc un acte HailandMap.
+- **Sécurité** : RLS activée **sans politique publique** ; un résident ne lit/écrit que ses lignes (`auth.uid()`), pas de suppression (archivage). Géométries en PostGIS avec index GIST (≠ JSONB de `buildings`).
+- **Prérequis** : authentification Supabase (0 compte aujourd'hui), accord du fondateur, sauvegarde ; décisions ouvertes : format officiel du code, plusieurs domiciles par compte, rôle HailandMap pour la lecture globale.
 
 ---
 
@@ -231,7 +260,7 @@ Utilisateur ouvre NavigationX
 
 ### 5.3 Réclamation d'un domicile (NavigationX → base) ✅ (comportement actuel)
 ```
-Résident → GPS → détection (3 branches) → hiérarchie territoriale → saisie niveau 2/3 → assignation
+Résident → GPS → détection (3 branches) → hiérarchie territoriale → saisie de détails → assignation
   Branche 1 : bâtiment déjà dans 'buildings' → UPDATE (claimed_by + remplace type, étages, repères…)
   Branche 2 : bâtiment dans 'batiments_3d' (vide en pratique) → INSERT 'buildings' en 'actif' + validé
   Branche 3 : rien trouvé → INSERT d'une « maisonnette » 12×10 m, code GN-{zone}-TMP-{nnnn}, 'en_attente'
@@ -341,6 +370,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 9. Décisions ouvertes (à trancher par le fondateur)
 
+0. **Format du code administratif (NavigationX)** : non défini, code aléatoire provisoire en attendant (§3.5).
 1. **Format officiel du Hailand-Code et de la zone** : garder celui de HailandMap (`GN-Z4761-CR001-RL3`) en corrigeant la grille ? 
 2. **Numéro de lot** : unique **par quartier** (code admin garanti unique) ou par carreau ?
 3. **Immeuble avec plusieurs portes** : 1 ligne `buildings` ou 1 ligne par porte ?
@@ -423,3 +453,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-02 | Relecture complète de la base via le connecteur Supabase : politiques RLS (écriture publique partout), fonctions/triggers/vues, table `concessions` orpheline, 0 compte Auth, aucun bucket, aucune migration ; §4.4 passé en « constaté », ajout §4.5, plan P0 précisé. |
 | 2026-10-02 | Réconciliation avec la version déjà fusionnée sur `main` (PR #1, « 2ᵉ relecture ») : conservation de la structure/§12–§14, ajout des suppressions en cascade (`ON DELETE`) et de la note sur `concessions` — révision 8. |
 | 2026-10-02 | Révision 9 : §14 mis à jour (documentation fusionnée sur `main`), règle 5 de `check-docs` (synchro des deux copies) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 10 : définition des niveaux de précision 1/2/3 donnée par le fondateur (§3.4, ligne §1) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 11 : adressage administratif retenu pour NavigationX, grille écartée pour l'instant, code provisoire aléatoire, lien bâtiment → quartier à créer (§3.5) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 12 : test réel de la déduction quartier par polygone (22/35 nets, 10 chevauchements, 3 hors quartier) et règles proposées (§3.5) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 13 : règles de déduction du quartier validées et vérifiées (32/35 exacts, 3 en repli commune) ; fonction SQL proposée, non appliquée — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 14 : `fn_resolve_admin_address` créée en base (première migration, accord du fondateur) ; §4.5 : la base a désormais une fonction d'adressage — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 15 : schéma proposé de la table `declarations` (§4.6), non appliqué — impacte : NavigationX / HailandMap. |
