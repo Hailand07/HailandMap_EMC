@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 18** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 19** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -223,6 +223,9 @@ La RLS est **activée** sur toutes les tables de données, mais **toutes les pol
 - ✅ **Ajoutée le 2026-10-03** : `fn_resolve_admin_address(p_lng, p_lat)` (déduction de la hiérarchie administrative, §3.5) — première fonction métier d'adressage en base.
 - **Aucune fonction** de génération de code, de numérotation, de détection point-dans-polygone ni de réclamation. Aucune Edge Function.
 
+### 4.7 Authentification Supabase ✅ (relevée le 2026-10-03, lecture seule de `/auth/v1/settings`)
+Activés : **e-mail**. **Désactivés** : téléphone (fournisseur SMS **Twilio** configuré mais méthode off), Google, Apple, connexion anonyme (invité). Inscription ouverte, e-mail à confirmer. À faire par le fondateur (tableau de bord Supabase › Authentication) : activer les méthodes voulues, autoriser l'URL du site et de redirection, adapter le modèle d'e-mail avec `{{ .Token }}` pour le code à 6 chiffres. NavigationX lit ces réglages au démarrage et grise les méthodes inactives.
+
 ### 4.6 Table des déclarations (NavigationX) 💡 proposée, non appliquée
 Fichier : `migrations/proposed/2026-10-03_declarations.sql` (dépôt Lynx). NavigationX n'écrit **jamais** dans `buildings` : il écrit dans `declarations`, HailandMap la lit, vérifie, puis la relie au bâtiment certifié.
 - **Contenu** : position GPS et précision, polygone OSM détecté (id + instantané du contour), niveau détecté (1 ou 2), adresse administrative (région→quartier, remplie par le serveur avec `fn_resolve_admin_address`), code Hailand provisoire généré par la base, emplacement (étage/porte), informations facultatives, lien `certified_building_id` (réservé à HailandMap), statut.
@@ -422,7 +425,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 **Fait**
 - Compréhension des deux dépôts et de la base ; documentation de référence (ce fichier, fiches de projet, `CLAUDE.md`) + contrôle automatique (`check:docs`, hook de session, workflow GitHub) — **fusionnés sur `main` dans les deux dépôts** (PR Lynx#2, HailandMap_EMC#3).
 - Contrôle de synchronisation des deux copies de ce fichier (règle 5 de `check-docs`, exécutée par le workflow GitHub).
-- Maquettes v3 de la refonte de NavigationX (28 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur) — **validées** ; refonte codée : **phases 1 à 3** (design system, 2 onglets, carte/navigation par niveau, accueil 3D, enregistrement par niveaux) — détail dans `NAVIGATIONX.md` §6.
+- Maquettes v3 de la refonte de NavigationX (28 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur) — **validées** ; refonte codée : **phases 1 à 4** (design system, 2 onglets, carte/navigation par niveau, accueil 3D, enregistrement par niveaux, connexion et profil) — détail dans `NAVIGATIONX.md` §6.
 - Relecture complète de la base en lecture seule (§4).
 
 **Décisions du fondateur déjà prises**
@@ -430,14 +433,14 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - Ces fichiers doivent rester à jour à chaque évolution ; la base de production n'est lue qu'en **lecture seule** sans accord explicite.
 - NavigationX doit être refondu en application de navigation **map-first** pour les utilisateurs (orientation et maquettes proposées, **en attente de validation écran par écran**).
 
-**En cours / non commencé** : refonte NavigationX phase 4 (connexion, profil/photo, états d'erreur, hors-ligne) et 5 (retrait de l'ancien code) ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
+**En cours / non commencé** : refonte NavigationX phase 5 (retrait de l'ancien code) ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
 
 **Prochaines étapes recommandées (dans l'ordre)**
 1. Faire pivoter les clés exposées (`sb_secret_…`, `service_role`) ; **sauvegarder** la base (export de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
 2. Protéger `main` dans les deux dépôts (PR obligatoire + contrôle « Contrôle de documentation » requis) — réglage GitHub du fondateur.
 3. Trancher les décisions ouvertes du §9.
 4. Préparer la migration de sécurité (§8, P0) — appliquée seulement après accord, sauvegarde faite, et une authentification en place pour les deux apps.
-5. Refonte de NavigationX : **phase 4** (connexion téléphone/Google/Apple/e-mail/invité, profil et photo, états d'erreur, hors-ligne) puis **phase 5** (retrait de l'ancien tableau de bord, de `ZoneRegistrationModal` qui écrit dans `buildings`, du sélecteur de profils). L'authentification est le prérequis de la table `declarations` (§4.6).
+5. **Activer les méthodes de connexion** voulues dans Supabase (§4.7) : sans cela seule l'e-mail fonctionne. Puis refonte NavigationX **phase 5** (retrait de l'ancien tableau de bord, de `ZoneRegistrationModal` qui écrit dans `buildings`, du sélecteur de profils). L'authentification est le prérequis de la table `declarations` (§4.6) et d'un espace de stockage pour les photos.
 6. Corriger la clé Supabase de repli de NavigationX (§7).
 
 **Bloqué par le fondateur** : décisions §9 ; accord pour écrire en base (table `declarations`, sécurité) et sauvegarde ; protection de `main`.
@@ -464,3 +467,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 16 : décision « plusieurs domiciles par compte » (§4.6) ; maquettes revues pour la cohérence (niveau de la destination sur la fiche lieu, flux guidage → dernier mètre) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 17 : clé Supabase de repli de NavigationX rejetée (§7) ; refonte phases 1-2 codées (fiche NAVIGATIONX.md) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 18 : §14 mis à jour (refonte NavigationX phases 1 à 3 codées, déclarations locales en attendant la table et l'authentification) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 19 : réglages d'authentification Supabase relevés (§4.7), refonte NavigationX phase 4 codée (§14) — impacte : NavigationX / HailandMap. |
