@@ -180,3 +180,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 15 : table `declarations` proposée (HailandMap la lira pour vérifier et relier au cadastre, niveau 3) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 16 : un compte peut avoir plusieurs domiciles (table `declarations`) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 17 : clé Supabase de repli de NavigationX rejetée ; refonte NavigationX phases 1-2 — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 18 : refonte NavigationX phases 1 à 3 codées ; les déclarations des résidents (niveaux 1 et 2) resteront à lire et vérifier par HailandMap quand la table `declarations` existera — aucun changement fonctionnel de l'appli. |

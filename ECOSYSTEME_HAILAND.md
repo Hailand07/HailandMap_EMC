@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 17** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 18** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -422,7 +422,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 **Fait**
 - Compréhension des deux dépôts et de la base ; documentation de référence (ce fichier, fiches de projet, `CLAUDE.md`) + contrôle automatique (`check:docs`, hook de session, workflow GitHub) — **fusionnés sur `main` dans les deux dépôts** (PR Lynx#2, HailandMap_EMC#3).
 - Contrôle de synchronisation des deux copies de ce fichier (règle 5 de `check-docs`, exécutée par le workflow GitHub).
-- Maquettes de la refonte de NavigationX (15 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur).
+- Maquettes v3 de la refonte de NavigationX (28 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur) — **validées** ; refonte codée : **phases 1 à 3** (design system, 2 onglets, carte/navigation par niveau, accueil 3D, enregistrement par niveaux) — détail dans `NAVIGATIONX.md` §6.
 - Relecture complète de la base en lecture seule (§4).
 
 **Décisions du fondateur déjà prises**
@@ -430,16 +430,17 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - Ces fichiers doivent rester à jour à chaque évolution ; la base de production n'est lue qu'en **lecture seule** sans accord explicite.
 - NavigationX doit être refondu en application de navigation **map-first** pour les utilisateurs (orientation et maquettes proposées, **en attente de validation écran par écran**).
 
-**En cours / non commencé** : aucun code applicatif modifié ; aucune écriture en base ; refonte de NavigationX non codée.
+**En cours / non commencé** : refonte NavigationX phase 4 (connexion, profil/photo, états d'erreur, hors-ligne) et 5 (retrait de l'ancien code) ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
 
 **Prochaines étapes recommandées (dans l'ordre)**
 1. Faire pivoter les clés exposées (`sb_secret_…`, `service_role`) ; **sauvegarder** la base (export de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
 2. Protéger `main` dans les deux dépôts (PR obligatoire + contrôle « Contrôle de documentation » requis) — réglage GitHub du fondateur.
 3. Trancher les décisions ouvertes du §9.
 4. Préparer la migration de sécurité (§8, P0) — appliquée seulement après accord, sauvegarde faite, et une authentification en place pour les deux apps.
-5. Refonte de NavigationX par phases (§8 P2, `NAVIGATIONX.md` §6).
+5. Refonte de NavigationX : **phase 4** (connexion téléphone/Google/Apple/e-mail/invité, profil et photo, états d'erreur, hors-ligne) puis **phase 5** (retrait de l'ancien tableau de bord, de `ZoneRegistrationModal` qui écrit dans `buildings`, du sélecteur de profils). L'authentification est le prérequis de la table `declarations` (§4.6).
+6. Corriger la clé Supabase de repli de NavigationX (§7).
 
-**Bloqué par le fondateur** : validation des maquettes ; décisions §9 ; accord pour écrire en base ; protection de `main`.
+**Bloqué par le fondateur** : décisions §9 ; accord pour écrire en base (table `declarations`, sécurité) et sauvegarde ; protection de `main`.
 
 ---
 
@@ -462,3 +463,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 15 : schéma proposé de la table `declarations` (§4.6), non appliqué — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 16 : décision « plusieurs domiciles par compte » (§4.6) ; maquettes revues pour la cohérence (niveau de la destination sur la fiche lieu, flux guidage → dernier mètre) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 17 : clé Supabase de repli de NavigationX rejetée (§7) ; refonte phases 1-2 codées (fiche NAVIGATIONX.md) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 18 : §14 mis à jour (refonte NavigationX phases 1 à 3 codées, déclarations locales en attendant la table et l'authentification) — impacte : NavigationX / HailandMap. |
