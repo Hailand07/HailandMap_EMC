@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 19** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 20** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -261,14 +261,16 @@ Utilisateur ouvre NavigationX
   → guidage (HUD) jusqu'au portail
 ```
 
-### 5.3 Réclamation d'un domicile (NavigationX → base) ✅ (comportement actuel)
+### 5.3 Enregistrement d'un domicile (NavigationX → déclaration) ✅ (depuis la refonte du 2026-10-03)
 ```
-Résident → GPS → détection (3 branches) → hiérarchie territoriale → saisie de détails → assignation
-  Branche 1 : bâtiment déjà dans 'buildings' → UPDATE (claimed_by + remplace type, étages, repères…)
-  Branche 2 : bâtiment dans 'batiments_3d' (vide en pratique) → INSERT 'buildings' en 'actif' + validé
-  Branche 3 : rien trouvé → INSERT d'une « maisonnette » 12×10 m, code GN-{zone}-TMP-{nnnn}, 'en_attente'
+Résident → GPS réel → le point est-il dans un polygone de bâtiment des tuiles Mapbox/OSM ?
+  oui → niveau 2 (bonne précision, non vérifiée)      non → niveau 1 (précision faible, maisonnette provisoire « Estimation »)
+→ informations facultatives (type, étages, appartements : ne changent pas le niveau)
+→ adresse administrative par fn_resolve_admin_address (§3.5) + code provisoire aléatoire
+→ déclaration : table `declarations` (§4.6) si session authentifiée, sinon conservée sur l'appareil
+Niveau 3 : acte de HailandMap (vérification, enregistrement, certification), jamais produit par NavigationX.
 ```
-Le design cible (§7) restreint NavigationX à : **rattacher** un résident à un bâtiment existant, ou **déposer une demande `en_attente`**.
+**NavigationX n'écrit plus jamais dans `buildings`** (l'ancien assistant à 3 branches, qui réclamait, créait et auto-certifiait, a été supprimé).
 
 ### 5.4 Livraison (HailandX → carte) 💡
 `deliveries` existe déjà en base (`building_id`, `hailand_code`, `livreur_id`, `client_id`, statuts `pending → in_transit → delivered / failed / cancelled`) : point d'ancrage naturel de HailandX.
@@ -320,14 +322,12 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - 🟠 **Plusieurs portes** : l'UI génère toutes les portes d'un étage mais enregistre **une seule ligne** avec une porte ciblée ; le modèle « 1 immeuble = 1 ligne ou N lignes » n'est pas tranché.
 
 ### NavigationX
-- 🔴 **Réclamer écrase des données certifiées** : branche 1 remplace `building_type`, `floor_count`, `unit_count`, `door_color`, repères — même si le bâtiment est déjà réclamé par un autre.
-- 🔴 **Auto-certification** : branche 2 insère en `actif`, `is_validated = true`.
-- 🟠 **« Domicile » inventé** : `fetchClaimedBuilding` renvoie le *premier* bâtiment avec code si l'utilisateur n'a rien réclamé ; le tableau de bord affiche `GN-Z014-M007-CR` et « Niveau 3 (Certifié) » par défaut.
-- 🟠 **Détection non scalable** : charge 100 `buildings` + 150 `batiments_3d` puis teste en JS.
-- 🟠 **Pas d'authentification** : sélecteur de profils (invité/user/admin) stocké dans `localStorage`, `claimed_by` = faux id (`user-1`).
-- 🟠 **Types TypeScript divergents de la base** : statuts de validation (`approuve` vs `approved`), livraison (`en_cours`/`livre` vs `in_transit`/`delivered`), façades (`orientation`/`image_url` vs `direction`/`storage_path`), statut `rejete` inexistant en base ; mappage `villa → H` (hôtel).
-- 🟠 **Clé Supabase de repli rejetée (✅ 2026-10-03)** : celle codée en dur dans `src/lib/hailandData.ts` renvoie « Invalid API key » ; sans `VITE_SUPABASE_ANON_KEY` NavigationX affiche silencieusement `FALLBACK_ROWS`. À corriger (variable d'environnement obligatoire, plus de repli silencieux).
-- 🟡 Hauteur décalée d'un niveau (§3.3) ; clé Supabase de repli en dur ; `.env.example` contient des identifiants réels.
+**Résolus par la refonte (2026-10-03)** : réclamation destructive, auto-certification, domicile inventé, faux profils/`claimed_by` fictif, repli silencieux du GPS sur Kipé, clé IA côté navigateur, `.env.example` avec identifiants réels, erreurs TypeScript.
+- 🟠 **Clé Supabase de repli rejetée (✅ 2026-10-03)** : celle codée en dur dans `src/lib/hailandData.ts` renvoie « Invalid API key » ; sans `VITE_SUPABASE_ANON_KEY` NavigationX affiche des données de secours (désormais signalées par un bandeau). À corriger (variable obligatoire, plus de repli).
+- 🟠 **Chargement complet de `buildings`** (`select *`) et recherche/détection côté navigateur : ne passera pas à l'échelle.
+- 🟠 **Authentification partielle** : seul l'e-mail est activé (§4.7) ; table `declarations` et stockage des photos non créés.
+- 🟠 **Types TypeScript divergents de la base** : statuts de validation (`approuve` vs `approved`), livraison, façades, statut `rejete` inexistant ; mappage `villa → H` (hôtel).
+- 🟡 Hauteur décalée d'un niveau (§3.3).
 
 ### HailandMap
 - 🟠 **Tout est dans `App.tsx`** (≈ 8 500 lignes) ; `main.tsx` surcharge `JSON.stringify` globalement.
@@ -425,7 +425,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 **Fait**
 - Compréhension des deux dépôts et de la base ; documentation de référence (ce fichier, fiches de projet, `CLAUDE.md`) + contrôle automatique (`check:docs`, hook de session, workflow GitHub) — **fusionnés sur `main` dans les deux dépôts** (PR Lynx#2, HailandMap_EMC#3).
 - Contrôle de synchronisation des deux copies de ce fichier (règle 5 de `check-docs`, exécutée par le workflow GitHub).
-- Maquettes v3 de la refonte de NavigationX (28 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur) — **validées** ; refonte codée : **phases 1 à 4** (design system, 2 onglets, carte/navigation par niveau, accueil 3D, enregistrement par niveaux, connexion et profil) — détail dans `NAVIGATIONX.md` §6.
+- Maquettes v3 de la refonte de NavigationX (28 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur) — **validées** ; refonte codée : **phases 1 à 5, terminée** (design system, 2 onglets, carte/navigation par niveau, accueil 3D, enregistrement par niveaux, connexion et profil) — détail dans `NAVIGATIONX.md` §6.
 - Relecture complète de la base en lecture seule (§4).
 
 **Décisions du fondateur déjà prises**
@@ -433,14 +433,14 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - Ces fichiers doivent rester à jour à chaque évolution ; la base de production n'est lue qu'en **lecture seule** sans accord explicite.
 - NavigationX doit être refondu en application de navigation **map-first** pour les utilisateurs (orientation et maquettes proposées, **en attente de validation écran par écran**).
 
-**En cours / non commencé** : refonte NavigationX phase 5 (retrait de l'ancien code) ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
+**En cours / non commencé** : refonte NavigationX terminée côté code ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
 
 **Prochaines étapes recommandées (dans l'ordre)**
 1. Faire pivoter les clés exposées (`sb_secret_…`, `service_role`) ; **sauvegarder** la base (export de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
 2. Protéger `main` dans les deux dépôts (PR obligatoire + contrôle « Contrôle de documentation » requis) — réglage GitHub du fondateur.
 3. Trancher les décisions ouvertes du §9.
 4. Préparer la migration de sécurité (§8, P0) — appliquée seulement après accord, sauvegarde faite, et une authentification en place pour les deux apps.
-5. **Activer les méthodes de connexion** voulues dans Supabase (§4.7) : sans cela seule l'e-mail fonctionne. Puis refonte NavigationX **phase 5** (retrait de l'ancien tableau de bord, de `ZoneRegistrationModal` qui écrit dans `buildings`, du sélecteur de profils). L'authentification est le prérequis de la table `declarations` (§4.6) et d'un espace de stockage pour les photos.
+5. **Activer les méthodes de connexion** voulues dans Supabase (§4.7) : sans cela seule l'e-mail fonctionne. L'authentification est le prérequis de la table `declarations` (§4.6) et d'un espace de stockage pour les photos.
 6. Corriger la clé Supabase de repli de NavigationX (§7).
 
 **Bloqué par le fondateur** : décisions §9 ; accord pour écrire en base (table `declarations`, sécurité) et sauvegarde ; protection de `main`.
@@ -468,3 +468,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 17 : clé Supabase de repli de NavigationX rejetée (§7) ; refonte phases 1-2 codées (fiche NAVIGATIONX.md) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 18 : §14 mis à jour (refonte NavigationX phases 1 à 3 codées, déclarations locales en attendant la table et l'authentification) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 19 : réglages d'authentification Supabase relevés (§4.7), refonte NavigationX phase 4 codée (§14) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 20 : refonte NavigationX terminée (phase 5) — ancien assistant d'enregistrement supprimé (NavigationX n'écrit plus dans `buildings`), §5.3 réécrit, §7 NavigationX mis à jour — impacte : NavigationX / HailandMap. |

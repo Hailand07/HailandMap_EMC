@@ -182,3 +182,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 17 : clé Supabase de repli de NavigationX rejetée ; refonte NavigationX phases 1-2 — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 18 : refonte NavigationX phases 1 à 3 codées ; les déclarations des résidents (niveaux 1 et 2) resteront à lire et vérifier par HailandMap quand la table `declarations` existera — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 19 : réglages d'authentification Supabase relevés (§4.7) et refonte NavigationX phase 4 — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 20 : refonte NavigationX terminée ; NavigationX n'écrit plus jamais dans `buildings` (HailandMap reste seul à certifier) — aucun changement fonctionnel de l'appli. |
