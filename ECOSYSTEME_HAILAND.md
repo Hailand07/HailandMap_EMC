@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 11** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 12** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -144,6 +144,8 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - **NavigationX utilise l'adressage administratif** (région > préfecture > commune > quartier). Le **système de grille** (zones de 200 m) n'est pas mis en place côté NavigationX pour l'instant ; il reste celui de HailandMap (§3.2).
 - Principe voulu : retrouver l'identifiant du bâtiment suffit à connaître sa structure administrative. ✅ Constat base (2026-10-02) : le référentiel territorial est complet (8 régions, 34 préfectures, 342 communes, 403 quartiers avec polygones PostGIS, liés par clés étrangères) **mais** `buildings.quartier_id` / `commune_id` sont **vides** pour les relevés existants et les 273 937 bâtiments OSM **ne sont pas en base**. Le lien « bâtiment → quartier » n'existe donc pas encore.
 - 💡 Solution recommandée : déduire la hiérarchie par **intersection spatiale** (le point GPS ou le centroïde du bâtiment dans `quartiers.geom`, puis remonter par les clés étrangères). Cela fonctionne aussi au **niveau 1** (aucun polygone de bâtiment : le quartier est quand même reconnu) et sans importer les bâtiments OSM.
+- ✅ **Test en lecture seule (2026-10-03)** de la déduction par polygone sur les 35 `buildings` : **22** points tombent dans **1** quartier, **10** dans **2 quartiers** (polygones qui se chevauchent, ex. `qtr-hafia` contient `qtr-osm-5567220` « Coleah Centre » et `qtr-camayenne`), **3** dans **aucun** quartier (Keïtayah, au nord ; ils tombent bien dans la commune `com-ratoma`). Au total **96 paires de quartiers se chevauchent** (surtout un quartier historique `qtr-*` qui recouvre un `qtr-osm-*`). Polygones tous valides, tous rattachés à une commune, index spatial (GIST) présent.
+- 💡 **Règles à appliquer** pour que la méthode suffise : (1) en cas de chevauchement, retenir le **polygone le plus petit** (le plus précis) qui contient le point ; (2) si aucun quartier ne contient le point, retomber sur la **commune** (adresse « quartier non identifié ») ; (3) mettre cette logique dans **une seule fonction en base** (appelée par NavigationX et HailandMap) et **stocker le résultat** avec la déclaration. Un import partiel des bâtiments OSM déjà rattachés peut venir **en complément** (identifiants stables), pas à la place.
 - **Code Hailand côté NavigationX = provisoire** : un code **aléatoire** (ex. `GN-K7M2-48R9`) est utilisé dans les maquettes tant que le format du code administratif n'est pas défini (décision ouverte, §9). Ne pas le confondre avec le format de HailandMap (`GN.{CKY}.{COM}.{QTR}-C{lot}` calculé côté client, §3.2).
 
 ---
@@ -444,3 +446,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-02 | Révision 9 : §14 mis à jour (documentation fusionnée sur `main`), règle 5 de `check-docs` (synchro des deux copies) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 10 : définition des niveaux de précision 1/2/3 donnée par le fondateur (§3.4, ligne §1) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 11 : adressage administratif retenu pour NavigationX, grille écartée pour l'instant, code provisoire aléatoire, lien bâtiment → quartier à créer (§3.5) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 12 : test réel de la déduction quartier par polygone (22/35 nets, 10 chevauchements, 3 hors quartier) et règles proposées (§3.5) — impacte : NavigationX / HailandMap. |
