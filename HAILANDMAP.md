@@ -175,3 +175,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 10 : niveaux de précision 1/2/3 définis par le fondateur (§3.4) ; HailandMap reste l'acteur du niveau 3 (vérification, enregistrement, certification) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 11 : NavigationX utilise l'adressage administratif (grille conservée par HailandMap), code provisoire aléatoire côté NavigationX — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 12 : test de la déduction du quartier par polygone (chevauchements de quartiers à arbitrer) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 13 : règles de déduction du quartier validées (fonction SQL proposée dans le dépôt Lynx, non appliquée) — aucun changement fonctionnel de l'appli. |
