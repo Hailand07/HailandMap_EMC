@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 10** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 11** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -139,6 +139,12 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - Les informations facultatives que saisit le résident (type, étages, appartements) **ne changent pas le niveau** ; elles aident l'équipe lors de la vérification.
 - Deux codes : **Hailand-Code général** (bâtiment ou cour) et **code d'emplacement** (étage / porte, `-E{n}-{porte}`), à ne pas confondre (voir §3.2).
 - 💡 Correspondance base à décider : le niveau 3 ≈ `status = 'actif'` + `is_validated = true` (certifié HailandMap) ; les niveaux 1 et 2 relèvent d'une table de déclarations distincte de `buildings` (⚠️ à concevoir, absente aujourd'hui). Les maquettes sont dans `NAVIGATIONX.md` §6.
+
+### 3.5 Adressage retenu pour NavigationX 📄 (fondateur, 2026-10-03)
+- **NavigationX utilise l'adressage administratif** (région > préfecture > commune > quartier). Le **système de grille** (zones de 200 m) n'est pas mis en place côté NavigationX pour l'instant ; il reste celui de HailandMap (§3.2).
+- Principe voulu : retrouver l'identifiant du bâtiment suffit à connaître sa structure administrative. ✅ Constat base (2026-10-02) : le référentiel territorial est complet (8 régions, 34 préfectures, 342 communes, 403 quartiers avec polygones PostGIS, liés par clés étrangères) **mais** `buildings.quartier_id` / `commune_id` sont **vides** pour les relevés existants et les 273 937 bâtiments OSM **ne sont pas en base**. Le lien « bâtiment → quartier » n'existe donc pas encore.
+- 💡 Solution recommandée : déduire la hiérarchie par **intersection spatiale** (le point GPS ou le centroïde du bâtiment dans `quartiers.geom`, puis remonter par les clés étrangères). Cela fonctionne aussi au **niveau 1** (aucun polygone de bâtiment : le quartier est quand même reconnu) et sans importer les bâtiments OSM.
+- **Code Hailand côté NavigationX = provisoire** : un code **aléatoire** (ex. `GN-K7M2-48R9`) est utilisé dans les maquettes tant que le format du code administratif n'est pas défini (décision ouverte, §9). Ne pas le confondre avec le format de HailandMap (`GN.{CKY}.{COM}.{QTR}-C{lot}` calculé côté client, §3.2).
 
 ---
 
@@ -353,6 +359,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 9. Décisions ouvertes (à trancher par le fondateur)
 
+0. **Format du code administratif (NavigationX)** : non défini, code aléatoire provisoire en attendant (§3.5).
 1. **Format officiel du Hailand-Code et de la zone** : garder celui de HailandMap (`GN-Z4761-CR001-RL3`) en corrigeant la grille ? 
 2. **Numéro de lot** : unique **par quartier** (code admin garanti unique) ou par carreau ?
 3. **Immeuble avec plusieurs portes** : 1 ligne `buildings` ou 1 ligne par porte ?
@@ -436,3 +443,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-02 | Réconciliation avec la version déjà fusionnée sur `main` (PR #1, « 2ᵉ relecture ») : conservation de la structure/§12–§14, ajout des suppressions en cascade (`ON DELETE`) et de la note sur `concessions` — révision 8. |
 | 2026-10-02 | Révision 9 : §14 mis à jour (documentation fusionnée sur `main`), règle 5 de `check-docs` (synchro des deux copies) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 10 : définition des niveaux de précision 1/2/3 donnée par le fondateur (§3.4, ligne §1) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 11 : adressage administratif retenu pour NavigationX, grille écartée pour l'instant, code provisoire aléatoire, lien bâtiment → quartier à créer (§3.5) — impacte : NavigationX / HailandMap. |
