@@ -179,3 +179,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 14 : fonction `fn_resolve_admin_address` créée en base (utilisable aussi par HailandMap pour le quartier/commune) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 15 : table `declarations` proposée (HailandMap la lira pour vérifier et relier au cadastre, niveau 3) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 16 : un compte peut avoir plusieurs domiciles (table `declarations`) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 17 : clé Supabase de repli de NavigationX rejetée ; refonte NavigationX phases 1-2 — aucun changement fonctionnel de l'appli. |
