@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 14** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 15** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -222,6 +222,13 @@ La RLS est **activée** sur toutes les tables de données, mais **toutes les pol
 - **Fonctions** : `fn_get_building_navigation_entry(p_building_id)` → renvoie le **point d'entrée** du bâtiment, sinon celui de la concession mère, sinon le centroïde (**déjà un pont de navigation** à utiliser côté NavigationX) ; `fn_fix_all_building_centroids()` (recalcule les centroïdes manquants) ; `handle_update_timestamp()`.
 - ✅ **Ajoutée le 2026-10-03** : `fn_resolve_admin_address(p_lng, p_lat)` (déduction de la hiérarchie administrative, §3.5) — première fonction métier d'adressage en base.
 - **Aucune fonction** de génération de code, de numérotation, de détection point-dans-polygone ni de réclamation. Aucune Edge Function.
+
+### 4.6 Table des déclarations (NavigationX) 💡 proposée, non appliquée
+Fichier : `migrations/proposed/2026-10-03_declarations.sql` (dépôt Lynx). NavigationX n'écrit **jamais** dans `buildings` : il écrit dans `declarations`, HailandMap la lit, vérifie, puis la relie au bâtiment certifié.
+- **Contenu** : position GPS et précision, polygone OSM détecté (id + instantané du contour), niveau détecté (1 ou 2), adresse administrative (région→quartier, remplie par le serveur avec `fn_resolve_admin_address`), code Hailand provisoire généré par la base, emplacement (étage/porte), informations facultatives, lien `certified_building_id` (réservé à HailandMap), statut.
+- **Niveau effectif** : vue `v_declarations_niveau` → 3 si le bâtiment lié est `actif` et `is_validated`, sinon le niveau détecté. Le niveau 3 reste donc un acte HailandMap.
+- **Sécurité** : RLS activée **sans politique publique** ; un résident ne lit/écrit que ses lignes (`auth.uid()`), pas de suppression (archivage). Géométries en PostGIS avec index GIST (≠ JSONB de `buildings`).
+- **Prérequis** : authentification Supabase (0 compte aujourd'hui), accord du fondateur, sauvegarde ; décisions ouvertes : format officiel du code, plusieurs domiciles par compte, rôle HailandMap pour la lecture globale.
 
 ---
 
@@ -451,3 +458,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 12 : test réel de la déduction quartier par polygone (22/35 nets, 10 chevauchements, 3 hors quartier) et règles proposées (§3.5) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 13 : règles de déduction du quartier validées et vérifiées (32/35 exacts, 3 en repli commune) ; fonction SQL proposée, non appliquée — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 14 : `fn_resolve_admin_address` créée en base (première migration, accord du fondateur) ; §4.5 : la base a désormais une fonction d'adressage — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 15 : schéma proposé de la table `declarations` (§4.6), non appliqué — impacte : NavigationX / HailandMap. |

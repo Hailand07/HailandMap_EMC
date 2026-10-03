@@ -177,3 +177,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 12 : test de la déduction du quartier par polygone (chevauchements de quartiers à arbitrer) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 13 : règles de déduction du quartier validées (fonction SQL proposée dans le dépôt Lynx, non appliquée) — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 14 : fonction `fn_resolve_admin_address` créée en base (utilisable aussi par HailandMap pour le quartier/commune) — aucun changement fonctionnel de l'appli. |
+| 2026-10-03 | Écosystème révision 15 : table `declarations` proposée (HailandMap la lira pour vérifier et relier au cadastre, niveau 3) — aucun changement fonctionnel de l'appli. |
