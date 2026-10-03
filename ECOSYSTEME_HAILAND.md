@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 15** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 16** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -228,7 +228,7 @@ Fichier : `migrations/proposed/2026-10-03_declarations.sql` (dépôt Lynx). Navi
 - **Contenu** : position GPS et précision, polygone OSM détecté (id + instantané du contour), niveau détecté (1 ou 2), adresse administrative (région→quartier, remplie par le serveur avec `fn_resolve_admin_address`), code Hailand provisoire généré par la base, emplacement (étage/porte), informations facultatives, lien `certified_building_id` (réservé à HailandMap), statut.
 - **Niveau effectif** : vue `v_declarations_niveau` → 3 si le bâtiment lié est `actif` et `is_validated`, sinon le niveau détecté. Le niveau 3 reste donc un acte HailandMap.
 - **Sécurité** : RLS activée **sans politique publique** ; un résident ne lit/écrit que ses lignes (`auth.uid()`), pas de suppression (archivage). Géométries en PostGIS avec index GIST (≠ JSONB de `buildings`).
-- **Prérequis** : authentification Supabase (0 compte aujourd'hui), accord du fondateur, sauvegarde ; décisions ouvertes : format officiel du code, plusieurs domiciles par compte, rôle HailandMap pour la lecture globale.
+- **Prérequis** : authentification Supabase (0 compte aujourd'hui), accord du fondateur, sauvegarde ; décisions ouvertes : format officiel du code, rôle HailandMap pour la lecture globale. ✅ **Décidé (2026-10-03)** : un compte peut avoir **plusieurs domiciles** (le schéma l'autorise) ; la fonctionnalité sera détaillée plus tard.
 
 ---
 
@@ -459,3 +459,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 13 : règles de déduction du quartier validées et vérifiées (32/35 exacts, 3 en repli commune) ; fonction SQL proposée, non appliquée — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 14 : `fn_resolve_admin_address` créée en base (première migration, accord du fondateur) ; §4.5 : la base a désormais une fonction d'adressage — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 15 : schéma proposé de la table `declarations` (§4.6), non appliqué — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 16 : décision « plusieurs domiciles par compte » (§4.6) ; maquettes revues pour la cohérence (niveau de la destination sur la fiche lieu, flux guidage → dernier mètre) — impacte : NavigationX / HailandMap. |
