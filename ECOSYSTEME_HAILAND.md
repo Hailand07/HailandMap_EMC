@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 9** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 10** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -55,7 +55,7 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - Expansion : petite zone → commune → Conakry → Guinée → pays similaires.
 - **Priorité actuelle** : démontrer une petite boucle complète (quelques bâtiments vérifiés → quelques vendeurs → commandes → livraisons → revenus), pas « construire tout Hailand ».
 
-**Niveaux de donnée d'un lieu** 📄 : *Niveau 1* localisation (point GPS) · *Niveau 2* géométrie (polygone du bâtiment ou de la cour) · *Niveau 3* données détaillées vérifiées sur le terrain (type, étages, unités, portail, repères, consignes). Le niveau 3 est la donnée la plus précieuse.
+**Niveaux de précision d'un lieu** 📄 (définition du fondateur, 2026-10-03 — voir §3.4) : *Niveau 1* le GPS n'identifie aucun bâtiment (précision faible) · *Niveau 2* le GPS identifie le polygone OSM du bâtiment (précision bonne, **non vérifiée**) · *Niveau 3* domicile **vérifié, enregistré et certifié par l'équipe Hailand** (très haute précision, très sûr). Le niveau 3 n'est **pas la suite** des niveaux 1 et 2.
 
 ---
 
@@ -127,6 +127,18 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - **Mur d'enceinte** : buffer de 20 cm autour du contour de la cour, hauteur **2,2 m**.
 - ⚠️ **Écart actuel** : NavigationX calcule `max(floor_count, 1) × 3,2 m` (`getBuildingHeight`) → décalé d'un niveau dès `floor_count ≥ 1`. À aligner (voir §7).
 - Les volumes sont **régénérés à partir de `buildings`** (pas stockés en base).
+
+### 3.4 Niveaux de précision d'une adresse 📄 (fondateur, 2026-10-03) — décision de conception, rien d'implémenté
+| Niveau | Condition | Précision | Ce que l'utilisateur obtient |
+|---|---|---|---|
+| **1** | le GPS ne permet d'identifier **aucun** polygone OSM | faible | position approximative : guidage vers une **zone** (cercle), maisonnette 3D provisoire marquée « Estimation » |
+| **2** | le GPS tombe **dans** un polygone OSM | bonne, **non vérifiée** | guidage jusqu'au bon **bâtiment** (surbrillance) ; pas de tracé jusqu'à la porte |
+| **3** | vérifié, enregistré et **certifié par l'équipe Hailand** | très haute, très sûre | entrée GPS précise (pointillés + distance), cour et bâtiment surlignés, index complet |
+
+- Les niveaux 1 et 2 sont **détectés automatiquement** ; le niveau 3 est une **vérification humaine**, indépendante (un domicile en niveau 1 ou 2 peut être vérifié ; le résident peut le demander). L'utilisateur doit toujours voir **son niveau, la précision et ce qu'il implique**.
+- Les informations facultatives que saisit le résident (type, étages, appartements) **ne changent pas le niveau** ; elles aident l'équipe lors de la vérification.
+- Deux codes : **Hailand-Code général** (bâtiment ou cour) et **code d'emplacement** (étage / porte, `-E{n}-{porte}`), à ne pas confondre (voir §3.2).
+- 💡 Correspondance base à décider : le niveau 3 ≈ `status = 'actif'` + `is_validated = true` (certifié HailandMap) ; les niveaux 1 et 2 relèvent d'une table de déclarations distincte de `buildings` (⚠️ à concevoir, absente aujourd'hui). Les maquettes sont dans `NAVIGATIONX.md` §6.
 
 ---
 
@@ -231,7 +243,7 @@ Utilisateur ouvre NavigationX
 
 ### 5.3 Réclamation d'un domicile (NavigationX → base) ✅ (comportement actuel)
 ```
-Résident → GPS → détection (3 branches) → hiérarchie territoriale → saisie niveau 2/3 → assignation
+Résident → GPS → détection (3 branches) → hiérarchie territoriale → saisie de détails → assignation
   Branche 1 : bâtiment déjà dans 'buildings' → UPDATE (claimed_by + remplace type, étages, repères…)
   Branche 2 : bâtiment dans 'batiments_3d' (vide en pratique) → INSERT 'buildings' en 'actif' + validé
   Branche 3 : rien trouvé → INSERT d'une « maisonnette » 12×10 m, code GN-{zone}-TMP-{nnnn}, 'en_attente'
@@ -423,3 +435,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-02 | Relecture complète de la base via le connecteur Supabase : politiques RLS (écriture publique partout), fonctions/triggers/vues, table `concessions` orpheline, 0 compte Auth, aucun bucket, aucune migration ; §4.4 passé en « constaté », ajout §4.5, plan P0 précisé. |
 | 2026-10-02 | Réconciliation avec la version déjà fusionnée sur `main` (PR #1, « 2ᵉ relecture ») : conservation de la structure/§12–§14, ajout des suppressions en cascade (`ON DELETE`) et de la note sur `concessions` — révision 8. |
 | 2026-10-02 | Révision 9 : §14 mis à jour (documentation fusionnée sur `main`), règle 5 de `check-docs` (synchro des deux copies) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 10 : définition des niveaux de précision 1/2/3 donnée par le fondateur (§3.4, ligne §1) — impacte : NavigationX / HailandMap. |
