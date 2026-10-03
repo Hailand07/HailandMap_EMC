@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 16** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 17** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -323,6 +323,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - 🟠 **Détection non scalable** : charge 100 `buildings` + 150 `batiments_3d` puis teste en JS.
 - 🟠 **Pas d'authentification** : sélecteur de profils (invité/user/admin) stocké dans `localStorage`, `claimed_by` = faux id (`user-1`).
 - 🟠 **Types TypeScript divergents de la base** : statuts de validation (`approuve` vs `approved`), livraison (`en_cours`/`livre` vs `in_transit`/`delivered`), façades (`orientation`/`image_url` vs `direction`/`storage_path`), statut `rejete` inexistant en base ; mappage `villa → H` (hôtel).
+- 🟠 **Clé Supabase de repli rejetée (✅ 2026-10-03)** : celle codée en dur dans `src/lib/hailandData.ts` renvoie « Invalid API key » ; sans `VITE_SUPABASE_ANON_KEY` NavigationX affiche silencieusement `FALLBACK_ROWS`. À corriger (variable d'environnement obligatoire, plus de repli silencieux).
 - 🟡 Hauteur décalée d'un niveau (§3.3) ; clé Supabase de repli en dur ; `.env.example` contient des identifiants réels.
 
 ### HailandMap
@@ -460,3 +461,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 14 : `fn_resolve_admin_address` créée en base (première migration, accord du fondateur) ; §4.5 : la base a désormais une fonction d'adressage — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 15 : schéma proposé de la table `declarations` (§4.6), non appliqué — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 16 : décision « plusieurs domiciles par compte » (§4.6) ; maquettes revues pour la cohérence (niveau de la destination sur la fiche lieu, flux guidage → dernier mètre) — impacte : NavigationX / HailandMap. |
+| 2026-10-03 | Révision 17 : clé Supabase de repli de NavigationX rejetée (§7) ; refonte phases 1-2 codées (fiche NAVIGATIONX.md) — impacte : NavigationX / HailandMap. |
