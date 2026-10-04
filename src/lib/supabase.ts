@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import { safeJsonStringify, sanitizeObject, sanitizeGeometry, normalizeBuildingType, createDefaultBuildingPolygon, calculateFixedCentroid } from '../utils/safeJson';
 import { computeDualAddressing } from './administrativeAddressingService';
+import { actorId, getActor } from './actor';
 
 // ===== CLIENT SUPABASE BIEN CONNECTÉ EN PROD =====
 const SUPABASE_URL = 'https://sffowxfozwynmuaesvdk.supabase.co';
@@ -569,6 +570,17 @@ export async function loadRealValidations(): Promise<Validation[]> {
   }
 }
 
+/** Profil en mémoire de l'agent connecté (aucune écriture en base) : permet d'afficher son nom dans l'historique des relevés. */
+function withActorProfile(list: Profile[]): Profile[] {
+  const a = getActor();
+  if (!a || list.some((p) => p.id === a.id)) return list;
+  const now = new Date().toISOString();
+  return [
+    ...list,
+    { id: a.id, full_name: a.name, role: a.role === 'admin' ? 'admin' : 'agent', created_at: now, updated_at: now } as unknown as Profile,
+  ];
+}
+
 export async function loadRealProfiles(): Promise<Profile[]> {
   try {
     const { data, error } = await supabase
@@ -577,15 +589,15 @@ export async function loadRealProfiles(): Promise<Profile[]> {
     
     if (error) {
       console.warn("Supabase fetch profiles failed, falling back to mock:", error);
-      return MOCK_PROFILES;
+      return withActorProfile(MOCK_PROFILES);
     }
     if (!data || data.length === 0) {
-      return MOCK_PROFILES;
+      return withActorProfile(MOCK_PROFILES);
     }
-    return data as any;
+    return withActorProfile(data as any);
   } catch (err) {
     console.warn("Exception profiles fetch, falling back to mock:", err);
-    return MOCK_PROFILES;
+    return withActorProfile(MOCK_PROFILES);
   }
 }
 
@@ -640,7 +652,7 @@ export function prepareBuildingPayloadForSupabase(raw: any): Record<string, any>
     access_note: raw.access_note || raw.accessNote || null,
     is_validated: raw.is_validated !== undefined ? raw.is_validated : true,
     validation_count: typeof raw.validation_count === 'number' ? raw.validation_count : 1,
-    validated_by: raw.validated_by || 'admin-auto',
+    validated_by: raw.validated_by || actorId(),
     validated_at: raw.validated_at || new Date().toISOString(),
     submitted_by: raw.submitted_by || 'admin',
     claimed_by: raw.claimed_by || null,

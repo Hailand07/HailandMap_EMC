@@ -1,6 +1,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import AgentGate from './components/AgentGate.tsx';
 import './index.css';
 
 // Protection globale contre les erreurs de sérialisation circulaire et erreurs de chargement de modèles 3D
@@ -170,7 +171,9 @@ if (typeof window !== 'undefined') {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AgentGate>
+      <App />
+    </AgentGate>
   </StrictMode>,
 );
 

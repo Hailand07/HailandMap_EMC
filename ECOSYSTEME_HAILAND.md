@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 20** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 21** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -223,6 +223,9 @@ La RLS est **activée** sur toutes les tables de données, mais **toutes les pol
 - ✅ **Ajoutée le 2026-10-03** : `fn_resolve_admin_address(p_lng, p_lat)` (déduction de la hiérarchie administrative, §3.5) — première fonction métier d'adressage en base.
 - **Aucune fonction** de génération de code, de numérotation, de détection point-dans-polygone ni de réclamation. Aucune Edge Function.
 
+### 4.8 Authentification des agents HailandMap ✅ codée (2026-10-04), règles non appliquées
+HailandMap exige désormais une connexion (code par e-mail ; SMS si activé) et signe chaque écriture avec l'identifiant d'authentification de l'agent (`submitted_by`, `validated_by`, `validator_id`). Autorisation par une table **`agents`** (rôles `agent` / `admin`) — proposée dans le dépôt HailandMap (`migrations/proposed/2026-10-04_agents.sql`), **non créée** : en attendant, « mode transition » (tout compte connecté accepté). La fermeture de l'écriture publique (`…_close_public_writes.sql`, **non appliquée**) réserve l'écriture aux agents, la suppression et le référentiel territorial aux admins ; la lecture reste publique pour NavigationX. Ordre recommandé : sauvegarde → table `agents` → ajout des agents → vérification → fermeture. ⚠️ Fermer l'écriture sans cet ordre bloquerait HailandMap.
+
 ### 4.7 Authentification Supabase ✅ (relevée le 2026-10-03, lecture seule de `/auth/v1/settings`)
 Activés : **e-mail**. **Désactivés** : téléphone (fournisseur SMS **Twilio** configuré mais méthode off), Google, Apple, connexion anonyme (invité). Inscription ouverte, e-mail à confirmer. À faire par le fondateur (tableau de bord Supabase › Authentication) : activer les méthodes voulues, autoriser l'URL du site et de redirection, adapter le modèle d'e-mail avec `{{ .Token }}` pour le code à 6 chiffres. NavigationX lit ces réglages au démarrage et grise les méthodes inactives.
 
@@ -433,7 +436,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - Ces fichiers doivent rester à jour à chaque évolution ; la base de production n'est lue qu'en **lecture seule** sans accord explicite.
 - NavigationX doit être refondu en application de navigation **map-first** pour les utilisateurs (orientation et maquettes proposées, **en attente de validation écran par écran**).
 
-**En cours / non commencé** : refonte NavigationX terminée côté code ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
+**En cours / non commencé** : refonte NavigationX terminée côté code ; authentification des agents HailandMap codée (§4.8), règles de sécurité à appliquer après accord ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
 
 **Prochaines étapes recommandées (dans l'ordre)**
 1. Faire pivoter les clés exposées (`sb_secret_…`, `service_role`) ; **sauvegarder** la base (export de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
@@ -468,4 +471,5 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 17 : clé Supabase de repli de NavigationX rejetée (§7) ; refonte phases 1-2 codées (fiche NAVIGATIONX.md) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 18 : §14 mis à jour (refonte NavigationX phases 1 à 3 codées, déclarations locales en attendant la table et l'authentification) — impacte : NavigationX / HailandMap. |
 | 2026-10-03 | Révision 19 : réglages d'authentification Supabase relevés (§4.7), refonte NavigationX phase 4 codée (§14) — impacte : NavigationX / HailandMap. |
+| 2026-10-04 | Révision 21 : authentification des agents HailandMap codée, règles de sécurité proposées et non appliquées (§4.8) — impacte : HailandMap / NavigationX. |
 | 2026-10-03 | Révision 20 : refonte NavigationX terminée (phase 5) — ancien assistant d'enregistrement supprimé (NavigationX n'écrit plus dans `buildings`), §5.3 réécrit, §7 NavigationX mis à jour — impacte : NavigationX / HailandMap. |
