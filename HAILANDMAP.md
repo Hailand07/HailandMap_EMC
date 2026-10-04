@@ -183,6 +183,12 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
   3. Revue. 4. Registre. 5. Pilotage et Territoire. 6. Terrain mobile, Ctrl K, raccourcis.
   7. **Seulement avec l'accord explicite du fondateur** : codes attribués par la base à l'enregistrement (fin des doublons, `ECOSYSTEME_HAILAND.md` §6.2), fermeture de l'écriture publique (`close_public_writes`).
 
+### Phase 0 codée (2026-10-04) ✅ — socle de la refonte (coque et thème, derrière un interrupteur)
+- `src/shell/` : `uiVersion.ts` (interrupteur `?ui=v2` / `?ui=v1`, mémorisé dans `localStorage hm.ui` ; **la v1 reste l'interface par défaut**), `modules.ts` (5 modules ↔ vues actuelles : Atelier = carte, Revue = modération, Registre = bâtiments, Territoire = zones, Pilotage = dashboard), `AtelierShell.tsx` (barre du haut avec fil d'Ariane et recherche (Ctrl K à venir), rail des modules avec pastille de revue, barre d'état).
+- `src/index.css` : avec `<html data-ui="v2">`, les échelles Tailwind `slate`, `indigo` et `orange` sont redéfinies (gris façon Blender, bleu d'action) et la police devient IBM Plex : tout l'écran actuel prend le nouveau thème sans changer son code.
+- `App.tsx` : seuls changements = en v2, la barre du haut, le rail et la barre d'état remplacent l'en-tête à onglets et le pied de page ; le contenu des vues est **inchangé** (formulaire d'enregistrement, logique de codes, écritures en base : aucune modification). Capturé : la v1 est identique à l'ancienne interface.
+- Restent à faire (phases 1 à 7) : Atelier (barre d'outils, inspecteur), assistant de création en 5 étapes, Revue, Registre, Pilotage/Territoire, Terrain, Ctrl K, boîte Activité (remplace les messages flottants) ; découpage de `App.tsx` (≈ 8 460 lignes) encore à faire.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -208,3 +214,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Table `agents` et fonctions `is_agent()` / `is_admin()` **appliquées en base** (accord explicite du fondateur, après sauvegarde) : aucune règle existante modifiée ; le mode transition disparaît (0 agent déclaré : les comptes doivent être ajoutés). |
 | 2026-10-04 | Synchronisation de `ECOSYSTEME_HAILAND.md` (révision 26) : vision « Guinée numérique » de NavigationX (§15) — l'équipe Hailand vérifiera les institutions (hôpitaux, pompiers, gendarmerie, écoles) ; outils de vérification/badge côté HailandMap à concevoir plus tard — documentation seule, rien codé. |
 | 2026-10-04 | Refonte « Atelier v2 » : maquettes (thème gris, bleu d'action, 5 modules, assistant de création en 5 étapes) **validées par le fondateur** ; plan de reconstruction en 8 phases consigné (§9 ter) — documentation seule, rien codé. |
+| 2026-10-04 | Refonte phase 0 : coque Atelier v2 (barre du haut, rail des modules, barre d'état) et thème gris/bleu derrière l'interrupteur `?ui=v2` ; v1 inchangée par défaut, aucune modification du formulaire d'enregistrement ni des écritures en base. |

@@ -85,6 +85,8 @@ import {
 import { computeDualAddressing } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
+import { AtelierTopBar, ModuleRail, AtelierStatusBar } from './shell/AtelierShell';
+import { getUiVersion } from './shell/uiVersion';
 import InteractiveTerritoryTree, { type SelectedTerritoryPayload } from './components/InteractiveTerritoryTree';
 import {
   setupInteractiveTerritoryLayers,
@@ -589,6 +591,7 @@ function simplifyPolygon(points: [number, number][], tolerance: number): [number
 }
 
 export default function App() {
+  const uiV2 = getUiVersion() === 'v2'; // Atelier v2 (refonte en cours) : coque et thème seulement pour l'instant
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
   const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(true);
   const [buildings, setBuildings] = useState<Building[]>(MOCK_BUILDINGS);
@@ -6580,6 +6583,16 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
+      {uiV2 && (
+        <AtelierTopBar
+          view={activeAdminView}
+          adminName={currentAdmin.full_name}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onSearch={() => setActiveAdminView('carte')}
+        />
+      )}
+      {!uiV2 && (
+        <>
       {/* HEADER UNIFIÉ DE L'INTERFACE UNIQUE (GLASSMORPHISM FIN & MODERNE) */}
       <header className="h-14 flex items-center justify-between px-4 lg:px-6 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 shrink-0 select-none z-50">
         <div className="flex items-center gap-4">
@@ -6657,8 +6670,22 @@ export default function App() {
           </div>
         </div>
       </header>
+        </>
+      )}
 
-      {/* CONTAINER MAÎTRE DES VUES */}
+      {/* CONTAINER MAÎTRE DES VUES (rail des modules en v2) */}
+      <div className="flex min-h-0 flex-1">
+        {uiV2 && (
+          <ModuleRail
+            view={activeAdminView}
+            onViewChange={(v) => {
+              setActiveAdminView(v);
+              setSelectedBuilding(null);
+            }}
+            pendingCount={pendingCount}
+            conflictCount={conflictCount}
+          />
+        )}
       <div className="flex-1 relative overflow-hidden flex">
         
         {/* VUE DE LA CARTE COMPLÈTE (Préservation de l'arbre et du chargement Mapbox) */}
@@ -8361,6 +8388,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </div>
+      </div>
 
       {/* MODAL DES PARAMÈTRES ET CLÉS DE L'ATELIER GEOGRAPHIQUE */}
       <AnimatePresence>
@@ -8452,6 +8480,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {uiV2 ? (
+        <AtelierStatusBar buildingsCount={buildings.length} zonesCount={zones.length} adminName={currentAdmin.full_name} />
+      ) : (
+        <>
       {/* FOOTER COULISSANT COULEUR LUXE */}
       <footer className="h-8 flex items-center justify-between px-4 text-[11px] font-mono border-t border-slate-800 shrink-0 bg-slate-900 text-slate-400 select-none">
         <span>HailandX © 2026 — Infrastructure d'adressage souveraine d'Afrique</span>
@@ -8459,6 +8491,8 @@ export default function App() {
           {buildings.length} bâtiments · {zones.length} zones · Conakry, Guinée
         </span>
       </footer>
+        </>
+      )}
     </div>
   );
 }

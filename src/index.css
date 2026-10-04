@@ -70,3 +70,33 @@
   scrollbar-width: none;
 }
 
+
+/* ─── Atelier v2 (phase 0) : thème gris façon Blender + bleu d'action ───────────────────────────
+   Actif seulement avec <html data-ui="v2"> (voir src/shell/uiVersion.ts). On redéfinit les échelles « slate » et « indigo »
+   de Tailwind : toute l'interface actuelle prend le gris et le bleu sans changer son code. */
+:root[data-ui='v2'] {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-slate-50: #f5f5f5;
+  --color-slate-100: #ececec;
+  --color-slate-200: #e0e0e0;
+  --color-slate-300: #d0d0d0;
+  --color-slate-400: #b0b0b0;
+  --color-slate-500: #9c9c9c;
+  --color-slate-600: #666666;
+  --color-slate-700: #555555;
+  --color-slate-800: #383838;
+  --color-slate-900: #2b2b2b;
+  --color-slate-950: #1d1d1d;
+  --color-indigo-300: #b5cdf5;
+  --color-indigo-400: #8fb4f0;
+  --color-indigo-500: #5b8ee0;
+  --color-indigo-600: #3f6fc4;
+  --color-indigo-700: #335aa3;
+  --color-orange-300: #b5cdf5;
+  --color-orange-400: #8fb4f0;
+  --color-orange-500: #5b8ee0;
+  --color-orange-600: #3f6fc4;
+  --color-brand-orange: #5b8ee0;
+  --color-brand-orange-hover: #3f6fc4;
+}
