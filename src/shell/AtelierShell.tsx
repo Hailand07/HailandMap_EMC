@@ -1,7 +1,9 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Building2, Home, Layers, LineChart, Map as MapIcon, Search, Settings, Inbox } from 'lucide-react';
 import type { View } from '../types';
 import { MODULES, moduleOfView, type ModuleId } from './modules';
+import { STAGES, type RegistrationStage } from './registrationStage';
 
 const ICONS: Record<ModuleId, React.ReactNode> = {
   atelier: <MapIcon size={19} />,
@@ -209,3 +211,41 @@ export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onT
     )}
   </div>
 );
+
+/** Emplacement du formulaire d'enregistrement : en v1 il reste dans le panneau gauche ; en v2 il est projeté dans l'inspecteur de droite (même arbre React : état et réglages inchangés). */
+export const RegistrationSlot: React.FC<{ v2: boolean; host: HTMLElement | null; children: React.ReactNode }> = ({ v2, host, children }) => {
+  if (!v2) return <>{children}</>;
+  return host ? createPortal(children, host) : null;
+};
+
+interface AssistantProps {
+  stage: RegistrationStage;
+  title: string;
+  hostRef: (el: HTMLDivElement | null) => void;
+}
+
+/** Inspecteur de droite de l'Atelier v2 pendant une création : titre, barre des 5 étapes, puis le formulaire actuel. */
+export const AssistantAside: React.FC<AssistantProps> = ({ stage, title, hostRef }) => {
+  const current = STAGES.findIndex((x) => x.id === stage);
+  return (
+    <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-slate-950 bg-slate-900 text-slate-200">
+      <div className="flex flex-col gap-3.5 border-b border-slate-950 px-[18px] py-4">
+        <ol aria-label="Étapes" className="m-0 flex list-none gap-1 p-0">
+          {STAGES.map((st, i) => (
+            <li key={st.id} aria-current={i === current ? 'step' : undefined} className="flex flex-1 flex-col gap-1.5">
+              <span className={`h-1 rounded-sm ${i <= current ? 'bg-indigo-500' : 'bg-slate-700'}`} />
+              <span className={`text-[11.5px] ${i === current ? 'font-semibold text-slate-100' : i < current ? 'text-slate-400' : 'text-slate-500'}`}>{st.label}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="flex items-baseline justify-between">
+          <span className="text-[15px] font-semibold">{title}</span>
+          <span className="text-xs text-slate-500">
+            Étape {current + 1} sur {STAGES.length}
+          </span>
+        </div>
+      </div>
+      <div ref={hostRef} className="min-h-0 flex-1 overflow-y-auto p-4" />
+    </aside>
+  );
+};

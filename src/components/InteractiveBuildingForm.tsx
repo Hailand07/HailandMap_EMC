@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Building, EntrancePickerConfig } from '../types';
 import RegistrationEngineV3 from './registration/RegistrationEngineV3';
+import type { RegistrationStage } from '../shell/registrationStage';
 
 export interface InteractiveBuildingFormProps {
   clickedCoords: {
@@ -44,6 +45,7 @@ export interface InteractiveBuildingFormProps {
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onDetectOsmBuildings?: (motherGeom: any) => string[] | void;
   onMaskOsmBuildings?: (motherGeom?: any) => number;
+  onStageChange?: (stage: RegistrationStage) => void;
 }
 
 /**

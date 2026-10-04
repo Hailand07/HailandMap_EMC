@@ -85,7 +85,8 @@ import {
 import { computeDualAddressing } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
-import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, TOOLS, type AtelierTool } from './shell/AtelierShell';
+import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, RegistrationSlot, TOOLS, type AtelierTool } from './shell/AtelierShell';
+import type { RegistrationStage } from './shell/registrationStage';
 import { getUiVersion } from './shell/uiVersion';
 import InteractiveTerritoryTree, { type SelectedTerritoryPayload } from './components/InteractiveTerritoryTree';
 import {
@@ -591,6 +592,8 @@ function simplifyPolygon(points: [number, number][], tolerance: number): [number
 }
 
 export default function App() {
+  const [registrationStage, setRegistrationStage] = useState<RegistrationStage>('structure'); // progression de l'assistant (v2)
+  const [assistantHost, setAssistantHost] = useState<HTMLDivElement | null>(null);
   const uiV2 = getUiVersion() === 'v2'; // Atelier v2 (refonte en cours) : coque et thème seulement pour l'instant
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
   const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(true);
@@ -7261,7 +7264,9 @@ export default function App() {
           {/* CRÉATION D'ADRESSE : Étape interactive par Clic (Module 1) */}
           <AnimatePresence mode="wait">
             {clickedCoords ? (
+              <RegistrationSlot v2={uiV2} host={assistantHost}>
               <InteractiveBuildingForm
+                onStageChange={setRegistrationStage}
                 clickedCoords={clickedCoords}
                 buildings={buildings}
                 onCancel={() => {
@@ -7441,6 +7446,7 @@ export default function App() {
                   }
                 }}
               />
+              </RegistrationSlot>
             ) : selectedBuilding ? (
               /* DÉTAIL DU BÂTIMENT EN VUE ACTIVE (Module 2) */
               <motion.div
@@ -8382,6 +8388,14 @@ export default function App() {
               </button>
             </div>
           </div>
+        )}
+
+        {uiV2 && clickedCoords && (
+          <AssistantAside
+            stage={registrationStage}
+            title={selectionTargetNature === 'courtyard' ? 'Nouvelle concession' : 'Nouveau bâtiment'}
+            hostRef={setAssistantHost}
+          />
         )}
 
         {/* Panneau latéral droit pour le carreau de grille 200m sélectionné */}

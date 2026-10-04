@@ -195,6 +195,12 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Le bloc « Mode sélection de zone » du panneau gauche est masqué en v2 (remplacé par la barre) ; recherche et Carte interactive restent. La barre d'état affiche le zoom et le conseil de l'outil actif.
 - Les panneaux de droite (fiche bâtiment, carreau) restent ceux de la v1, au nouveau thème : l'inspecteur et l'assistant en 5 étapes arrivent en phase 2. Vérifié en capture et par raccourcis clavier ; la v1 reste inchangée par défaut.
 
+### Phase 2a codée (2026-10-04) ✅ — assistant de création dans l'inspecteur (v2)
+- En v2, le formulaire d'enregistrement actuel (`InteractiveBuildingForm` → `RegistrationEngineV3`, parcours bâtiment direct / concession) **n'est pas réécrit** : il est **projeté par un portail React** (`RegistrationSlot`) dans l'inspecteur de droite (400 px, la carte reste visible et interactive) au lieu du panneau gauche. Même arbre React, mêmes états, mêmes appels : `handleCreateBuilding`, génération des codes, double adressage et écritures en base inchangés ; en v1 le formulaire reste dans le panneau gauche.
+- Barre des **5 étapes** (Emprise, Structure, Attributs, Accès, Vérification, `AssistantAside`) alimentée par un simple signal `onStageChange` ajouté (optionnel) à `RegistrationEngineV3`, `DirectBuildingForm` et `CourtyardManager` : choix de structure ou nombre/tracé des bâtiments = Structure ; fiche (étapes 1-3) et tableau des bâtiments = Attributs ; repères, étage et porte = Accès ; adresse finale = Vérification.
+- Vérifié par capture et par clics (bâtiment : Attributs → Accès ; concession : Structure) **sans enregistrer** (aucune écriture en base).
+- Reste pour la phase 2b : refondre le contenu des formulaires sur les maquettes (écran Structure avec liste A/B/C, écran Vérification avec contrôles automatiques et aperçu 3D), bouton Quitter de l'assistant (le « Annuler » des formulaires reste le moyen de sortir), et à terme codes attribués par la base (accord requis).
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -222,3 +228,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Refonte « Atelier v2 » : maquettes (thème gris, bleu d'action, 5 modules, assistant de création en 5 étapes) **validées par le fondateur** ; plan de reconstruction en 8 phases consigné (§9 ter) — documentation seule, rien codé. |
 | 2026-10-04 | Refonte phase 0 : coque Atelier v2 (barre du haut, rail des modules, barre d'état) et thème gris/bleu derrière l'interrupteur `?ui=v2` ; v1 inchangée par défaut, aucune modification du formulaire d'enregistrement ni des écritures en base. |
 | 2026-10-04 | Refonte phase 1 : barre d'outils de l'Atelier (V/B/C/P, 2D/3D, tracé libre contextuel) et état dans la barre d'état, v2 seulement ; réglages de carte existants réutilisés, formulaire d'enregistrement et écritures en base inchangés. |
+| 2026-10-04 | Refonte phase 2a : assistant de création projeté dans l'inspecteur de droite avec barre des 5 étapes (v2 seulement) ; formulaires, codes et écritures inchangés, simple signal `onStageChange` ajouté ; rien enregistré pendant les tests. |

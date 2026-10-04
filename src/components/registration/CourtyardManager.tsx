@@ -1,3 +1,4 @@
+import type { RegistrationStage } from '../../shell/registrationStage';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -58,6 +59,7 @@ export interface CourtyardManagerProps {
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onDetectOsmBuildings?: (motherGeom: any) => string[] | void;
   onMaskOsmBuildings?: (motherGeom?: any) => number;
+  onStageChange?: (stage: RegistrationStage) => void;
 }
 
 type CourtyardWorkflowStep = 
@@ -66,6 +68,7 @@ type CourtyardWorkflowStep =
   | 'MASTER_DETAIL';     // Étape 3 : Tableau de bord Master-Detail Liste <-> Polygones
 
 export default function CourtyardManager({
+  onStageChange,
   initialCoords,
   detectedZone,
   detectedCommune,
@@ -222,6 +225,11 @@ export default function CourtyardManager({
   // 🎯 GESTION DES ÉTAPES DU WORKFLOW
   // 1: COUNT_SELECTION -> 2: CHILDREN_TRACING -> 3: MASTER_DETAIL
   const [currentStep, setCurrentStep] = useState<CourtyardWorkflowStep>('COUNT_SELECTION');
+
+  // Progression signalée à l'interface : nombre et tracé des bâtiments = structure ; tableau et fiches = attributs.
+  useEffect(() => {
+    onStageChange?.(currentStep === 'MASTER_DETAIL' ? 'attributs' : 'structure');
+  }, [currentStep, onStageChange]);
 
   // Nombre de bâtiments cibles à tracer
   const [targetBuildingCount, setTargetBuildingCount] = useState<number>(3);
