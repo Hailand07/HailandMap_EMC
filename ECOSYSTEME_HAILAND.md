@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 24** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 25** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -147,7 +147,7 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - ✅ **Test en lecture seule (2026-10-03)** de la déduction par polygone sur les 35 `buildings` : **22** points tombent dans **1** quartier, **10** dans **2 quartiers** (polygones qui se chevauchent, ex. `qtr-hafia` contient `qtr-osm-5567220` « Coleah Centre » et `qtr-camayenne`), **3** dans **aucun** quartier (Keïtayah, au nord ; ils tombent bien dans la commune `com-ratoma`). Au total **96 paires de quartiers se chevauchent** (surtout un quartier historique `qtr-*` qui recouvre un `qtr-osm-*`). Polygones tous valides, tous rattachés à une commune, index spatial (GIST) présent.
 - 💡 **Règles à appliquer** pour que la méthode suffise : (1) en cas de chevauchement, retenir le **polygone le plus petit** (le plus précis) qui contient le point ; (2) si aucun quartier ne contient le point, retomber sur la **commune** (adresse « quartier non identifié ») ; (3) mettre cette logique dans **une seule fonction en base** (appelée par NavigationX et HailandMap) et **stocker le résultat** avec la déclaration. Un import partiel des bâtiments OSM déjà rattachés peut venir **en complément** (identifiants stables), pas à la place.
 - ✅ **Règles validées par le fondateur (2026-10-03)** : plus petit polygone en cas de chevauchement ; repli sur la commune si aucun quartier. **Vérifiées en lecture seule** sur les 35 `buildings` : **32** retrouvent exactement le quartier saisi (ex. « Coleah Centre » au lieu de `qtr-hafia`), **3** (Keïtayah) retombent sur la commune Ratoma. ✅ **Fonction appliquée le 2026-10-03** (accord explicite du fondateur) : `public.fn_resolve_admin_address(p_lng, p_lat)` → région, préfecture, commune, quartier + `source` (`quartier` ou `commune`) ; lecture seule, `STABLE`, exécutable avec la clé publique. Testée sur 3 points (Coleah Centre → Matam ; Keïtayah → repli commune Ratoma ; point hors du pays → aucune ligne). Source : `migrations/2026-10-03_fn_resolve_admin_address.sql` (dépôt Lynx). Aucune donnée existante modifiée ; retour arrière : `drop function`. Reste à faire : stocker le résultat avec les déclarations (table à concevoir) et l'appeler depuis NavigationX.
-- **Code Hailand côté NavigationX = provisoire** : un code **aléatoire** (ex. `GN-K7M2-48R9`) est utilisé dans les maquettes tant que le format du code administratif n'est pas défini (décision ouverte, §9). Ne pas le confondre avec le format de HailandMap (`GN.{CKY}.{COM}.{QTR}-C{lot}` calculé côté client, §3.2).
+- ✅ **Code Hailand administratif (fondateur, 2026-10-04)** : `GN-{RÉGION}-{PP}-{CC}-{QQQ}-{NNNN}` (ex. `GN-CKY-01-05-034-0002`) — région (3 lettres) · rang de la préfecture dans la région · rang de la commune dans la préfecture · rang du quartier dans la commune · n° d'ordre d'enregistrement du bâtiment dans le quartier. Rangs figés dans `admin_ordinals`, n° d'ordre jamais réutilisé, attribué par le serveur (§4.6). La chaîne est déduite directement du bâtiment OSM détecté. Ancienne note (remplacée) : un code **aléatoire** (ex. `GN-K7M2-48R9`) est utilisé dans les maquettes tant que le format du code administratif n'est pas défini (décision ouverte, §9). Ne pas le confondre avec le format de HailandMap (`GN.{CKY}.{COM}.{QTR}-C{lot}` calculé côté client, §3.2).
 
 ---
 
@@ -229,12 +229,12 @@ HailandMap exige une connexion (code par e-mail ou SMS) et signe chaque écritur
 ### 4.7 Authentification Supabase ✅ (relevée le 2026-10-03, lecture seule de `/auth/v1/settings`)
 Activés : **e-mail**. **Désactivés** : téléphone (fournisseur SMS **Twilio** configuré mais méthode off), Google, Apple, connexion anonyme (invité). Inscription ouverte, e-mail à confirmer. À faire par le fondateur (tableau de bord Supabase › Authentication) : activer les méthodes voulues, autoriser l'URL du site et de redirection, adapter le modèle d'e-mail avec `{{ .Token }}` pour le code à 6 chiffres. NavigationX lit ces réglages au démarrage et grise les méthodes inactives.
 
-### 4.6 Table des déclarations (NavigationX) 💡 proposée, non appliquée
-Fichier : `migrations/proposed/2026-10-03_declarations.sql` (dépôt Lynx). NavigationX n'écrit **jamais** dans `buildings` : il écrit dans `declarations`, HailandMap la lit, vérifie, puis la relie au bâtiment certifié.
-- **Contenu** : position GPS et précision, polygone OSM détecté (id + instantané du contour), niveau détecté (1 ou 2), adresse administrative (région→quartier, remplie par le serveur avec `fn_resolve_admin_address`), code Hailand provisoire généré par la base, emplacement (étage/porte), informations facultatives, lien `certified_building_id` (réservé à HailandMap), statut.
-- **Niveau effectif** : vue `v_declarations_niveau` → 3 si le bâtiment lié est `actif` et `is_validated`, sinon le niveau détecté. Le niveau 3 reste donc un acte HailandMap.
-- **Sécurité** : RLS activée **sans politique publique** ; un résident ne lit/écrit que ses lignes (`auth.uid()`), pas de suppression (archivage). Géométries en PostGIS avec index GIST (≠ JSONB de `buildings`).
-- **Prérequis** : authentification Supabase (0 compte aujourd'hui), accord du fondateur, sauvegarde ; décisions ouvertes : format officiel du code, rôle HailandMap pour la lecture globale. ✅ **Décidé (2026-10-03)** : un compte peut avoir **plusieurs domiciles** (le schéma l'autorise) ; la fonctionnalité sera détaillée plus tard.
+### 4.6 Table des déclarations (NavigationX) ✅ créée le 2026-10-04
+Migration `migrations/2026-10-04_declarations.sql` (dépôt Lynx), **appliquée avec l'accord explicite du fondateur** après un essai complet annulé. Objets **nouveaux** : tables `declarations` (une ligne par adresse déclarée, plusieurs par compte), `admin_ordinals` (rangs administratifs figés, 779 lignes), `quartier_counters` (compteur d'enregistrement par quartier) ; vue `v_declarations_niveau` (niveau 3 si le bâtiment lié est `actif` et `is_validated`, sinon le niveau détecté) ; fonctions `fn_admin_ordinal`, `trg_fn_declarations_before_insert/update`, `fn_resolve_hailand_code`. Aucune table existante modifiée. NavigationX n'écrit **jamais** dans `buildings`.
+- **Remplissage serveur** : à l'insertion, un déclencheur déduit la chaîne administrative d'un point à l'intérieur du polygone détecté (sinon du GPS, niveau 1) via `fn_resolve_admin_address`, attribue le code (§3.5) et refuse (`ADRESSE_ADMINISTRATIVE_INTROUVABLE`) un point hors zones. Deux résidents du **même bâtiment** (même identifiant de polygone, ou contours recouverts à ≥ 60 %) partagent le code du bâtiment ; l'étage et la porte (`location_floor`, `location_door`) forment le code de placement. Après création, le code, l'adresse et la certification sont **figés** (déclencheur).
+- **Sécurité** : RLS activée ; chaque résident ne voit et ne modifie que ses lignes ; aucun accès `anon` ; pas de DELETE (archivage). `fn_resolve_hailand_code` (lecture de l'emplacement d'un code) : **comptes connectés seulement**. Lecture globale et liaison au cadastre (`certified_building_id`) : rôle HailandMap, à définir.
+- ⚠️ **Confidentialité** : les n° d'ordre se suivent, un code peut donc se deviner ; ouvrir la résolution aux visiteurs sans compte attend une protection (décision §9).
+- Les identifiants de polygone viennent des tuiles Mapbox (instables) : le contour est conservé (`osm_polygon_geom`) et sert au recouvrement ; ils seront remplacés par les identifiants OSM stables à l'import des bâtiments.
 
 ---
 
@@ -270,7 +270,7 @@ Résident → GPS réel → le point est-il dans un polygone de bâtiment des tu
   oui → niveau 2 (bonne précision, non vérifiée)      non → niveau 1 (précision faible, maisonnette provisoire « Estimation »)
 → informations facultatives (type, étages, appartements : ne changent pas le niveau)
 → adresse administrative par fn_resolve_admin_address (§3.5) + code provisoire aléatoire
-→ déclaration : table `declarations` (§4.6) si session authentifiée, sinon conservée sur l'appareil
+→ déclaration : table `declarations` (§4.6), compte connecté obligatoire ; code attribué par le serveur
 Niveau 3 : acte de HailandMap (vérification, enregistrement, certification), jamais produit par NavigationX.
 ```
 **NavigationX n'écrit plus jamais dans `buildings`** (l'ancien assistant à 3 branches, qui réclamait, créait et auto-certifiait, a été supprimé).
@@ -377,7 +377,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 9. Décisions ouvertes (à trancher par le fondateur)
 
-0. **Format du code administratif (NavigationX)** : non défini, code aléatoire provisoire en attendant (§3.5).
+0. ~~Format du code administratif~~ : **tranché le 2026-10-04** (§3.5).
+11. **Protection des codes** : les n° d'ordre se suivent (code devinable). Avant d'ouvrir la résolution aux visiteurs sans compte : suffixe de contrôle, limitation de débit, ou autre ?
+12. **Même bâtiment, plusieurs résidents** : règle appliquée = même code de bâtiment (recouvrement ≥ 60 %), placement par étage/porte — à confirmer.
 1. **Format officiel du Hailand-Code et de la zone** : garder celui de HailandMap (`GN-Z4761-CR001-RL3`) en corrigeant la grille ? 
 2. **Numéro de lot** : unique **par quartier** (code admin garanti unique) ou par carreau ?
 3. **Immeuble avec plusieurs portes** : 1 ligne `buildings` ou 1 ligne par porte ?
@@ -439,17 +441,17 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - Niveaux 1/2/3 ; deux codes (bâtiment, placement) ; plusieurs adresses par compte ; adressage administratif avec code provisoire aléatoire.
 - Flux v5 validé ; **les trois thèmes sont conservés, au choix de l'utilisateur** ; un invité doit créer un compte au moment d'enregistrer une adresse.
 
-**En cours / non commencé** : table `declarations` non créée (les déclarations, favoris et avis restent sur l'appareil) ; pas de stockage de photos ; catégories de lieux (pharmacie, santé…) sans données ; plusieurs adresses **certifiées** par compte non gérées côté lecture ; surbrillances du cadastre à ajuster en thème Nuit ; clé Supabase de repli de NavigationX invalide (définir `VITE_SUPABASE_ANON_KEY` sur Vercel) ; dépendances inutilisées (`@google/genai`, `express`, `dotenv`) à retirer ; ⚠️ position GPS de l'enregistrement à confirmer sur un vrai téléphone.
+**En cours / non commencé** : table `declarations` **créée le 2026-10-04** (code administratif attribué par le serveur) ; favoris et avis d'arrivée restent sur l'appareil ; pas de stockage de photos ; catégories de lieux (pharmacie, santé…) sans données ; plusieurs adresses **certifiées** par compte non gérées côté lecture ; surbrillances du cadastre à ajuster en thème Nuit ; clé Supabase de repli de NavigationX invalide (définir `VITE_SUPABASE_ANON_KEY` sur Vercel) ; dépendances inutilisées (`@google/genai`, `express`, `dotenv`) à retirer ; ⚠️ position GPS de l'enregistrement à confirmer sur un vrai téléphone.
 
 **Prochaines étapes recommandées (dans l'ordre)**
 1. Créer la PR des phases B–H de NavigationX, relire sur un vrai téléphone (GPS, partage WhatsApp/SMS, thèmes) puis fusionner.
 2. Fournir l'identifiant « Accès non autorisé » de HailandMap pour déclarer le premier admin dans `agents`, déclarer les agents, vérifier la connexion de HailandMap, **puis** (nouvel accord) appliquer `close_public_writes`.
 3. Définir `VITE_SUPABASE_ANON_KEY` (clé **publique**, Production + Aperçu) et `VITE_MAPBOX_TOKEN` sur Vercel puis redéployer : sans elle, la connexion (e-mail/SMS) est indisponible et la carte affiche des données de secours (la clé de repli en dur a été supprimée).
-4. Trancher §9 (lien de partage, placement, table d'avis, format du code) ; accord pour créer `declarations`, les avis et le stockage des photos.
+4. Trancher §9 (lien de partage, protection des codes, table d'avis) ; accord pour créer la table d'avis et le stockage des photos ; tester l'enregistrement sur téléphone avec un vrai compte.
 5. Importer les bâtiments OSM en base (stabilité des identifiants de polygone) ; catégories de lieux.
 6. Faire pivoter les clés exposées ; protéger `main` dans les deux dépôts.
 
-**Bloqué par le fondateur** : identifiant admin ; accord pour écrire en base (`declarations`, avis, photos, fermeture de l'écriture publique) ; décisions §9 ; protection de `main` ; variables d'environnement Vercel.
+**Bloqué par le fondateur** : identifiant admin ; accord pour écrire en base (avis, photos, fermeture de l'écriture publique) ; décisions §9 ; protection de `main` ; variables d'environnement Vercel.
 
 ---
 
@@ -479,3 +481,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-03 | Révision 20 : refonte NavigationX terminée (phase 5) — ancien assistant d'enregistrement supprimé (NavigationX n'écrit plus dans `buildings`), §5.3 réécrit, §7 NavigationX mis à jour — impacte : NavigationX / HailandMap. |
 | 2026-10-04 | Révision 23 : point de situation — refonte NavigationX v5 codée (phases A à H), §2 état de NavigationX, §9 décisions 8 à 10 (lien de partage, placement, table d'avis), §14 réécrit — impacte : NavigationX / HailandMap. |
 | 2026-10-04 | Révision 24 : connexion NavigationX « indisponible » diagnostiquée (clé publique Supabase absente sur Vercel + clé de repli invalide) ; clé de repli supprimée, clés secrètes refusées (§7, §14) — impacte : NavigationX. |
+| 2026-10-04 | Révision 25 : code Hailand administratif `GN-REG-PP-CC-QQQ-NNNN` décidé (§3.5) et table `declarations` créée en base avec ses fonctions (§4.6, accord du fondateur) ; décisions ouvertes 11-12 (protection des codes, même bâtiment) — impacte : NavigationX / HailandMap / base. |
