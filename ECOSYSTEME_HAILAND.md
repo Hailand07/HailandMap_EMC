@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 26** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 27** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -436,7 +436,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-04 (révision 26).**
+**Dernière mise à jour de cette section : 2026-10-04 (révision 27).**
 
 **Fait**
 - **HailandMap** : authentification des agents (connexion par code, auteur réel des écritures) fusionnée ; table **`agents`** + fonctions `is_agent()` / `is_admin()` **créées en base** (accord du fondateur, exports faits) — 0 ligne : aucun agent déclaré, donc l'écriture publique n'est pas encore fermée (§4.8).
@@ -450,6 +450,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - Niveaux 1/2/3 ; deux codes (bâtiment, placement) ; plusieurs adresses par compte ; adressage administratif avec code provisoire aléatoire.
 - Flux v5 validé ; **les trois thèmes sont conservés, au choix de l'utilisateur** ; un invité doit créer un compte au moment d'enregistrer une adresse.
 - **Vision 2026-10-04** (§15.2) : domiciles visibles de tous sans information confidentielle, lieux publics faits pour être vus ; institutions vérifiées par l'équipe Hailand ; voisinage = demande ouverte à tous (numérique) ; HailandX sans date.
+- **Refonte HailandMap « Atelier v2 »** : maquettes (thème gris façon Blender, bleu d'action, 5 modules Atelier/Revue/Registre/Territoire/Pilotage, assistant de création en 5 étapes) **validées par le fondateur** le 2026-10-04 ; reconstruction par phases, **rien codé** (détail : `HAILANDMAP.md` §9 ter).
 
 **En cours / non commencé** : table `declarations` **créée le 2026-10-04** (code administratif attribué par le serveur) ; favoris et avis d'arrivée restent sur l'appareil ; pas de stockage de photos ; catégories de lieux (pharmacie, santé…) sans données ; plusieurs adresses **certifiées** par compte non gérées côté lecture ; surbrillances du cadastre à ajuster en thème Nuit ; clé Supabase de repli de NavigationX invalide (définir `VITE_SUPABASE_ANON_KEY` sur Vercel) ; dépendances inutilisées (`@google/genai`, `express`, `dotenv`) à retirer ; ⚠️ position GPS de l'enregistrement à confirmer sur un vrai téléphone.
 
@@ -461,6 +462,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 5. Importer les bâtiments OSM en base (stabilité des identifiants de polygone) ; catégories de lieux.
 6. Faire pivoter les clés exposées ; protéger `main` dans les deux dépôts.
 7. **Plus tard (à la demande du fondateur, rien n'est lancé)** : plan §15.9 — d'abord l'étape 0 (conception des tables à valider avant toute écriture en base), puis foyer/voisinage, lieux, urgences.
+8. **HailandMap** : démarrer la phase 0 de la refonte (socle de design et coque, découpage de `App.tsx` sans changement de comportement) sur demande du fondateur ; ne remplacer le formulaire d'enregistrement qu'après comparaison champ par champ.
 
 **Bloqué par le fondateur** : identifiant admin ; accord pour écrire en base (avis, photos, fermeture de l'écriture publique) ; décisions §9 ; protection de `main` ; variables d'environnement Vercel.
 
@@ -557,3 +559,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-04 | Révision 24 : connexion NavigationX « indisponible » diagnostiquée (clé publique Supabase absente sur Vercel + clé de repli invalide) ; clé de repli supprimée, clés secrètes refusées (§7, §14) — impacte : NavigationX. |
 | 2026-10-04 | Révision 25 : code Hailand administratif `GN-REG-PP-CC-QQQ-NNNN` décidé (§3.5) et table `declarations` créée en base avec ses fonctions (§4.6, accord du fondateur) ; décisions ouvertes 11-12 (protection des codes, même bâtiment) — impacte : NavigationX / HailandMap / base. |
 | 2026-10-04 | Révision 26 : vision « Guinée numérique » (§15) — visibilité publique des domiciles/lieux, foyer, voisinage numérique, fil Découvrir, urgences, commerce/HailandX, livraison/API, plan en 8 étapes ; décisions §9 n°13–15 tranchées, n°16–18 ouvertes ; rien codé ni créé en base — impacte : NavigationX / HailandMap (vérification des institutions) / HailandX. |
+| 2026-10-04 | Révision 27 : refonte HailandMap « Atelier v2 » — maquettes validées par le fondateur, plan de reconstruction en 8 phases (`HAILANDMAP.md` §9 ter) ; rien codé — impacte : HailandMap. |
