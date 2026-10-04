@@ -102,15 +102,110 @@ interface StatusProps {
   buildingsCount: number;
   zonesCount: number;
   adminName: string;
+  /** Module Atelier : zoom de la carte et conseil de l'outil actif. */
+  zoom?: number;
+  toolHint?: string;
 }
 
 /** Barre d'état en bas : remplace le pied de page et, plus tard, les messages flottants. */
-export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName }) => (
+export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName, zoom, toolHint }) => (
   <footer className="flex h-7 shrink-0 select-none items-center gap-[18px] border-t border-slate-950 bg-slate-900 px-3.5 font-mono text-[11.5px] text-slate-500">
     <span>{buildingsCount} bâtiments</span>
     <span>{zonesCount} zones</span>
     <span>Conakry, Guinée</span>
+    {zoom !== undefined && <span>zoom {zoom.toFixed(1)}</span>}
     <span className="flex-1" />
+    {toolHint && <span className="text-slate-400">{toolHint}</span>}
     <span className="text-slate-400">{adminName}</span>
   </footer>
+);
+
+/** Outils de l'Atelier : chacun correspond à un réglage existant de la carte (voir `App.tsx`). */
+export type AtelierTool = 'carreau' | 'batiment' | 'concession' | 'trace';
+
+export const TOOLS: { id: AtelierTool; label: string; key: string; hint: string }[] = [
+  { id: 'carreau', label: 'Carreau 200 m', key: 'V', hint: 'Cliquez un carreau de la grille pour voir ou relever ses bâtiments' },
+  { id: 'batiment', label: 'Bâtiment', key: 'B', hint: 'Cliquez un bâtiment OSM pour créer sa fiche' },
+  { id: 'concession', label: 'Concession', key: 'C', hint: 'Cliquez le bâtiment d’une concession ou tracez son enceinte' },
+  { id: 'trace', label: 'Tracé libre', key: 'P', hint: 'Posez les sommets, double-clic pour fermer' },
+];
+
+const TOOL_ICONS: Record<AtelierTool, React.ReactNode> = {
+  carreau: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m4 4 7 17 2.5-7.5L21 11z" /></svg>
+  ),
+  batiment: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="3" width="14" height="18" rx="1" /><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4" /></svg>
+  ),
+  concession: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1" strokeDasharray="3 2" /><rect x="7" y="7" width="5" height="5" /><rect x="13" y="12" width="5" height="5" /></svg>
+  ),
+  trace: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20 8 6l9 3-4 11z" /><circle cx="4" cy="20" r="1.5" /><circle cx="8" cy="6" r="1.5" /><circle cx="17" cy="9" r="1.5" /><circle cx="13" cy="20" r="1.5" /></svg>
+  ),
+};
+
+interface ToolbarProps {
+  tool: AtelierTool | null;
+  onTool: (t: AtelierTool) => void;
+  is3D: boolean;
+  onToggle3D: () => void;
+  /** Tracé libre en cours : sommets posés et actions. */
+  drawing: { points: number; areaM2: number | null; onFinish: () => void; onUndo: () => void; onQuit: () => void } | null;
+}
+
+/** Barre d'outils flottante en haut de la carte (Atelier v2) : outils, 2D/3D, et actions du tracé libre quand il est actif. */
+export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing }) => (
+  <div className="pointer-events-none absolute left-1/2 top-3.5 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
+    <div role="toolbar" aria-label="Outils" className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+      {TOOLS.map((t) => {
+        const on = tool === t.id;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onTool(t.id)}
+            aria-label={`${t.label} (${t.key})`}
+            aria-pressed={on}
+            title={`${t.label} — ${t.key}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${on ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
+          >
+            {TOOL_ICONS[t.id]}
+          </button>
+        );
+      })}
+      <span className="mx-1 h-[22px] w-px bg-slate-700" />
+      <button
+        type="button"
+        onClick={onToggle3D}
+        aria-pressed={is3D}
+        className="h-9 rounded-lg px-2.5 text-[12.5px] font-semibold text-slate-200 transition hover:bg-slate-800"
+        title="Basculer entre la vue à plat et la vue en perspective"
+      >
+        {is3D ? '3D' : '2D'}
+      </button>
+    </div>
+    {drawing && (
+      <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-[12.5px] text-slate-300 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+        <span>
+          <b className="font-mono text-slate-100">{drawing.points}</b> sommet{drawing.points > 1 ? 's' : ''}
+          {drawing.areaM2 !== null && <span className="ml-2 font-mono text-slate-400">{drawing.areaM2} m²</span>}
+        </span>
+        <button
+          type="button"
+          onClick={drawing.onFinish}
+          disabled={drawing.points < 3}
+          className="h-8 rounded-lg bg-indigo-600 px-3 text-[12.5px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Valider le tracé
+        </button>
+        <button type="button" onClick={drawing.onUndo} disabled={drawing.points === 0} className="h-8 rounded-lg border border-slate-600 px-3 transition hover:bg-slate-800 disabled:opacity-40">
+          Annuler le dernier
+        </button>
+        <button type="button" onClick={drawing.onQuit} className="h-8 rounded-lg px-2 text-slate-400 transition hover:text-slate-100">
+          Quitter
+        </button>
+      </div>
+    )}
+  </div>
 );

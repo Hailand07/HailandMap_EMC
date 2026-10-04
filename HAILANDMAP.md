@@ -189,6 +189,12 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - `App.tsx` : seuls changements = en v2, la barre du haut, le rail et la barre d'état remplacent l'en-tête à onglets et le pied de page ; le contenu des vues est **inchangé** (formulaire d'enregistrement, logique de codes, écritures en base : aucune modification). Capturé : la v1 est identique à l'ancienne interface.
 - Restent à faire (phases 1 à 7) : Atelier (barre d'outils, inspecteur), assistant de création en 5 étapes, Revue, Registre, Pilotage/Territoire, Terrain, Ctrl K, boîte Activité (remplace les messages flottants) ; découpage de `App.tsx` (≈ 8 460 lignes) encore à faire.
 
+### Phase 1 codée (2026-10-04) ✅ — Atelier : barre d'outils et raccourcis (v2)
+- **Barre d'outils** flottante en haut de la carte (`AtelierToolbar`, v2 seulement) : Carreau 200 m (**V**), Bâtiment (**B**), Concession (**C**), Tracé libre (**P**), bascule 2D/3D. Chaque outil **ne fait que régler les états existants** (`isSelectionMode`, `clickSelectionTarget`, `selectionTargetNature`, `isDrawMode`) : l'outil actif en est déduit, aucun nouvel état, aucune logique d'enregistrement modifiée.
+- Pendant le tracé libre : barre contextuelle (sommets, surface, Valider le tracé, Annuler le dernier, Quitter ; **Échap** quitte) reprenant `handleFinalizeCustomDraw` et le retrait du dernier sommet.
+- Le bloc « Mode sélection de zone » du panneau gauche est masqué en v2 (remplacé par la barre) ; recherche et Carte interactive restent. La barre d'état affiche le zoom et le conseil de l'outil actif.
+- Les panneaux de droite (fiche bâtiment, carreau) restent ceux de la v1, au nouveau thème : l'inspecteur et l'assistant en 5 étapes arrivent en phase 2. Vérifié en capture et par raccourcis clavier ; la v1 reste inchangée par défaut.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -215,3 +221,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Synchronisation de `ECOSYSTEME_HAILAND.md` (révision 26) : vision « Guinée numérique » de NavigationX (§15) — l'équipe Hailand vérifiera les institutions (hôpitaux, pompiers, gendarmerie, écoles) ; outils de vérification/badge côté HailandMap à concevoir plus tard — documentation seule, rien codé. |
 | 2026-10-04 | Refonte « Atelier v2 » : maquettes (thème gris, bleu d'action, 5 modules, assistant de création en 5 étapes) **validées par le fondateur** ; plan de reconstruction en 8 phases consigné (§9 ter) — documentation seule, rien codé. |
 | 2026-10-04 | Refonte phase 0 : coque Atelier v2 (barre du haut, rail des modules, barre d'état) et thème gris/bleu derrière l'interrupteur `?ui=v2` ; v1 inchangée par défaut, aucune modification du formulaire d'enregistrement ni des écritures en base. |
+| 2026-10-04 | Refonte phase 1 : barre d'outils de l'Atelier (V/B/C/P, 2D/3D, tracé libre contextuel) et état dans la barre d'état, v2 seulement ; réglages de carte existants réutilisés, formulaire d'enregistrement et écritures en base inchangés. |
