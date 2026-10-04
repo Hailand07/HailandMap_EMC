@@ -92,6 +92,10 @@ import { CandidateInspector, BuildingInspector, EmptyInspector } from './v2/atel
 import { CommandPalette } from './v2/atelier/CommandPalette';
 import { ActivityPanel, type ActivityEntry } from './v2/atelier/Activity';
 import { MapLegend } from './v2/atelier/MapLegend';
+import { RevueView } from './v2/views/RevueView';
+import { RegistreView } from './v2/views/RegistreView';
+import { PilotageView } from './v2/views/PilotageView';
+import { TerritoireView } from './v2/views/TerritoireView';
 import InteractiveTerritoryTree, { type SelectedTerritoryPayload } from './components/InteractiveTerritoryTree';
 import {
   setupInteractiveTerritoryLayers,
@@ -761,6 +765,18 @@ export default function App() {
       });
     } catch (err: any) {
       addApiLog('POST_ERROR', `/api/building/reject/${building.id}`, null, { message: err.message || err });
+    }
+  };
+
+  // Demande de visite terrain : note enregistrée sur la fiche (colonne modification_request), statut inchangé.
+  const handleRequestVisit = async (building: Building, note: string) => {
+    addApiLog('POST', `/api/building/request-visit/${building.id}`, { note }, { status: 'Processing' });
+    try {
+      await updateBuildingInSupabase(building.id, { modification_request: note });
+      setBuildings((prev) => prev.map((b) => (b.id === building.id ? { ...b, modification_request: note } : b)));
+      setMapNotification({ type: 'info', title: 'Visite demandée', message: `${building.hailand_code ?? 'Fiche'} : ${note}` });
+    } catch (err: any) {
+      addApiLog('POST_ERROR', `/api/building/request-visit/${building.id}`, null, { message: err.message || err });
     }
   };
 
@@ -8511,14 +8527,25 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 overflow-auto bg-slate-950"
+              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
             >
+              {uiV2 ? (
+                <RevueView
+                  buildings={buildings}
+                  profiles={profiles}
+                  onOpenOnMap={handleSelectBuildingFromAdmin}
+                  onApprove={handleApproveBuilding}
+                  onReject={handleRejectBuilding}
+                  onRequestVisit={handleRequestVisit}
+                />
+              ) : (
               <ValidationsView
                 buildings={buildings}
                 profiles={profiles}
                 onSelect={handleSelectBuildingFromAdmin}
                 isDark={true}
               />
+              )}
             </motion.div>
           )}
 
@@ -8528,8 +8555,20 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 overflow-auto bg-slate-950"
+              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
             >
+              {uiV2 ? (
+                <RegistreView
+                  buildings={buildings}
+                  profiles={profiles}
+                  onOpenOnMap={handleSelectBuildingFromAdmin}
+                  onRefresh={async () => {
+                    const refreshed = await loadRealBuildings();
+                    setBuildings(refreshed);
+                  }}
+                  onNotify={(title, message, tone) => setMapNotification({ type: (tone ?? 'info') as any, title, message })}
+                />
+              ) : (
               <BuildingsView
                 buildings={buildings}
                 profiles={profiles}
@@ -8540,6 +8579,7 @@ export default function App() {
                   setBuildings(refreshed);
                 }}
               />
+              )}
             </motion.div>
           )}
 
@@ -8549,9 +8589,9 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 overflow-auto bg-slate-950"
+              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
             >
-              <ZonesView zones={zones} isDark={true} onCreateZone={handleCreateZone} />
+              {uiV2 ? <TerritoireView zones={zones} buildings={buildings} /> : <ZonesView zones={zones} isDark={true} onCreateZone={handleCreateZone} />}
             </motion.div>
           )}
 
@@ -8561,14 +8601,18 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute inset-0 overflow-auto bg-slate-950"
+              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
             >
+              {uiV2 ? (
+                <PilotageView buildings={buildings} zones={zones} validations={validations} profiles={profiles} onGoRevue={() => setActiveAdminView('validations')} />
+              ) : (
               <Dashboard
                 buildings={buildings}
                 zones={zones}
                 validations={validations}
                 isDark={true}
               />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
