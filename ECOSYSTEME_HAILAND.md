@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 25** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 26** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -54,6 +54,8 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 - Modèle visé : abonnement boutique (ordre de grandeur évoqué : 10 000 GNF/mois) + marge sur les livraisons. Livreurs indépendants au départ, pas de flotte propre.
 - Expansion : petite zone → commune → Conakry → Guinée → pays similaires.
 - **Priorité actuelle** : démontrer une petite boucle complète (quelques bâtiments vérifiés → quelques vendeurs → commandes → livraisons → revenus), pas « construire tout Hailand ».
+
+**Vision élargie (fondateur, 2026-10-04)** 📄 : NavigationX est la **« Guinée en numérique »** — une carte publique qui se remplit (objectif lointain : ~90 % des bâtiments du pays), où chacun a son domicile, où boutiques, écoles, hôpitaux et services d'urgence ont leur vitrine, et qui sert de porte d'entrée à HailandX et à la flotte de livraison Hailand. Détail et plan par étapes : **§15** (rien n'est codé à ce jour).
 
 **Niveaux de précision d'un lieu** 📄 (définition du fondateur, 2026-10-03 — voir §3.4) : *Niveau 1* le GPS n'identifie aucun bâtiment (précision faible) · *Niveau 2* le GPS identifie le polygone OSM du bâtiment (précision bonne, **non vérifiée**) · *Niveau 3* domicile **vérifié, enregistré et certifié par l'équipe Hailand** (très haute précision, très sûr). Le niveau 3 n'est **pas la suite** des niveaux 1 et 2.
 
@@ -389,6 +391,12 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 7. **Nettoyage** des lignes de démo/test en production : accord ?
 8. **Lien de partage** (`navigationx.app/<code>`) et page d'ouverture sans compte : format et hébergement à définir (NavigationX).
 9. **Placement** (étage, porte) : où le stocker côté `buildings` pour que NavigationX l'affiche (`placement_code` / `unit_code` ?) — à décider avec HailandMap.
+13. ~~Confidentialité par défaut d'un domicile~~ : **tranché le 2026-10-04** — visible de tous sans information confidentielle ; lieux publics faits pour être vus (§15.2).
+14. ~~Qui vérifie les institutions~~ : **tranché le 2026-10-04** — l'équipe Hailand (§15.2).
+15. ~~Voisinage~~ : **tranché le 2026-10-04** — demande ouverte à tous, voisinage numérique (§15.2). Date de HailandX : **aucune** pour l'instant.
+16. **Modération** du fil, des avis et des lieux : qui, avec quels outils ? (§15.10)
+17. **Foyer** : nombre de membres, droits de chacun, qui peut inviter/retirer ? (§15.4)
+18. **Numéros d'urgence** : source de vérité et mise à jour (équipe Hailand ? services eux-mêmes ?) (§15.6)
 10. **Table d'avis d'arrivée** (« l'adresse était-elle précise ? ») : création ? aujourd'hui les avis restent sur l'appareil.
 
 ---
@@ -428,18 +436,20 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-04 (révision 23).**
+**Dernière mise à jour de cette section : 2026-10-04 (révision 26).**
 
 **Fait**
 - **HailandMap** : authentification des agents (connexion par code, auteur réel des écritures) fusionnée ; table **`agents`** + fonctions `is_agent()` / `is_admin()` **créées en base** (accord du fondateur, exports faits) — 0 ligne : aucun agent déclaré, donc l'écriture publique n'est pas encore fermée (§4.8).
 - **Base** : seules écritures de production à ce jour = fonction `fn_resolve_admin_address` et table `agents` (toutes deux avec accord explicite).
 - **NavigationX** — refonte v5 **validée par le fondateur** (maquettes : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL, lien privé) et codée : thèmes (Atlantique / Nuit / Terre au choix, mémorisés) ; parcours d'accueil (profil, méthodes de connexion, invité, SMS, position) ; carte d'abord avec panneau du bas ; recherche (code copié détecté, résultats groupés, « Vouliez-vous dire ? ») ; fiche lieu réduite/détaillée et favoris ; feuille de partage (WhatsApp, SMS, copier, QR) ; arrivée avec avis ; enregistrement en 3 étapes avec connexion au moment de sauvegarder ; style de carte par thème. Détail et vérifications : `NAVIGATIONX.md` §6 (phases A à H). Phase A fusionnée sur `main` (Lynx#11) ; **phases B à H sur la branche `claude/busy-cerf-cd22ke`, en attente de PR et de fusion**.
+- **NavigationX, phases K–O (2026-10-04)** : bâtiment généré identique sur la carte et dans « Mon adresse » (type maison/immeuble/commerce, niveaux déclarés), masquage fiable du bâtiment OSM, repère « Chez moi » discret, panneau du bas qui se réduit, heure de Conakry, thème et éclairage automatiques jour/nuit, ciel animé et bascule soleil/lune (détail : `NAVIGATIONX.md` §6). **Vision « Guinée numérique » consignée en §15 : rien de codé.**
 
 **Décisions du fondateur déjà prises**
 - HailandMap = atelier ; NavigationX = vitrine ; HailandX = e-commerce, pas débuté.
 - Base de production en lecture seule sans accord explicite pour chaque opération ; NavigationX ne certifie jamais.
 - Niveaux 1/2/3 ; deux codes (bâtiment, placement) ; plusieurs adresses par compte ; adressage administratif avec code provisoire aléatoire.
 - Flux v5 validé ; **les trois thèmes sont conservés, au choix de l'utilisateur** ; un invité doit créer un compte au moment d'enregistrer une adresse.
+- **Vision 2026-10-04** (§15.2) : domiciles visibles de tous sans information confidentielle, lieux publics faits pour être vus ; institutions vérifiées par l'équipe Hailand ; voisinage = demande ouverte à tous (numérique) ; HailandX sans date.
 
 **En cours / non commencé** : table `declarations` **créée le 2026-10-04** (code administratif attribué par le serveur) ; favoris et avis d'arrivée restent sur l'appareil ; pas de stockage de photos ; catégories de lieux (pharmacie, santé…) sans données ; plusieurs adresses **certifiées** par compte non gérées côté lecture ; surbrillances du cadastre à ajuster en thème Nuit ; clé Supabase de repli de NavigationX invalide (définir `VITE_SUPABASE_ANON_KEY` sur Vercel) ; dépendances inutilisées (`@google/genai`, `express`, `dotenv`) à retirer ; ⚠️ position GPS de l'enregistrement à confirmer sur un vrai téléphone.
 
@@ -450,8 +460,72 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 4. Trancher §9 (lien de partage, protection des codes, table d'avis) ; accord pour créer la table d'avis et le stockage des photos ; tester l'enregistrement sur téléphone avec un vrai compte.
 5. Importer les bâtiments OSM en base (stabilité des identifiants de polygone) ; catégories de lieux.
 6. Faire pivoter les clés exposées ; protéger `main` dans les deux dépôts.
+7. **Plus tard (à la demande du fondateur, rien n'est lancé)** : plan §15.9 — d'abord l'étape 0 (conception des tables à valider avant toute écriture en base), puis foyer/voisinage, lieux, urgences.
 
 **Bloqué par le fondateur** : identifiant admin ; accord pour écrire en base (avis, photos, fermeture de l'écriture publique) ; décisions §9 ; protection de `main` ; variables d'environnement Vercel.
+
+---
+
+## 15. Vision « Guinée numérique » et plan par étapes 📄💡 (fondateur, 2026-10-04 — **rien n'est codé ni créé en base**)
+
+> Statut : idées du fondateur remises en ordre et complétées par Claude (💡 = proposition de Claude, 📄 = décision/idée du fondateur). À reprendre étape par étape ; toute création de table en production exige l'**accord explicite** du fondateur (`CLAUDE.md`).
+
+### 15.1 Idée en une phrase
+Une **personne** (compte) gère des **lieux** (domicile, boutique, école, service). Chaque lieu repose sur un **bâtiment** du cadastre (HailandMap). Les personnes sont reliées par des **liens** : foyer, voisinage numérique, abonnement, gestion. 📄 NavigationX = la vitrine de tout le monde **et** la navigation la plus précise possible.
+
+### 15.2 Décisions du fondateur (2026-10-04) 📄
+1. **Visibilité publique** : un bâtiment enregistré comme **domicile** est visible de tous **sans aucune information confidentielle** (ni nom, ni contact, ni détail). Les **lieux publics** (boutiques, écoles, services…) sont au contraire **faits pour être vus** : nom, description, images, contact publics.
+2. **Vérification des institutions** (hôpitaux, pompiers, gendarmerie, écoles…) : faite par **l'équipe Hailand** (via HailandMap) ; badge « vérifié ».
+3. **Voisinage** : demande **ouverte à tous** ; « voisinage » = voisinage **numérique** (comme une relation d'amitié), pas une condition de distance.
+4. **HailandX** : **pas de date** de démarrage (l'étape 6 du plan n'a donc pas de date).
+
+### 15.3 Visibilité d'un domicile selon le lien 💡
+| Qui regarde | Ce qu'il voit |
+|---|---|
+| Public (n'importe qui) 📄 | Bâtiment enregistré (forme/emplacement), niveau de précision, quartier — **rien de confidentiel** |
+| Voisin accepté 📄 | Ce que le propriétaire autorise : pseudo, photo du portail, point d'entrée, contact… (réglages par l'utilisateur) 💡 |
+| Membre du foyer 💡 | Tout, plus les livraisons et notifications du domicile |
+| Visiteur avec un code partagé 💡 | Le chemin jusqu'au portail, pour une durée limitée |
+
+### 15.4 Foyer et colis 💡
+Un domicile peut avoir des **membres** (invités par le propriétaire). À l'arrivée d'un colis, tous les membres sont prévenus ; celui qui le réceptionne le confirme (« colis reçu, posé au salon ») — scénario du fondateur : commander, faire la sieste, être prévenu par son frère.
+
+### 15.5 Lieux et fil « Découvrir » 📄💡
+- Types : boutique, école, hôpital, pharmacie, pompiers, gendarmerie, mairie, lieu de culte, restaurant… ; chaque lieu a une **page** (description, photos, horaires, contact, liens Facebook/TikTok/WhatsApp) 📄.
+- **Fil** dédié (en plus de la carte) : nouveaux lieux, boutiques, écoles ; consulter, contacter, suivre, commenter 📄 ; filtres catégorie/distance 💡. Une interface qui s'ajoute aux onglets : **Carte · Découvrir · Mon domicile · Profil** 💡.
+- Création de lieu : un utilisateur peut transformer son domicile ou enregistrer une boutique/école ; l'équipe Hailand vérifie les institutions (§15.2).
+
+### 15.6 Urgences (priorité du fondateur) 📄💡
+- « Les plus proches de moi » : hôpital, pompiers, gendarmerie, avec bouton **Appeler** et trajet 📄 ; les services peuvent **voir** l'utilisateur et venir jusqu'à lui 📄.
+- 💡 Partage de position exacte (code/lien) vers les secours ; console pour services partenaires ; recherche d'un code **par SMS** (sans internet).
+- Prérequis : institutions **vérifiées** (jamais de faux numéro d'urgence).
+
+### 15.7 Commerce et HailandX 📄💡
+- Depuis NavigationX : « Lancer mon activité » → vitrine (description, images, produits, liens réseaux sociaux) publiée dans le fil ; le domicile/la boutique devient **point de retrait** pour la flotte Hailand.
+- « Voir la boutique » / « Commander » redirige vers **HailandX** (catalogue, panier, paiement). Inversement, un bâtiment enregistré depuis HailandX apparaît dans NavigationX. **Compte unique** : même base, même `auth.users` 💡.
+
+### 15.8 Livraison et API 📄💡
+Missions de la flotte Hailand avec un Hailand-Code (destination exacte, guidage jusqu'au portail) ; `deliveries` existe déjà en base (§5.4). 💡 Une **API Hailand** permettrait à toute plateforme e-commerce de créer une livraison à partir d'un code.
+
+### 15.9 Plan par étapes 💡
+| Étape | Contenu | Dépend de |
+|---|---|---|
+| 0. Fondations | Tables proposées (noms provisoires) : `places`, `place_members`, `relationships` (voisinage/foyer/abonnement), règles de visibilité (RLS/vues publiques anonymisées) | **Accord du fondateur** pour la création en base |
+| 1. Guinée numérique visible | Domiciles enregistrés visibles de tous sans donnée confidentielle ; compteurs par quartier/commune | Étape 0 ; protection des codes (§9 n°11) |
+| 2. Foyer et voisinage | Inviter les membres, demandes de voisinage (ouvertes à tous), réglages de visibilité | Étape 0 |
+| 3. Lieux | Créer boutique/école/service, page de lieu, catégories, badge « vérifié » (validation côté HailandMap) | Étape 0 |
+| 4. Découvrir | Fil, filtres, suivre, avis et commentaires, signalement | Étape 3 ; **modération** |
+| 5. Urgences | Annuaire des services vérifiés les plus proches, appel, partage de position ; puis code par SMS | Étape 3 ; institutions vérifiées |
+| 6. Commerce et HailandX | « Lancer mon activité », vitrine, point de retrait, redirection, compte unique | Démarrage de HailandX (**sans date**) |
+| 7. Livraison et API | Missions flotte, notifications au foyer, preuve de remise, API externe | Étapes 2 et 6 |
+
+Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de protection des codes ; fil, commerce et livraison ensuite. Le flux et l'interface de NavigationX seront **ajustés au fil de l'eau** (prévu par le fondateur).
+
+### 15.10 Risques et points à traiter 💡
+- **Vie privée** : l'anonymat des domiciles en public suppose une **vue publique** qui n'expose ni nom, ni contact, ni code complet pouvant être deviné ; les n° d'ordre se suivent (§9 n°11).
+- **Modération** (fil, avis, faux lieux) et **vérification des institutions** : processus et outils côté équipe Hailand/HailandMap à définir.
+- **Propriété des données** : ces tables sont propres à NavigationX (§6.2 à compléter à la création) ; HailandMap ne fait que vérifier/badger les institutions.
+- **Lecture publique des polygones** : nécessaire pour restyler les maisons de tous (aujourd'hui seul le domicile de l'utilisateur est restylé) — dépend de la décision de visibilité ci-dessus.
 
 ---
 
@@ -482,3 +556,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-04 | Révision 23 : point de situation — refonte NavigationX v5 codée (phases A à H), §2 état de NavigationX, §9 décisions 8 à 10 (lien de partage, placement, table d'avis), §14 réécrit — impacte : NavigationX / HailandMap. |
 | 2026-10-04 | Révision 24 : connexion NavigationX « indisponible » diagnostiquée (clé publique Supabase absente sur Vercel + clé de repli invalide) ; clé de repli supprimée, clés secrètes refusées (§7, §14) — impacte : NavigationX. |
 | 2026-10-04 | Révision 25 : code Hailand administratif `GN-REG-PP-CC-QQQ-NNNN` décidé (§3.5) et table `declarations` créée en base avec ses fonctions (§4.6, accord du fondateur) ; décisions ouvertes 11-12 (protection des codes, même bâtiment) — impacte : NavigationX / HailandMap / base. |
+| 2026-10-04 | Révision 26 : vision « Guinée numérique » (§15) — visibilité publique des domiciles/lieux, foyer, voisinage numérique, fil Découvrir, urgences, commerce/HailandX, livraison/API, plan en 8 étapes ; décisions §9 n°13–15 tranchées, n°16–18 ouvertes ; rien codé ni créé en base — impacte : NavigationX / HailandMap (vérification des institutions) / HailandX. |
