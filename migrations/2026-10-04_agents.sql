@@ -1,6 +1,7 @@
--- PROPOSITION — NON APPLIQUÉE. Partie A : table des agents autorisés + fonctions de contrôle.
--- Sûre à appliquer seule : elle ne modifie aucune table existante ni aucune règle d'accès actuelle.
--- Prérequis : accord explicite du fondateur ; sauvegarde conseillée.
+-- APPLIQUÉE le 2026-10-04 sur la base de production (Supabase), sur demande explicite du fondateur, après sauvegarde (exports CSV).
+-- Migration « agents_table_and_access_functions ». Partie A : table des agents autorisés + fonctions de contrôle.
+-- N'a modifié aucune table existante ni aucune règle d'accès existante. Retour arrière : drop table public.agents cascade ;
+-- drop function public.is_agent(), public.is_admin().
 --
 -- Mise en route après application : se connecter une première fois dans HailandMap ; l'écran « Accès non autorisé »
 -- affiche l'identifiant du compte. Le fondateur l'ajoute (en tant qu'admin) puis autorise les autres agents :
