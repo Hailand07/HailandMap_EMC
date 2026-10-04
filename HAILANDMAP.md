@@ -207,6 +207,10 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Écrans Attributs et Accès non dessinés en grand écran dans les maquettes (seul l'écran téléphone « Terrain » montrait les attributs) : composés avec les mêmes éléments ; à valider.
 - Vérifié par capture et clics, **sans enregistrer** (aucune écriture en base).
 
+### Atelier v2 conforme aux maquettes (2026-10-04) ✅ — écran Atelier
+- Panneau gauche **Territoire / Couches** (arbre commune → quartier → fiches colorées par statut, filtre, affichage : grille 200 m, carte interactive, perspective, fond de carte), inspecteur de droite (**Bâtiment OSM sans fiche** avec surface, périmètre, sommets, voisins relevés et actions *Créer la fiche / C'est une concession / Corriger le contour* ; fiche d'un bâtiment du registre ; état vide avec les outils), légende de la carte, barre d'outils V / B / C / P / G, **recherche universelle Ctrl K** (fiches par code, quartier, repère ; commandes), **boîte Activité** (cloche) et message dans la barre d'état à la place des fenêtres flottantes. En v2 sont masqués : ancien panneau gauche, bandeau « Conseil d'utilisation », encart flottant de carreau, notifications flottantes.
+- Fonctions de la v1 **non reprises à l'écran en v2 pour l'instant** : itinéraire/GPS de démonstration d'un bâtiment sélectionné, journal API, volet satellite hors style satellite ; le menu d'édition 3D (« ÉDIT ») est conservé. À traiter selon décision du fondateur.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -236,3 +240,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Refonte phase 1 : barre d'outils de l'Atelier (V/B/C/P, 2D/3D, tracé libre contextuel) et état dans la barre d'état, v2 seulement ; réglages de carte existants réutilisés, formulaire d'enregistrement et écritures en base inchangés. |
 | 2026-10-04 | Refonte phase 2a : assistant de création projeté dans l'inspecteur de droite avec barre des 5 étapes (v2 seulement) ; formulaires, codes et écritures inchangés, simple signal `onStageChange` ajouté ; rien enregistré pendant les tests. |
 | 2026-10-04 | Correction de la phase 2 : assistant de création reconstruit selon les maquettes validées (Structure, Attributs, Accès, Vérification, aperçu 3D, contrôles), logique des formulaires extraite en hooks sans changement de comportement ; rien enregistré pendant les tests. |
+| 2026-10-04 | Atelier v2 : écran Atelier reconstruit selon les maquettes (panneau Territoire/Couches, inspecteur de sélection, légende, Ctrl K, boîte Activité) ; interface seulement, logique inchangée. |

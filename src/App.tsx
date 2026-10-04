@@ -87,6 +87,11 @@ import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea 
 import * as turf from '@turf/turf';
 import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, RegistrationSlot, TOOLS, type AtelierTool } from './shell/AtelierShell';
 import { getUiVersion } from './shell/uiVersion';
+import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
+import { CandidateInspector, BuildingInspector, EmptyInspector } from './v2/atelier/Inspector';
+import { CommandPalette } from './v2/atelier/CommandPalette';
+import { ActivityPanel, type ActivityEntry } from './v2/atelier/Activity';
+import { MapLegend } from './v2/atelier/MapLegend';
 import InteractiveTerritoryTree, { type SelectedTerritoryPayload } from './components/InteractiveTerritoryTree';
 import {
   setupInteractiveTerritoryLayers,
@@ -592,6 +597,11 @@ function simplifyPolygon(points: [number, number][], tolerance: number): [number
 
 export default function App() {
   const [assistantHost, setAssistantHost] = useState<HTMLDivElement | null>(null);
+  const [assistantStarted, setAssistantStarted] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [activitySeen, setActivitySeen] = useState(0);
   const uiV2 = getUiVersion() === 'v2'; // Atelier v2 (refonte en cours) : coque et thème seulement pour l'instant
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
   const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(true);
@@ -6578,24 +6588,18 @@ export default function App() {
   }, []);
 
   // ── Atelier v2 : outil actif déduit des réglages existants de la carte (aucun nouvel état) ──
-  const activeTool: AtelierTool | null = isDrawMode
-    ? 'trace'
-    : !isSelectionMode
-      ? null
-      : clickSelectionTarget === 'grid_cell'
-        ? 'carreau'
-        : selectionTargetNature === 'courtyard'
-          ? 'concession'
-          : 'batiment';
+  const [v2Tool, setV2Tool] = useState<AtelierTool | null>('selection');
+  const activeTool: AtelierTool | null = isDrawMode ? 'trace' : v2Tool === 'trace' ? 'selection' : v2Tool;
 
   const selectAtelierTool = (t: AtelierTool) => {
+    setV2Tool(t);
     setIsSelectionMode(true);
     setSelectedBuilding(null);
     setDrawPoints([]);
     setIsDrawMode(t === 'trace');
     if (t === 'carreau') {
       setClickSelectionTarget('grid_cell');
-    } else if (t === 'batiment') {
+    } else if (t === 'selection' || t === 'batiment') {
       setClickSelectionTarget('building');
       setSelectionTargetNature('single');
     } else if (t === 'concession') {
@@ -6603,6 +6607,41 @@ export default function App() {
       setSelectionTargetNature('courtyard');
     }
     addApiLog('SET_ATELIER_TOOL', `/client/tool/${t}`, null, { tool: t });
+  };
+
+  // L'assistant s'ouvre tout de suite avec les outils de création ; avec l'outil Sélection, l'inspecteur propose d'abord les actions.
+  useEffect(() => {
+    setAssistantStarted(!!clickedCoords && v2Tool !== 'selection');
+  }, [clickedCoords]);
+
+  // Atelier v2 : les messages d'opération vont dans la boîte « Activité » et dans la barre d'état, jamais en fenêtre flottante.
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!uiV2 || !mapNotification) return;
+    const entry: ActivityEntry = { id: Date.now(), at: Date.now(), tone: (mapNotification.type as any) || 'info', title: mapNotification.title, message: mapNotification.message };
+    setActivity((prev) => [entry, ...prev].slice(0, 50));
+    setStatusMsg(mapNotification.title);
+    const t = setTimeout(() => setStatusMsg(null), 8000);
+    return () => clearTimeout(t);
+  }, [mapNotification]);
+
+  // Ctrl K : recherche universelle.
+  useEffect(() => {
+    if (!uiV2) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [uiV2]);
+
+  const startAssistant = (nature: 'single' | 'courtyard') => {
+    setSelectionTargetNature(nature);
+    setV2Tool(nature === 'courtyard' ? 'concession' : 'batiment');
+    setAssistantStarted(true);
   };
 
   const quitFreeDraw = () => {
@@ -6618,6 +6657,7 @@ export default function App() {
     if (!uiV2 || activeAdminView !== 'carte') return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (paletteOpen) return;
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
       const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
@@ -6644,7 +6684,9 @@ export default function App() {
           view={activeAdminView}
           adminName={currentAdmin.full_name}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onSearch={() => setActiveAdminView('carte')}
+          onSearch={() => setPaletteOpen(true)}
+          onBell={() => { setActivityOpen((o) => !o); setActivitySeen(activity.length); }}
+          unread={activity.length > activitySeen}
         />
       )}
       {!uiV2 && (
@@ -6769,31 +6811,6 @@ export default function App() {
                 }
               `}</style>
               
-              {uiV2 && (
-                <AtelierToolbar
-                  tool={activeTool}
-                  onTool={selectAtelierTool}
-                  is3D={currentPitch > 15}
-                  onToggle3D={() => {
-                    if (!mapRef.current) return;
-                    const nextPitch = mapRef.current.getPitch() > 15 ? 0 : 50;
-                    mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
-                    setCurrentPitch(nextPitch);
-                  }}
-                  drawing={
-                    isDrawMode
-                      ? {
-                          points: drawPoints.length,
-                          areaM2: drawPoints.length >= 3 ? Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]])) : null,
-                          onFinish: handleFinalizeCustomDraw,
-                          onUndo: () => setDrawPoints((prev) => prev.slice(0, -1)),
-                          onQuit: quitFreeDraw,
-                        }
-                      : null
-                  }
-                />
-              )}
-
               {/* Overlay Backdrop de mise au point pour Mobile */}
               {isSidebarOpen && (
                 <div 
@@ -6802,10 +6819,44 @@ export default function App() {
                 />
               )}
 
-              {/* 1. PANNEAU LATÉRAL GAUCHE DE CONTROLE DE L'APPLICATION */}
+              {uiV2 && (
+                <AtelierLeftPanel
+                  buildings={buildings}
+                  selectedId={selectedBuilding?.id ?? null}
+                  onSelectBuilding={handleSelectBuildingFromAdmin}
+                  gridOn={is200mGridActive}
+                  onToggleGrid={() => setIs200mGridActive(!is200mGridActive)}
+                  interactiveOn={isInteractiveMapActive}
+                  onToggleInteractive={handleToggleInteractiveMap}
+                  is3D={currentPitch > 15}
+                  onToggle3D={() => {
+                    if (!mapRef.current) return;
+                    const nextPitch = mapRef.current.getPitch() > 15 ? 0 : 50;
+                    mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
+                    setCurrentPitch(nextPitch);
+                  }}
+                  mapStyle={currentStyle}
+                  onMapStyle={handleStyleChange}
+                  interactiveTree={
+                    <InteractiveTerritoryTree
+                      selectedTerritories={selectedTerritories}
+                      selectedTerritoryIds={selectedTerritories.map((t) => t.id)}
+                      selectedTerritoryId={selectedTerritory?.id || null}
+                      selectedEntityId={selectedTerritory?.id || null}
+                      onToggleTerritory={handleToggleTerritory}
+                      onToggleBatchTerritories={handleToggleBatchTerritories}
+                      onSelectTerritory={handleToggleTerritory}
+                      onSelectEntity={handleToggleTerritory}
+                      onResetSelection={handleClearTerritorySelection}
+                    />
+                  }
+                />
+              )}
+
+              {/* 1. PANNEAU LATÉRAL GAUCHE DE CONTROLE DE L'APPLICATION (v1) */}
               <div 
                 className={`absolute md:relative inset-y-0 left-0 z-40 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl h-full transition-all duration-300 ease-in-out shrink-0
-                  ${isSidebarOpen 
+                  ${uiV2 ? '!hidden' : ''} ${isSidebarOpen 
                     ? 'w-full sm:w-[390px] md:w-[390px] translate-x-0 opacity-100' 
                     : '-translate-x-full md:translate-x-0 md:w-0 overflow-hidden border-r-0 opacity-0 pointer-events-none'
                   }`}
@@ -7261,7 +7312,7 @@ export default function App() {
 
           {/* CRÉATION D'ADRESSE : Étape interactive par Clic (Module 1) */}
           <AnimatePresence mode="wait">
-            {clickedCoords ? (
+            {clickedCoords && (!uiV2 || assistantStarted) ? (
               <RegistrationSlot v2={uiV2} host={assistantHost}>
               <InteractiveBuildingForm
                 clickedCoords={clickedCoords}
@@ -7764,8 +7815,36 @@ export default function App() {
         {/* LE CONTENEUR DE LA CARTE */}
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" id="mapbox-viewport" />
 
+              {uiV2 && (
+                <AtelierToolbar
+                  tool={activeTool}
+                  onTool={selectAtelierTool}
+                  is3D={currentPitch > 15}
+                  onToggle3D={() => {
+                    if (!mapRef.current) return;
+                    const nextPitch = mapRef.current.getPitch() > 15 ? 0 : 50;
+                    mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
+                    setCurrentPitch(nextPitch);
+                  }}
+                  drawing={
+                    isDrawMode
+                      ? {
+                          points: drawPoints.length,
+                          areaM2: drawPoints.length >= 3 ? Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]])) : null,
+                          onFinish: handleFinalizeCustomDraw,
+                          onUndo: () => setDrawPoints((prev) => prev.slice(0, -1)),
+                          onQuit: quitFreeDraw,
+                        }
+                      : null
+                  }
+                />
+              )}
+
+              {uiV2 && <MapLegend />}
+
+
         {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+        <div className={`absolute left-4 z-20 flex items-center gap-2 ${uiV2 ? "top-16" : "top-4"}`}>
           {!isSidebarOpen && (
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -7985,7 +8064,7 @@ export default function App() {
 
         {/* ENCART DE NOTIFICATION DES OPÉRATIONS DE DÉTOURAGE ET DE VALIDATION ALGORITHMIQUE */}
         <AnimatePresence>
-          {mapNotification && (
+          {!uiV2 && mapNotification && (
             <motion.div
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -8316,7 +8395,7 @@ export default function App() {
         </div>
 
         {/* RUSTINE DE BIENVENUE & CONSEIL GPS */}
-        <div className="absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm hidden lg:block">
+        <div className={`absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm ${uiV2 ? "hidden" : "hidden lg:block"}`}>
           <div className="bg-slate-950/90 border border-slate-800 backdrop-blur-md p-3 rounded-2xl shadow-2xl pointer-events-auto flex items-start gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-400 mt-0.5 pointer-events-none shrink-0 border border-orange-500/15 flex-shrink-0">
               <Info className="w-4 h-4" />
@@ -8335,7 +8414,7 @@ export default function App() {
         {/* Panneau latéral droit pour l'administration de bâtiment sélectionné masqué temporairement */}
 
         {/* Encart flottant discret pour le carreau de grille 200m sélectionné sans ouvrir le grand volet */}
-        {!selectedBuilding && selectedGridCell && !isGridPanelOpen && (
+        {!uiV2 && !selectedBuilding && selectedGridCell && !isGridPanelOpen && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-slate-950/95 border border-cyan-500/30 backdrop-blur-md rounded-2xl p-2 px-4 shadow-2xl ring-1 ring-cyan-500/20 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2 shrink-0">
               <span className="relative flex h-2 w-2">
@@ -8387,8 +8466,25 @@ export default function App() {
           </div>
         )}
 
-        {uiV2 && clickedCoords && (
-          <AssistantAside hostRef={setAssistantHost} />
+        {uiV2 && activeAdminView === 'carte' && (
+          clickedCoords && assistantStarted ? (
+            <AssistantAside hostRef={setAssistantHost} />
+          ) : clickedCoords ? (
+            <CandidateInspector
+              coords={clickedCoords}
+              zone={detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+              commune={detectCommuneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+              buildings={buildings}
+              onCreate={() => startAssistant('single')}
+              onConcession={() => startAssistant('courtyard')}
+              onRedraw={() => { setClickedCoords(null); selectAtelierTool('trace'); }}
+              onClose={() => setClickedCoords(null)}
+            />
+          ) : selectedBuilding ? (
+            <BuildingInspector building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
+          ) : selectedGridCell && isGridPanelOpen ? null : (
+            <EmptyInspector buildings={buildings} onTool={selectAtelierTool} />
+          )
         )}
 
         {/* Panneau latéral droit pour le carreau de grille 200m sélectionné */}
@@ -8478,6 +8574,33 @@ export default function App() {
         </AnimatePresence>
       </div>
       </div>
+
+      {uiV2 && activityOpen && (
+        <ActivityPanel
+          entries={activity}
+          onClear={() => {
+            setActivity([]);
+            setActivitySeen(0);
+          }}
+          onClose={() => setActivityOpen(false)}
+        />
+      )}
+      {uiV2 && (
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          buildings={buildings}
+          onSelectBuilding={handleSelectBuildingFromAdmin}
+          commands={[
+            ...TOOLS.map((t) => ({ id: `tool-${t.id}`, label: `Outil : ${t.label}`, hint: t.key, run: () => { setActiveAdminView('carte'); selectAtelierTool(t.id); } })),
+            { id: 'go-atelier', label: 'Aller à l’Atelier', run: () => setActiveAdminView('carte') },
+            { id: 'go-revue', label: 'Aller à la Revue', run: () => setActiveAdminView('validations') },
+            { id: 'go-registre', label: 'Aller au Registre', run: () => setActiveAdminView('batiments') },
+            { id: 'go-territoire', label: 'Aller au Territoire', run: () => setActiveAdminView('zones') },
+            { id: 'go-pilotage', label: 'Aller au Pilotage', run: () => setActiveAdminView('dashboard') },
+          ]}
+        />
+      )}
 
       {/* MODAL DES PARAMÈTRES ET CLÉS DE L'ATELIER GEOGRAPHIQUE */}
       <AnimatePresence>
@@ -8576,6 +8699,7 @@ export default function App() {
           adminName={currentAdmin.full_name}
           zoom={activeAdminView === 'carte' ? zoomLevel : undefined}
           toolHint={activeAdminView === 'carte' && activeTool ? TOOLS.find((t) => t.id === activeTool)?.hint : undefined}
+          message={statusMsg}
         />
       ) : (
         <>

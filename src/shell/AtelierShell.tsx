@@ -17,10 +17,12 @@ interface TopBarProps {
   adminName: string;
   onOpenSettings: () => void;
   onSearch: () => void;
+  onBell: () => void;
+  unread: boolean;
 }
 
 /** Barre du haut de l'Atelier v2 : logo, fil d'Ariane, recherche universelle (Ctrl K à venir), état, réglages, agent. */
-export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSettings, onSearch }) => {
+export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSettings, onSearch, onBell, unread }) => {
   const mod = moduleOfView(view);
   const initials = adminName
     .split(' ')
@@ -48,8 +50,9 @@ export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSe
         <span className="rounded border border-slate-700 px-1.5 py-px font-mono text-[11px]">Ctrl K</span>
       </button>
       <div className="flex min-w-[220px] items-center justify-end gap-2.5">
-        <button type="button" aria-label="Activité" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-800">
+        <button type="button" onClick={onBell} aria-label="Activité" className="relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-800">
           <Bell size={17} />
+          {unread && <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full bg-indigo-400" />}
         </button>
         <button type="button" onClick={onOpenSettings} aria-label="Réglages" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-800">
           <Settings size={17} />
@@ -106,33 +109,36 @@ interface StatusProps {
   /** Module Atelier : zoom de la carte et conseil de l'outil actif. */
   zoom?: number;
   toolHint?: string;
+  /** Dernier message d'activité (remplace les messages flottants). */
+  message?: string | null;
 }
 
 /** Barre d'état en bas : remplace le pied de page et, plus tard, les messages flottants. */
-export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName, zoom, toolHint }) => (
+export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName, zoom, toolHint, message }) => (
   <footer className="flex h-7 shrink-0 select-none items-center gap-[18px] border-t border-slate-950 bg-slate-900 px-3.5 font-mono text-[11.5px] text-slate-500">
     <span>{buildingsCount} bâtiments</span>
     <span>{zonesCount} zones</span>
     <span>Conakry, Guinée</span>
     {zoom !== undefined && <span>zoom {zoom.toFixed(1)}</span>}
     <span className="flex-1" />
-    {toolHint && <span className="text-slate-400">{toolHint}</span>}
+    {message ? <span className="text-indigo-300">{message}</span> : toolHint && <span className="text-slate-400">{toolHint}</span>}
     <span className="text-slate-400">{adminName}</span>
   </footer>
 );
 
 /** Outils de l'Atelier : chacun correspond à un réglage existant de la carte (voir `App.tsx`). */
-export type AtelierTool = 'carreau' | 'batiment' | 'concession' | 'trace';
+export type AtelierTool = 'selection' | 'batiment' | 'concession' | 'trace' | 'carreau';
 
 export const TOOLS: { id: AtelierTool; label: string; key: string; hint: string }[] = [
-  { id: 'carreau', label: 'Carreau 200 m', key: 'V', hint: 'Cliquez un carreau de la grille pour voir ou relever ses bâtiments' },
+  { id: 'selection', label: 'Sélection', key: 'V', hint: 'Cliquez un bâtiment pour l\u2019inspecter, puis choisissez quoi en faire' },
   { id: 'batiment', label: 'Bâtiment', key: 'B', hint: 'Cliquez un bâtiment OSM pour créer sa fiche' },
-  { id: 'concession', label: 'Concession', key: 'C', hint: 'Cliquez le bâtiment d’une concession ou tracez son enceinte' },
+  { id: 'concession', label: 'Concession', key: 'C', hint: 'Cliquez le bâtiment d\u2019une concession ou tracez son enceinte' },
   { id: 'trace', label: 'Tracé libre', key: 'P', hint: 'Posez les sommets, double-clic pour fermer' },
+  { id: 'carreau', label: 'Carreau 200 m', key: 'G', hint: 'Cliquez un carreau de la grille pour voir ou relever ses bâtiments' },
 ];
 
 const TOOL_ICONS: Record<AtelierTool, React.ReactNode> = {
-  carreau: (
+  selection: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m4 4 7 17 2.5-7.5L21 11z" /></svg>
   ),
   batiment: (
@@ -143,6 +149,9 @@ const TOOL_ICONS: Record<AtelierTool, React.ReactNode> = {
   ),
   trace: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20 8 6l9 3-4 11z" /><circle cx="4" cy="20" r="1.5" /><circle cx="8" cy="6" r="1.5" /><circle cx="17" cy="9" r="1.5" /><circle cx="13" cy="20" r="1.5" /></svg>
+  ),
+  carreau: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
   ),
 };
 
