@@ -85,7 +85,7 @@ import {
 import { computeDualAddressing } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
-import { AtelierTopBar, ModuleRail, AtelierStatusBar } from './shell/AtelierShell';
+import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, TOOLS, type AtelierTool } from './shell/AtelierShell';
 import { getUiVersion } from './shell/uiVersion';
 import InteractiveTerritoryTree, { type SelectedTerritoryPayload } from './components/InteractiveTerritoryTree';
 import {
@@ -6576,6 +6576,61 @@ export default function App() {
     }
   }, []);
 
+  // ── Atelier v2 : outil actif déduit des réglages existants de la carte (aucun nouvel état) ──
+  const activeTool: AtelierTool | null = isDrawMode
+    ? 'trace'
+    : !isSelectionMode
+      ? null
+      : clickSelectionTarget === 'grid_cell'
+        ? 'carreau'
+        : selectionTargetNature === 'courtyard'
+          ? 'concession'
+          : 'batiment';
+
+  const selectAtelierTool = (t: AtelierTool) => {
+    setIsSelectionMode(true);
+    setSelectedBuilding(null);
+    setDrawPoints([]);
+    setIsDrawMode(t === 'trace');
+    if (t === 'carreau') {
+      setClickSelectionTarget('grid_cell');
+    } else if (t === 'batiment') {
+      setClickSelectionTarget('building');
+      setSelectionTargetNature('single');
+    } else if (t === 'concession') {
+      setClickSelectionTarget('building');
+      setSelectionTargetNature('courtyard');
+    }
+    addApiLog('SET_ATELIER_TOOL', `/client/tool/${t}`, null, { tool: t });
+  };
+
+  const quitFreeDraw = () => {
+    setIsDrawMode(false);
+    setDrawPoints([]);
+    const drawSource = mapRef.current?.getSource('draw-source') as mapboxgl.GeoJSONSource | undefined;
+    if (drawSource) drawSource.setData({ type: 'FeatureCollection', features: [] });
+    addApiLog('DRAW_RESET', `/map/draw/reset`, null, { success: true });
+  };
+
+  // Raccourcis clavier de l'Atelier v2 (V, B, C, P) : seulement sur la carte, hors champs de saisie.
+  useEffect(() => {
+    if (!uiV2 || activeAdminView !== 'carte') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
+      if (t) {
+        e.preventDefault();
+        selectAtelierTool(t.id);
+      } else if (e.key === 'Escape' && isDrawMode) {
+        quitFreeDraw();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   // L'utilisateur affiché est l'agent réellement connecté (et non un profil de démonstration).
   const currentAdmin = profiles.find((p) => p.id === actorId()) || profiles.find((p) => p.role === 'admin') || profiles[0];
   const pendingCount = buildings.filter((b) => b.status === 'en_attente').length;
@@ -6713,6 +6768,31 @@ export default function App() {
                 }
               `}</style>
               
+              {uiV2 && (
+                <AtelierToolbar
+                  tool={activeTool}
+                  onTool={selectAtelierTool}
+                  is3D={currentPitch > 15}
+                  onToggle3D={() => {
+                    if (!mapRef.current) return;
+                    const nextPitch = mapRef.current.getPitch() > 15 ? 0 : 50;
+                    mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
+                    setCurrentPitch(nextPitch);
+                  }}
+                  drawing={
+                    isDrawMode
+                      ? {
+                          points: drawPoints.length,
+                          areaM2: drawPoints.length >= 3 ? Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]])) : null,
+                          onFinish: handleFinalizeCustomDraw,
+                          onUndo: () => setDrawPoints((prev) => prev.slice(0, -1)),
+                          onQuit: quitFreeDraw,
+                        }
+                      : null
+                  }
+                />
+              )}
+
               {/* Overlay Backdrop de mise au point pour Mobile */}
               {isSidebarOpen && (
                 <div 
@@ -6821,7 +6901,8 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          {/* BANDEAU INTERACTIF MODE SÉLECTION DE ZONE */}
+          {/* BANDEAU INTERACTIF MODE SÉLECTION DE ZONE (en v2 : remplacé par la barre d'outils de la carte) */}
+          {!uiV2 && (
           <div className="p-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl flex flex-col gap-2.5 shadow-md">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
@@ -6991,6 +7072,7 @@ export default function App() {
               </>
             )}
           </div>
+          )}
 
           {/* SECTION CARTE INTERACTIVE & NAVIGATION GÉOSPATIALE HIÉRARCHIQUE (ÉTAPES 1-4) */}
           <div className="p-3.5 bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-700/70 rounded-2xl flex flex-col gap-3 shadow-xl ring-1 ring-white/5">
@@ -8481,7 +8563,13 @@ export default function App() {
       </AnimatePresence>
 
       {uiV2 ? (
-        <AtelierStatusBar buildingsCount={buildings.length} zonesCount={zones.length} adminName={currentAdmin.full_name} />
+        <AtelierStatusBar
+          buildingsCount={buildings.length}
+          zonesCount={zones.length}
+          adminName={currentAdmin.full_name}
+          zoom={activeAdminView === 'carte' ? zoomLevel : undefined}
+          toolHint={activeAdminView === 'carte' && activeTool ? TOOLS.find((t) => t.id === activeTool)?.hint : undefined}
+        />
       ) : (
         <>
       {/* FOOTER COULISSANT COULEUR LUXE */}
