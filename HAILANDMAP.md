@@ -201,6 +201,12 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Vérifié par capture et par clics (bâtiment : Attributs → Accès ; concession : Structure) **sans enregistrer** (aucune écriture en base).
 - Reste pour la phase 2b : refondre le contenu des formulaires sur les maquettes (écran Structure avec liste A/B/C, écran Vérification avec contrôles automatiques et aperçu 3D), bouton Quitter de l'assistant (le « Annuler » des formulaires reste le moyen de sortir), et à terme codes attribués par la base (accord requis).
 
+### Phase 2 corrigée (2026-10-04) ✅ — assistant de création v2 conforme aux maquettes
+- **Correction de méthode** : la phase 2a n'habillait que l'ancien formulaire. L'interface de l'assistant est maintenant **reconstruite à l'identique des maquettes validées** (`src/v2/assistant/`), seule la logique interne est conservée : les trois formulaires (`DirectBuildingForm`, `ChildBuildingForm`, `CourtyardManager`) exposent désormais leur logique sans interface (`useDirectBuildingForm`, `useChildBuildingForm`, `useCourtyardManager` : états, formules de codes, adresse administrative, tracé, enregistrement) ; la v1 les utilise comme avant (même rendu), la v2 en refait entièrement l'écran.
+- Assistant v2 (inspecteur de droite, 400 px) : barre des 5 étapes cliquable vers l'arrière, carte « Code en préparation », actions Précédent / Suivant, Ctrl Entrée pour enregistrer. **Structure** (type d'emprise bâtiment direct / concession, nom usuel, liste A, B, C avec Retracer / Retirer, ajout par clic intelligent ou tracé libre) ; **Attributs** (nature, niveaux R+N, sous-sol, mezzanine, unités par niveau ; pour une concession fiche par bâtiment) ; **Accès** (entrée ou portail posé sur la carte, position de la porte, repère, couleur, interphone, itinéraire, consignes, porte précise) ; **Vérification** (aperçu 3D isométrique des volumes, codes, contrôles automatiques, statut) puis « Enregistrer et certifier » (mêmes fonctions d'enregistrement : `handleFinalSubmit` / `handleFinalSubmitAll` puis `handleCreateBuilding`).
+- Écrans Attributs et Accès non dessinés en grand écran dans les maquettes (seul l'écran téléphone « Terrain » montrait les attributs) : composés avec les mêmes éléments ; à valider.
+- Vérifié par capture et clics, **sans enregistrer** (aucune écriture en base).
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -229,3 +235,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Refonte phase 0 : coque Atelier v2 (barre du haut, rail des modules, barre d'état) et thème gris/bleu derrière l'interrupteur `?ui=v2` ; v1 inchangée par défaut, aucune modification du formulaire d'enregistrement ni des écritures en base. |
 | 2026-10-04 | Refonte phase 1 : barre d'outils de l'Atelier (V/B/C/P, 2D/3D, tracé libre contextuel) et état dans la barre d'état, v2 seulement ; réglages de carte existants réutilisés, formulaire d'enregistrement et écritures en base inchangés. |
 | 2026-10-04 | Refonte phase 2a : assistant de création projeté dans l'inspecteur de droite avec barre des 5 étapes (v2 seulement) ; formulaires, codes et écritures inchangés, simple signal `onStageChange` ajouté ; rien enregistré pendant les tests. |
+| 2026-10-04 | Correction de la phase 2 : assistant de création reconstruit selon les maquettes validées (Structure, Attributs, Accès, Vérification, aperçu 3D, contrôles), logique des formulaires extraite en hooks sans changement de comportement ; rien enregistré pendant les tests. |
