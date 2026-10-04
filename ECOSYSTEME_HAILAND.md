@@ -4,8 +4,8 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 22** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
-> **Dernière mise à jour :** 2026-10-02 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
+> **Révision : 23** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
 
@@ -89,7 +89,7 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 | **Utilisateurs** | Agents recenseurs, géomètres, modérateurs, admin, État/communes | Résidents, livreurs, particuliers, urgences (à terme) | Vendeurs, clients, livreurs |
 | **Rapport à la donnée** | **Écrit** le cadastre (`buildings`, `zones`, `validations`…) | **Lit** le cadastre ; seule écriture voulue : **réclamer** un domicile / déposer une demande `en_attente` | Lira le cadastre via le Hailand-Code ; aura ses propres tables |
 | **Stack** | React 19, Vite 6, Tailwind 4, Mapbox GL, Turf, Three, Supabase JS, Gemini | React 19, Vite 6, Tailwind 4, Mapbox GL, Turf, Three, Supabase JS, Gemini | à définir |
-| **État** | Existant, riche (≈ 8 500 lignes dans `App.tsx`) ; **31 relevés réels** en base | Existant mais à **refondre** (UI/UX, auth, détection) | **Rien** : aucune table de commerce en base |
+| **État** | Existant, riche (≈ 8 500 lignes dans `App.tsx`) ; **31 relevés réels** en base ; connexion des agents codée | **Refondu** (maquettes v5 validées : carte d'abord, 3 thèmes, parcours d'accueil, recherche, partage, enregistrement en 3 étapes) ; reste à brancher la base pour les déclarations | **Rien** : aucune table de commerce en base |
 
 > **Distinction clé** : HailandMap *produit* la donnée ; NavigationX la *consomme et la présente*. Les deux partagent la **même base** mais n'ont **pas la même infrastructure ni le même public**. Les fichiers anciens (« bilan global ») parlent parfois des deux comme d'une même chose : ce n'est pas le cas.
 
@@ -385,6 +385,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 5. **Authentification** : email d'abord, téléphone/SMS (Twilio déjà configuré) ensuite ?
 6. **Photos de portail** : obligatoires, optionnelles, modérées ?
 7. **Nettoyage** des lignes de démo/test en production : accord ?
+8. **Lien de partage** (`navigationx.app/<code>`) et page d'ouverture sans compte : format et hébergement à définir (NavigationX).
+9. **Placement** (étage, porte) : où le stocker côté `buildings` pour que NavigationX l'affiche (`placement_code` / `unit_code` ?) — à décider avec HailandMap.
+10. **Table d'avis d'arrivée** (« l'adresse était-elle précise ? ») : création ? aujourd'hui les avis restent sur l'appareil.
 
 ---
 
@@ -423,30 +426,30 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-02 (révision 9).**
+**Dernière mise à jour de cette section : 2026-10-04 (révision 23).**
 
 **Fait**
-- Compréhension des deux dépôts et de la base ; documentation de référence (ce fichier, fiches de projet, `CLAUDE.md`) + contrôle automatique (`check:docs`, hook de session, workflow GitHub) — **fusionnés sur `main` dans les deux dépôts** (PR Lynx#2, HailandMap_EMC#3).
-- Contrôle de synchronisation des deux copies de ce fichier (règle 5 de `check-docs`, exécutée par le workflow GitHub).
-- Maquettes v3 de la refonte de NavigationX (28 écrans) : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL (lien privé du compte du fondateur) — **validées** ; refonte codée : **phases 1 à 5, terminée** (design system, 2 onglets, carte/navigation par niveau, accueil 3D, enregistrement par niveaux, connexion et profil) — détail dans `NAVIGATIONX.md` §6.
-- Relecture complète de la base en lecture seule (§4).
+- **HailandMap** : authentification des agents (connexion par code, auteur réel des écritures) fusionnée ; table **`agents`** + fonctions `is_agent()` / `is_admin()` **créées en base** (accord du fondateur, exports faits) — 0 ligne : aucun agent déclaré, donc l'écriture publique n'est pas encore fermée (§4.8).
+- **Base** : seules écritures de production à ce jour = fonction `fn_resolve_admin_address` et table `agents` (toutes deux avec accord explicite).
+- **NavigationX** — refonte v5 **validée par le fondateur** (maquettes : https://claude.ai/artifact/2EVqLhCJ5PXrGks8mswPmL, lien privé) et codée : thèmes (Atlantique / Nuit / Terre au choix, mémorisés) ; parcours d'accueil (profil, méthodes de connexion, invité, SMS, position) ; carte d'abord avec panneau du bas ; recherche (code copié détecté, résultats groupés, « Vouliez-vous dire ? ») ; fiche lieu réduite/détaillée et favoris ; feuille de partage (WhatsApp, SMS, copier, QR) ; arrivée avec avis ; enregistrement en 3 étapes avec connexion au moment de sauvegarder ; style de carte par thème. Détail et vérifications : `NAVIGATIONX.md` §6 (phases A à H). Phase A fusionnée sur `main` (Lynx#11) ; **phases B à H sur la branche `claude/busy-cerf-cd22ke`, en attente de PR et de fusion**.
 
 **Décisions du fondateur déjà prises**
-- HailandMap = atelier (écrit le cadastre) ; NavigationX = vitrine (lit, présente, guide) ; HailandX = e-commerce, **pas encore débuté**.
-- Ces fichiers doivent rester à jour à chaque évolution ; la base de production n'est lue qu'en **lecture seule** sans accord explicite.
-- NavigationX doit être refondu en application de navigation **map-first** pour les utilisateurs (orientation et maquettes proposées, **en attente de validation écran par écran**).
+- HailandMap = atelier ; NavigationX = vitrine ; HailandX = e-commerce, pas débuté.
+- Base de production en lecture seule sans accord explicite pour chaque opération ; NavigationX ne certifie jamais.
+- Niveaux 1/2/3 ; deux codes (bâtiment, placement) ; plusieurs adresses par compte ; adressage administratif avec code provisoire aléatoire.
+- Flux v5 validé ; **les trois thèmes sont conservés, au choix de l'utilisateur** ; un invité doit créer un compte au moment d'enregistrer une adresse.
 
-**En cours / non commencé** : refonte NavigationX terminée côté code ; authentification des agents HailandMap codée et table `agents` créée (§4.8), reste à déclarer les agents puis à fermer l'écriture publique après accord ; la table `declarations` et l'authentification ne sont **pas** créées (les déclarations restent sur l'appareil) ; aucune écriture en base hormis la fonction `fn_resolve_admin_address` (création).
+**En cours / non commencé** : table `declarations` non créée (les déclarations, favoris et avis restent sur l'appareil) ; pas de stockage de photos ; catégories de lieux (pharmacie, santé…) sans données ; plusieurs adresses **certifiées** par compte non gérées côté lecture ; surbrillances du cadastre à ajuster en thème Nuit ; clé Supabase de repli de NavigationX invalide (définir `VITE_SUPABASE_ANON_KEY` sur Vercel) ; dépendances inutilisées (`@google/genai`, `express`, `dotenv`) à retirer ; ⚠️ position GPS de l'enregistrement à confirmer sur un vrai téléphone.
 
 **Prochaines étapes recommandées (dans l'ordre)**
-1. Faire pivoter les clés exposées (`sb_secret_…`, `service_role`) ; **sauvegarder** la base (export de `buildings`, `zones`, `profiles`, `validations`, `facades`, `deliveries`).
-2. Protéger `main` dans les deux dépôts (PR obligatoire + contrôle « Contrôle de documentation » requis) — réglage GitHub du fondateur.
-3. Trancher les décisions ouvertes du §9.
-4. Préparer la migration de sécurité (§8, P0) — appliquée seulement après accord, sauvegarde faite, et une authentification en place pour les deux apps.
-5. **Activer les méthodes de connexion** voulues dans Supabase (§4.7) : sans cela seule l'e-mail fonctionne. L'authentification est le prérequis de la table `declarations` (§4.6) et d'un espace de stockage pour les photos.
-6. Corriger la clé Supabase de repli de NavigationX (§7).
+1. Créer la PR des phases B–H de NavigationX, relire sur un vrai téléphone (GPS, partage WhatsApp/SMS, thèmes) puis fusionner.
+2. Fournir l'identifiant « Accès non autorisé » de HailandMap pour déclarer le premier admin dans `agents`, déclarer les agents, vérifier la connexion de HailandMap, **puis** (nouvel accord) appliquer `close_public_writes`.
+3. Définir `VITE_SUPABASE_ANON_KEY` (et les autres variables) sur Vercel ; corriger la clé de repli.
+4. Trancher §9 (lien de partage, placement, table d'avis, format du code) ; accord pour créer `declarations`, les avis et le stockage des photos.
+5. Importer les bâtiments OSM en base (stabilité des identifiants de polygone) ; catégories de lieux.
+6. Faire pivoter les clés exposées ; protéger `main` dans les deux dépôts.
 
-**Bloqué par le fondateur** : décisions §9 ; accord pour écrire en base (table `declarations`, sécurité) et sauvegarde ; protection de `main`.
+**Bloqué par le fondateur** : identifiant admin ; accord pour écrire en base (`declarations`, avis, photos, fermeture de l'écriture publique) ; décisions §9 ; protection de `main` ; variables d'environnement Vercel.
 
 ---
 
@@ -474,3 +477,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-04 | Révision 22 : table `agents` et fonctions `is_agent()` / `is_admin()` appliquées en base (§4.8) — impacte : HailandMap / NavigationX. |
 | 2026-10-04 | Révision 21 : authentification des agents HailandMap codée, règles de sécurité proposées et non appliquées (§4.8) — impacte : HailandMap / NavigationX. |
 | 2026-10-03 | Révision 20 : refonte NavigationX terminée (phase 5) — ancien assistant d'enregistrement supprimé (NavigationX n'écrit plus dans `buildings`), §5.3 réécrit, §7 NavigationX mis à jour — impacte : NavigationX / HailandMap. |
+| 2026-10-04 | Révision 23 : point de situation — refonte NavigationX v5 codée (phases A à H), §2 état de NavigationX, §9 décisions 8 à 10 (lien de partage, placement, table d'avis), §14 réécrit — impacte : NavigationX / HailandMap. |
