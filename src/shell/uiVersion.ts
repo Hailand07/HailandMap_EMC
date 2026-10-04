@@ -1,7 +1,7 @@
 /**
- * Version de l'interface : « v1 » (actuelle, par défaut) ou « v2 » (Atelier v2, refonte en cours — phase 0 : coque et thème).
+ * Version de l'interface : « v2 » (Atelier v2, par défaut depuis le 2026-10-04) ou « v1 » (ancienne interface, conservée en secours).
  * On bascule avec `?ui=v2` / `?ui=v1` dans l'adresse ; le choix est mémorisé sur l'appareil (`hm.ui`).
- * Tant que la v2 n'a pas atteint la parité avec la v1, la v1 reste l'interface par défaut.
+ * `?ui=v1` revient à l'ancienne interface (mémorisé sur l'appareil).
  */
 export type UiVersion = 'v1' | 'v2';
 const KEY = 'hm.ui';
@@ -13,9 +13,9 @@ export function getUiVersion(): UiVersion {
       localStorage.setItem(KEY, q);
       return q;
     }
-    return localStorage.getItem(KEY) === 'v2' ? 'v2' : 'v1';
+    return localStorage.getItem(KEY) === 'v1' ? 'v1' : 'v2';
   } catch {
-    return 'v1';
+    return 'v2';
   }
 }
 
