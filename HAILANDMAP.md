@@ -217,6 +217,10 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - **Pilotage** : fiches, certifiées, à revoir, carreaux couverts, fiches par commune, équipe terrain, journal. Les chiffres viennent des données chargées (aucun chiffre inventé) ; la part couverte par commune est impossible sans total attendu.
 - **Territoire** : carreaux de 200 m avec fiches, certifiées et à revoir. La création manuelle de carreau de l'ancien écran (polygone fixe factice) n'est pas reprise : les carreaux se créent à l'enregistrement.
 
+### Atelier v2 sur téléphone (« Terrain ») (2026-10-04) ✅
+- Sous 768 px : barre du haut compacte (recherche en icône), rail des modules en **barre d'onglets en bas**, panneau gauche masqué, assistant de création et inspecteurs en **feuille du bas** (58 % de la hauteur), Revue en pile (liste puis décision, sans plan), fiche du Registre en feuille du bas, Pilotage en 2 colonnes, barre d'état masquée. Capturé à 390 × 844 ; non testé au doigt sur appareil réel.
+- Reste à valider sur un vrai téléphone : tracé au doigt (clic intelligent, tracé libre), pose du portail, saisie dans l'assistant.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -248,3 +252,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Correction de la phase 2 : assistant de création reconstruit selon les maquettes validées (Structure, Attributs, Accès, Vérification, aperçu 3D, contrôles), logique des formulaires extraite en hooks sans changement de comportement ; rien enregistré pendant les tests. |
 | 2026-10-04 | Atelier v2 : écran Atelier reconstruit selon les maquettes (panneau Territoire/Couches, inspecteur de sélection, légende, Ctrl K, boîte Activité) ; interface seulement, logique inchangée. |
 | 2026-10-04 | Modules Revue, Registre, Pilotage et Territoire v2 reconstruits selon les maquettes ; décisions de revue branchées sur les fonctions existantes ; exports et maintenance du registre conservés. |
+| 2026-10-04 | Atelier v2 adapté au téléphone (barre d'onglets, feuille du bas, Revue en pile) ; v1 inchangée par défaut. |

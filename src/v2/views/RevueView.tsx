@@ -99,8 +99,8 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
   );
 
   return (
-    <div className="flex h-full min-h-0 bg-hx-base text-hx-text">
-      <section aria-label="File de revue" className="flex w-[340px] shrink-0 flex-col border-r border-hx-line bg-hx-panel">
+    <div className="flex h-full min-h-0 bg-hx-base text-hx-text max-md:flex-col max-md:overflow-y-auto">
+      <section aria-label="File de revue" className="flex w-[340px] shrink-0 flex-col border-r border-hx-line bg-hx-panel max-md:max-h-[38%] max-md:w-full max-md:border-b max-md:border-r-0">
         <div className="flex gap-1 border-b border-hx-line p-3.5">
           {tabBtn('todo', 'À traiter', groups.todo.length)}
           {tabBtn('contested', 'Contestés', groups.contested.length)}
@@ -123,7 +123,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
 
       {selected ? (
         <>
-          <main className="relative min-w-0 flex-1 overflow-hidden bg-hx-map">
+          <main className="relative min-w-0 flex-1 overflow-hidden bg-hx-map max-md:hidden">
             <MiniMap focus={selected} all={buildings} className="h-full" />
             <div className="absolute bottom-3.5 left-3.5 flex flex-col gap-1.5 rounded-lg border border-hx-line2 bg-hx-panel/95 px-3 py-2.5 text-[12px]">
               <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-hx-accent-text" />Contour du bâtiment</span>
@@ -135,7 +135,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
             </button>
           </main>
 
-          <aside aria-label="Décision" className="flex w-[380px] shrink-0 flex-col border-l border-hx-line bg-hx-panel">
+          <aside aria-label="Décision" className="flex w-[380px] shrink-0 flex-col border-l border-hx-line bg-hx-panel max-md:min-h-0 max-md:w-full max-md:flex-1 max-md:border-l-0">
             <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto p-[18px]">
               <div>
                 <div className="text-[11px] tracking-[0.08em] text-hx-faint">{natureOf(selected).toUpperCase()}</div>

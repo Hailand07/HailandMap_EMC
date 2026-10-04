@@ -31,25 +31,25 @@ export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSe
     .slice(0, 2)
     .toUpperCase();
   return (
-    <header className="flex h-12 shrink-0 select-none items-center gap-4 border-b border-slate-950 bg-slate-900 px-3.5 text-slate-200">
-      <div className="flex min-w-[220px] items-center gap-2.5">
+    <header className="flex h-12 shrink-0 select-none items-center gap-4 border-b border-slate-950 bg-slate-900 px-3.5 text-slate-200 max-md:gap-2">
+      <div className="flex min-w-[220px] items-center gap-2.5 max-md:min-w-0">
         <div className="flex h-[26px] w-[26px] items-center justify-center rounded-md bg-indigo-600 text-white">
           <Home size={15} strokeWidth={2.4} />
         </div>
         <span className="text-sm font-semibold">HailandMap</span>
-        <span className="text-slate-600">/</span>
-        <span className="text-sm text-slate-400">{mod.label}</span>
+        <span className="text-slate-600 max-md:hidden">/</span>
+        <span className="text-sm text-slate-400 max-md:text-slate-200">{mod.label}</span>
       </div>
       <button
         type="button"
         onClick={onSearch}
-        className="mx-auto flex h-8 max-w-[560px] flex-1 items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-950/60 px-3 text-left text-[13px] text-slate-500 transition hover:border-slate-600"
+        className="mx-auto flex h-8 max-w-[560px] flex-1 items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-950/60 px-3 text-left text-[13px] text-slate-500 transition hover:border-slate-600 max-md:ml-auto max-md:mr-0 max-md:w-9 max-md:flex-none max-md:justify-center max-md:px-0"
       >
         <Search size={15} />
-        <span className="flex-1">Rechercher un code, une adresse, un quartier…</span>
-        <span className="rounded border border-slate-700 px-1.5 py-px font-mono text-[11px]">Ctrl K</span>
+        <span className="flex-1 max-md:hidden">Rechercher un code, une adresse, un quartier…</span>
+        <span className="rounded border border-slate-700 px-1.5 py-px font-mono text-[11px] max-md:hidden">Ctrl K</span>
       </button>
-      <div className="flex min-w-[220px] items-center justify-end gap-2.5">
+      <div className="flex min-w-[220px] items-center justify-end gap-2.5 max-md:min-w-0 max-md:gap-1">
         <button type="button" onClick={onBell} aria-label="Activité" className="relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-800">
           <Bell size={17} />
           {unread && <span className="absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full bg-indigo-400" />}
@@ -77,7 +77,7 @@ export const ModuleRail: React.FC<RailProps> = ({ view, onViewChange, pendingCou
   const current = moduleOfView(view).id;
   const badge = (id: ModuleId) => (id === 'revue' ? pendingCount + conflictCount : 0);
   return (
-    <nav aria-label="Modules" className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-slate-950 bg-slate-900 py-2.5">
+    <nav aria-label="Modules" className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-slate-950 bg-slate-900 py-2.5 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-50 max-md:h-14 max-md:w-full max-md:flex-row max-md:justify-around max-md:border-r-0 max-md:border-t max-md:py-0">
       {MODULES.map((m) => {
         const on = m.id === current;
         const n = badge(m.id);
@@ -115,7 +115,7 @@ interface StatusProps {
 
 /** Barre d'état en bas : remplace le pied de page et, plus tard, les messages flottants. */
 export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName, zoom, toolHint, message }) => (
-  <footer className="flex h-7 shrink-0 select-none items-center gap-[18px] border-t border-slate-950 bg-slate-900 px-3.5 font-mono text-[11.5px] text-slate-500">
+  <footer className="flex h-7 shrink-0 select-none items-center gap-[18px] border-t border-slate-950 bg-slate-900 px-3.5 font-mono text-[11.5px] text-slate-500 max-md:hidden">
     <span>{buildingsCount} bâtiments</span>
     <span>{zonesCount} zones</span>
     <span>Conakry, Guinée</span>
@@ -166,7 +166,7 @@ interface ToolbarProps {
 
 /** Barre d'outils flottante en haut de la carte (Atelier v2) : outils, 2D/3D, et actions du tracé libre quand il est actif. */
 export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing }) => (
-  <div className="pointer-events-none absolute left-1/2 top-3.5 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
+  <div className="pointer-events-none absolute left-1/2 top-3.5 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:top-2">
     <div role="toolbar" aria-label="Outils" className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       {TOOLS.map((t) => {
         const on = tool === t.id;
@@ -232,7 +232,7 @@ interface AssistantProps {
 
 /** Inspecteur de droite de l'Atelier v2 pendant une création : reçoit l'assistant (étapes, codes, actions) par un portail React. */
 export const AssistantAside: React.FC<AssistantProps> = ({ hostRef }) => (
-  <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text">
+  <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
     <div ref={hostRef} className="min-h-0 flex-1" />
   </aside>
 );

@@ -6788,7 +6788,7 @@ export default function App() {
       )}
 
       {/* CONTAINER MAÎTRE DES VUES (rail des modules en v2) */}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 max-md:pb-14">
         {uiV2 && (
           <ModuleRail
             view={activeAdminView}
@@ -7861,7 +7861,7 @@ export default function App() {
 
         {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
         <div className={`absolute left-4 z-20 flex items-center gap-2 ${uiV2 ? "top-16" : "top-4"}`}>
-          {!isSidebarOpen && (
+          {!uiV2 && !isSidebarOpen && (
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2.5 px-3.5 bg-slate-900/95 border border-slate-700/80 hover:border-indigo-500/50 text-indigo-400 rounded-2xl shadow-2xl transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2 hover:bg-slate-850 group ring-1 ring-white/10"
@@ -8135,7 +8135,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* SÉLECTEUR DE CALQUES (LAYER SWITCHER) COMPACT & DISCRET */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col items-end">
+        <div className={`absolute right-4 z-20 flex flex-col items-end ${uiV2 ? "top-4 max-md:top-[68px]" : "top-4"}`}>
           <div className="relative">
             <button
               onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}

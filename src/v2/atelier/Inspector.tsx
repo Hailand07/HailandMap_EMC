@@ -64,7 +64,7 @@ export const CandidateInspector: React.FC<CandidateProps> = ({ coords, zone, com
     return { vertices: ring ? Math.max(0, ring.length - 1) : null, perimeter, neighbours, relevés: inZone.length, nextCr: (nums.length ? Math.max(...nums) : 0) + 1 };
   }, [coords, buildings, zone]);
   return (
-    <aside aria-label="Sélection" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text">
+    <aside aria-label="Sélection" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
       <Head
         kicker="SÉLECTION · BÂTIMENT OSM"
         title="Bâtiment sans fiche"
@@ -119,7 +119,7 @@ export const BuildingInspector: React.FC<BuildingInspectorProps> = ({ building: 
     </>
   );
   return (
-    <aside aria-label="Fiche du bâtiment" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text">
+    <aside aria-label="Fiche du bâtiment" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
       <Head
         kicker={b.has_courtyard ? 'CONCESSION' : b.parent_building_id ? 'BÂTIMENT DE CONCESSION' : 'BÂTIMENT'}
         title={b.landmark_note || `Bâtiment ${b.building_type}`}
@@ -159,7 +159,7 @@ interface EmptyProps {
 export const EmptyInspector: React.FC<EmptyProps> = ({ buildings, onTool }) => {
   const count = (s: string) => buildings.filter((b) => b.status === s).length;
   return (
-    <aside aria-label="Inspecteur" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text">
+    <aside aria-label="Inspecteur" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:hidden">
       <Head kicker="INSPECTEUR" title="Rien de sélectionné" sub="Choisissez un outil puis cliquez sur la carte" />
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-[18px]">
         <div className="flex flex-col gap-2">

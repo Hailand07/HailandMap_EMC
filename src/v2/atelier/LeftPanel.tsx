@@ -53,7 +53,7 @@ export const AtelierLeftPanel: React.FC<Props> = ({ buildings, selectedId, onSel
   const isOpen = (k: string) => (q ? true : (open[k] ?? true));
 
   return (
-    <aside aria-label="Territoire et couches" className="relative z-40 flex h-full w-[272px] shrink-0 flex-col border-r border-hx-line bg-hx-panel text-hx-text">
+    <aside aria-label="Territoire et couches" className="relative z-40 flex h-full w-[272px] shrink-0 flex-col border-r border-hx-line bg-hx-panel text-hx-text max-md:hidden">
       <div className="flex gap-1 px-2.5 pt-2.5">
         {(['territoire', 'couches'] as const).map((t) => (
           <button key={t} type="button" onClick={() => setTab(t)} className={`h-[30px] flex-1 rounded-md text-[12.5px] transition ${tab === t ? 'bg-hx-hover font-semibold text-hx-text' : 'text-hx-dim hover:bg-hx-hover/40'}`}>

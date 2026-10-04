@@ -45,16 +45,16 @@ export const PilotageView: React.FC<Props> = ({ buildings, zones, validations, p
   const reviewsBy = (id: string) => validations.filter((v) => v.reviewed_by === id).length;
 
   return (
-    <div className="h-full overflow-y-auto bg-hx-base px-7 py-6 text-hx-text">
+    <div className="h-full overflow-y-auto bg-hx-base px-7 py-6 text-hx-text max-md:px-3.5">
       <div className="mx-auto flex max-w-[1180px] flex-col gap-5">
-        <div className="grid grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-4 gap-3.5 max-md:grid-cols-2">
           <Card label="Fiches au registre" value={buildings.length} sub={`${buildings.filter((b) => b.has_courtyard).length} concessions · ${buildings.filter((b) => !b.has_courtyard).length} bâtiments`} />
           <Card label="Certifiées" value={data.certified} tone="text-hx-ok" sub={`${buildings.length ? Math.round((data.certified / buildings.length) * 100) : 0} % du registre`} />
           <Card label="À revoir" value={data.toReview} tone="text-hx-warn" sub={<button type="button" onClick={onGoRevue} className="text-hx-accent-text hover:underline">Ouvrir la revue</button>} />
           <Card label="Carreaux 200 m couverts" value={data.coveredZones} sub={`${zones.length} carreau${zones.length > 1 ? 'x' : ''} enregistré${zones.length > 1 ? 's' : ''}`} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
           <section className="flex flex-col gap-3.5 rounded-[10px] border border-hx-line bg-hx-panel p-[18px]">
             <h2 className="m-0 text-[14px] font-semibold">Fiches par commune</h2>
             <div className="flex flex-col gap-3 text-[13px]">
