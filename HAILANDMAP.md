@@ -170,6 +170,19 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - **Fermeture de l'écriture publique** : `migrations/proposed/2026-10-04_close_public_writes.sql` (non appliquée) — écriture réservée aux agents, suppression et référentiel territorial réservés aux admins, lecture publique inchangée (NavigationX lit avec la clé publique). Ordre : sauvegarde → table `agents` → ajout des agents → vérification de HailandMap connecté → fermeture.
 - **Vérifié à l'écran** (headless, requêtes d'authentification simulées) : connexion, mode transition, accès refusé, accès admin. **Non testé en réel** : l'envoi d'un code (dépend de l'activation des méthodes) et l'application des règles en base.
 
+## 9 ter. Refonte « Atelier v2 » 📄 validée par le fondateur (2026-10-04) — maquettes seulement, **rien codé**
+
+- **Maquettes validées** (lien privé du fondateur) : https://claude.ai/artifact/SVGJ7XBtzwQQFiVsjsuzNN — 8 artboards : architecture et flux, Atelier, assistant de création (Structure, Vérification), Revue, Registre, Pilotage, Terrain (téléphone).
+- **Décisions de design** : thème **gris façon Blender** (du plus foncé au plus clair), **bleu sobre** comme couleur d'action (pas d'orange), statuts vert/ambre/rouge, « non réclamé » et déclarations en violet ; police IBM Plex Sans (interface) et Plex Mono (codes) ; **aucun message flottant** (barre d'état + boîte Activité) ; recherche universelle Ctrl K ; raccourcis (V, B, C, P, G, M ; A/R en revue).
+- **Architecture** : 5 modules au lieu de 5 onglets — **Atelier** (carte 2D/3D, outils, couches, création, portails), **Revue** (ex-Modération), **Registre**, **Territoire** (région → quartier, carreaux 200 m ; pas encore d'écran dédié dans les maquettes), **Pilotage** (ex-Tour de contrôle + historique agents).
+- **Un seul assistant de création en 5 étapes** (Emprise → Structure → Attributs → Accès → Vérification) pour bâtiment OSM, concession ou dessin libre, dans l'inspecteur à droite (la carte reste interactive) ; mêmes champs et mêmes règles de codes qu'aujourd'hui.
+- **Plan de reconstruction proposé** 💡 (par phases, ancien et nouveau coexistent derrière un interrupteur tant que la parité n'est pas atteinte ; le formulaire d'enregistrement actuel n'est remplacé qu'après comparaison champ par champ) :
+  0. Socle : jetons de design, coque (rail, barre du haut, barre d'état, boîte Activité, routage des modules), découpage de `App.tsx` sans changer le comportement.
+  1. Atelier : carte, barre d'outils, inspecteur, panneau territoire/couches.
+  2. Assistant de création en 5 étapes (réutilise `computeDualAddressing`, `saveCourtyardWithBuildings` et les règles de codes) avec tests de non-régression.
+  3. Revue. 4. Registre. 5. Pilotage et Territoire. 6. Terrain mobile, Ctrl K, raccourcis.
+  7. **Seulement avec l'accord explicite du fondateur** : codes attribués par la base à l'enregistrement (fin des doublons, `ECOSYSTEME_HAILAND.md` §6.2), fermeture de l'écriture publique (`close_public_writes`).
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -194,3 +207,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Authentification des agents : écran de connexion par code, auteur réel des écritures (fin de `admin-1` / `admin-auto`), contrôle d'accès par table `agents` (proposée) avec mode transition ; règles de fermeture de l'écriture publique proposées (non appliquées). |
 | 2026-10-04 | Table `agents` et fonctions `is_agent()` / `is_admin()` **appliquées en base** (accord explicite du fondateur, après sauvegarde) : aucune règle existante modifiée ; le mode transition disparaît (0 agent déclaré : les comptes doivent être ajoutés). |
 | 2026-10-04 | Synchronisation de `ECOSYSTEME_HAILAND.md` (révision 26) : vision « Guinée numérique » de NavigationX (§15) — l'équipe Hailand vérifiera les institutions (hôpitaux, pompiers, gendarmerie, écoles) ; outils de vérification/badge côté HailandMap à concevoir plus tard — documentation seule, rien codé. |
+| 2026-10-04 | Refonte « Atelier v2 » : maquettes (thème gris, bleu d'action, 5 modules, assistant de création en 5 étapes) **validées par le fondateur** ; plan de reconstruction en 8 phases consigné (§9 ter) — documentation seule, rien codé. |
