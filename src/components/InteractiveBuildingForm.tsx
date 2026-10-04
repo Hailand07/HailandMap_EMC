@@ -1,6 +1,9 @@
 import React from 'react';
 import type { Building, EntrancePickerConfig } from '../types';
 import RegistrationEngineV3 from './registration/RegistrationEngineV3';
+import type { RegistrationStage } from '../shell/registrationStage';
+import { AssistantEngine } from '../v2/assistant/AssistantEngine';
+import { getUiVersion } from '../shell/uiVersion';
 
 export interface InteractiveBuildingFormProps {
   clickedCoords: {
@@ -44,6 +47,7 @@ export interface InteractiveBuildingFormProps {
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onDetectOsmBuildings?: (motherGeom: any) => string[] | void;
   onMaskOsmBuildings?: (motherGeom?: any) => number;
+  onStageChange?: (stage: RegistrationStage) => void;
 }
 
 /**
@@ -66,5 +70,7 @@ export interface InteractiveBuildingFormProps {
  *   - Saisie séquentielle (Nature, Niveaux, Subdivision Unités, Repères)
  */
 export default function InteractiveBuildingForm(props: InteractiveBuildingFormProps) {
+  // Atelier v2 : assistant en 5 étapes (maquettes) ; v1 : parcours d'origine. Même logique de codes et d'enregistrement.
+  if (getUiVersion() === 'v2') return <AssistantEngine {...(props as any)} />;
   return <RegistrationEngineV3 {...props} />;
 }

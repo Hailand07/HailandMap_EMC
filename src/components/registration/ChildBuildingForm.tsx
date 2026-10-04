@@ -67,7 +67,11 @@ interface ChildBuildingFormProps {
   onBackToCourtyard: () => void;
 }
 
-export default function ChildBuildingForm({
+/**
+ * Logique de ChildBuildingForm sans interface : états, calculs de codes et gestionnaires. Partagée par l'interface actuelle (v1)
+ * et par l'assistant de l'Atelier v2, qui ne reprend que l'interface.
+ */
+export function useChildBuildingForm({
   child,
   zone,
   courtyardId,
@@ -354,6 +358,15 @@ export default function ChildBuildingForm({
   }
   if (hasMezzanine) availableFloorsList.push('MEZ');
 
+  return {
+    accessNote, activeModule, adminHierarchy, allChildrenCount, availableFloorsList, buildingCode, buildingDesignation, buildingType, buildingTypesList, child, computeBuildingCode, computeFullAddressCode, computedTotalUnits, courtyardId, doorColor, entryPointNote, finalCode, floorLevelCode, floorsCount, getBuildingDesignation, getTargetFloorCode, handleFloorSelect, handlePhase1Back, handlePhase1Next, handlePhase2Back, handlePhase2Next, handleSave, hasBasement, hasMezzanine, hasSpecificLocation, intercomCode, internalDirections, isSubdivided, landmarkNote, levels, occupancyRelation, onBackToCourtyard, onSave, phase1Step, phase2Step, physicalPosition, selectedUnitCode, setAccessNote, setActiveModule, setBuildingType, setDoorColor, setEntryPointNote, setFloorsCount, setHasBasement, setHasMezzanine, setHasSpecificLocation, setIntercomCode, setInternalDirections, setIsSubdivided, setLandmarkNote, setOccupancyRelation, setPhase1Step, setPhase2Step, setPhysicalPosition, setSelectedUnitCode, setTargetFloor, setUnitsPerFloor, targetFloor, unitCode, unitsPerFloor, zone,
+  };
+}
+
+export default function ChildBuildingForm(props: ChildBuildingFormProps) {
+  const {
+    accessNote, activeModule, adminHierarchy, allChildrenCount, availableFloorsList, buildingCode, buildingDesignation, buildingType, buildingTypesList, child, computeBuildingCode, computeFullAddressCode, computedTotalUnits, courtyardId, doorColor, entryPointNote, finalCode, floorLevelCode, floorsCount, getBuildingDesignation, getTargetFloorCode, handleFloorSelect, handlePhase1Back, handlePhase1Next, handlePhase2Back, handlePhase2Next, handleSave, hasBasement, hasMezzanine, hasSpecificLocation, intercomCode, internalDirections, isSubdivided, landmarkNote, levels, occupancyRelation, onBackToCourtyard, onSave, phase1Step, phase2Step, physicalPosition, selectedUnitCode, setAccessNote, setActiveModule, setBuildingType, setDoorColor, setEntryPointNote, setFloorsCount, setHasBasement, setHasMezzanine, setHasSpecificLocation, setIntercomCode, setInternalDirections, setIsSubdivided, setLandmarkNote, setOccupancyRelation, setPhase1Step, setPhase2Step, setPhysicalPosition, setSelectedUnitCode, setTargetFloor, setUnitsPerFloor, targetFloor, unitCode, unitsPerFloor, zone,
+  } = useChildBuildingForm(props);
   return (
     <div className="space-y-4">
       {/* 🧭 BANDEAU SUPÉRIEUR DE NAVIGATION ENTRE MODULES */}

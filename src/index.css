@@ -1,6 +1,25 @@
 @import "tailwindcss";
 
 @theme {
+  /* Atelier v2 : gris façon Blender + bleu d'action (maquettes validées) */
+  --color-hx-base: #1d1d1d;
+  --color-hx-bar: #2b2b2b;
+  --color-hx-panel: #303030;
+  --color-hx-map: #383838;
+  --color-hx-card: #3a3a3a;
+  --color-hx-hover: #4d4d4d;
+  --color-hx-line: #242424;
+  --color-hx-line2: #555555;
+  --color-hx-text: #e6e6e6;
+  --color-hx-dim: #b0b0b0;
+  --color-hx-faint: #9c9c9c;
+  --color-hx-accent: #3f6fc4;
+  --color-hx-accent-soft: #343e4e;
+  --color-hx-accent-text: #8fb4f0;
+  --color-hx-ok: #3dd68c;
+  --color-hx-warn: #f5b83d;
+  --color-hx-bad: #ff5a5f;
+  --color-hx-violet: #b28cf0;
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: "Space Grotesk", sans-serif;

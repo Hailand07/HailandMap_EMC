@@ -1,3 +1,4 @@
+import type { RegistrationStage } from '../../shell/registrationStage';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -29,9 +30,14 @@ interface DirectBuildingFormProps {
   onChildMapClickRegistration?: (handler: ((lng: number, lat: number, geom?: any, area?: number) => void) | null) => void;
   onEntrancePointChange?: (coords: { lng: number; lat: number } | null) => void;
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
+  onStageChange?: (stage: RegistrationStage) => void;
 }
 
-export default function DirectBuildingForm({
+/**
+ * Logique de DirectBuildingForm sans interface : états, calculs de codes et gestionnaires. Partagée par l'interface actuelle (v1)
+ * et par l'assistant de l'Atelier v2, qui ne reprend que l'interface.
+ */
+export function useDirectBuildingForm({
   initialCoords,
   detectedZone,
   detectedCommune,
@@ -40,7 +46,8 @@ export default function DirectBuildingForm({
   onCancel,
   onChildMapClickRegistration,
   onEntrancePointChange,
-  onEntrancePickerModeChange
+  onEntrancePickerModeChange,
+  onStageChange
 }: DirectBuildingFormProps) {
   // 🧭 SÉPARATION STRICTE EN 2 MODULES :
   // Module A : Phase 1 — Fiche Bâtiment (Caractéristiques physiques)
@@ -60,6 +67,13 @@ export default function DirectBuildingForm({
   // 2: Sélection de l'Unité / Porte visée (Q2.2)
   // 3: Validation de l'Adresse Finale (Q2.3)
   const [phase2Step, setPhase2Step] = useState<number>(1);
+
+  // Progression signalée à l'interface : fiche (étapes 1-3) = attributs ; repères, étage et porte = accès ; adresse finale = vérification.
+  useEffect(() => {
+    if (!onStageChange) return;
+    if (activeModule === 'PHASE1_BUILDING') onStageChange(phase1Step <= 3 ? 'attributs' : 'acces');
+    else onStageChange(phase2Step >= 2 ? 'verification' : 'acces');
+  }, [activeModule, phase1Step, phase2Step, onStageChange]);
 
   // Calculs automatiques séquentiels PostGIS
   const buildingsInZone = existingBuildings.filter(b => b.zone_code === detectedZone);
@@ -399,6 +413,15 @@ export default function DirectBuildingForm({
   }
   if (hasMezzanine) availableFloorsList.push('MEZ');
 
+  return {
+    accessNote, activeModule, adminHierarchy, availableFloorsList, buildingCode, buildingDesignation, buildingType, buildingTypesList, buildingsInZone, computeBuildingCode, computeFullAddressCode, computedTotalUnits, detectedCommune, detectedZone, doorColor, entryPointNote, existingBuildings, finalCode, floorLevelCode, floorsCount, formattedSeq, getTargetFloorCode, handleCancelPickEntrance, handleFinalSubmit, handleFloorSelect, handlePhase1Back, handlePhase1Next, handlePhase2Back, handlePhase2Next, handleResetEntryPoint, handleStartPickEntrance, hasBasement, hasMezzanine, hasSpecificLocation, initialCoords, intercomCode, internalDirections, isPickingEntrance, isSubdivided, landmarkNote, levels, manualEntryPoint, onCancel, onChildMapClickRegistration, onEntrancePickerModeChange, onEntrancePointChange, onStageChange, onSubmit, phase1Step, phase2Step, physicalPosition, selectedUnitCode, sequenceNum, setAccessNote, setActiveModule, setBuildingType, setDoorColor, setEntryPointNote, setFloorsCount, setHasBasement, setHasMezzanine, setHasSpecificLocation, setIntercomCode, setInternalDirections, setIsPickingEntrance, setIsSubdivided, setLandmarkNote, setManualEntryPoint, setPhase1Step, setPhase2Step, setPhysicalPosition, setSelectedUnitCode, setTargetFloor, setUnitsPerFloor, targetFloor, unitCode, unitsPerFloor,
+  };
+}
+
+export default function DirectBuildingForm(props: DirectBuildingFormProps) {
+  const {
+    accessNote, activeModule, adminHierarchy, availableFloorsList, buildingCode, buildingDesignation, buildingType, buildingTypesList, buildingsInZone, computeBuildingCode, computeFullAddressCode, computedTotalUnits, detectedCommune, detectedZone, doorColor, entryPointNote, existingBuildings, finalCode, floorLevelCode, floorsCount, formattedSeq, getTargetFloorCode, handleCancelPickEntrance, handleFinalSubmit, handleFloorSelect, handlePhase1Back, handlePhase1Next, handlePhase2Back, handlePhase2Next, handleResetEntryPoint, handleStartPickEntrance, hasBasement, hasMezzanine, hasSpecificLocation, initialCoords, intercomCode, internalDirections, isPickingEntrance, isSubdivided, landmarkNote, levels, manualEntryPoint, onCancel, onChildMapClickRegistration, onEntrancePickerModeChange, onEntrancePointChange, onStageChange, onSubmit, phase1Step, phase2Step, physicalPosition, selectedUnitCode, sequenceNum, setAccessNote, setActiveModule, setBuildingType, setDoorColor, setEntryPointNote, setFloorsCount, setHasBasement, setHasMezzanine, setHasSpecificLocation, setIntercomCode, setInternalDirections, setIsPickingEntrance, setIsSubdivided, setLandmarkNote, setManualEntryPoint, setPhase1Step, setPhase2Step, setPhysicalPosition, setSelectedUnitCode, setTargetFloor, setUnitsPerFloor, targetFloor, unitCode, unitsPerFloor,
+  } = useDirectBuildingForm(props);
   return (
     <div className="space-y-4">
       {/* En-tête Parcours B */}

@@ -4,6 +4,7 @@ import type { Building, EntrancePickerConfig } from '../../types';
 import StructureChoiceStep from './StructureChoiceStep';
 import CourtyardManager from './CourtyardManager';
 import DirectBuildingForm from './DirectBuildingForm';
+import type { RegistrationStage } from '../../shell/registrationStage';
 
 export interface RegistrationEngineV3Props {
   clickedCoords: {
@@ -47,6 +48,8 @@ export interface RegistrationEngineV3Props {
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onDetectOsmBuildings?: (motherGeom: any) => string[] | void;
   onMaskOsmBuildings?: (motherGeom?: any) => number;
+  /** Progression signalée à l'interface (barre d'étapes de l'Atelier v2). */
+  onStageChange?: (stage: RegistrationStage) => void;
 }
 
 export default function RegistrationEngineV3({
@@ -68,7 +71,8 @@ export default function RegistrationEngineV3({
   onEntrancePointChange,
   onEntrancePickerModeChange,
   onDetectOsmBuildings,
-  onMaskOsmBuildings
+  onMaskOsmBuildings,
+  onStageChange
 }: RegistrationEngineV3Props) {
   // Détection automatique PostGIS
   const detectedZone = detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || 'Z00142';
@@ -80,6 +84,10 @@ export default function RegistrationEngineV3({
     if (initialHasCourtyard === false || targetNature === 'single') return 'direct';
     return null; // Affiche l'écran de départ Étape 0
   });
+
+  useEffect(() => {
+    if (!selectedPathway) onStageChange?.('structure');
+  }, [selectedPathway, onStageChange]);
 
   // Quand une nouvelle coordonnée arrive, si aucune sélection préalable n'était figée
   useEffect(() => {
@@ -136,6 +144,7 @@ export default function RegistrationEngineV3({
               onEntrancePickerModeChange={onEntrancePickerModeChange}
               onDetectOsmBuildings={onDetectOsmBuildings}
               onMaskOsmBuildings={onMaskOsmBuildings}
+              onStageChange={onStageChange}
               onFinalSubmit={(courtyardBuildings) => {
                 onSubmit(courtyardBuildings);
               }}
@@ -164,6 +173,7 @@ export default function RegistrationEngineV3({
               onChildMapClickRegistration={onChildMapClickRegistration}
               onEntrancePointChange={onEntrancePointChange}
               onEntrancePickerModeChange={onEntrancePickerModeChange}
+              onStageChange={onStageChange}
               onSubmit={(directBuilding) => {
                 onSubmit(directBuilding);
               }}

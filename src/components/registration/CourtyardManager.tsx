@@ -1,3 +1,4 @@
+import type { RegistrationStage } from '../../shell/registrationStage';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -58,6 +59,7 @@ export interface CourtyardManagerProps {
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onDetectOsmBuildings?: (motherGeom: any) => string[] | void;
   onMaskOsmBuildings?: (motherGeom?: any) => number;
+  onStageChange?: (stage: RegistrationStage) => void;
 }
 
 type CourtyardWorkflowStep = 
@@ -65,7 +67,12 @@ type CourtyardWorkflowStep =
   | 'CHILDREN_TRACING'   // Étape 2 : Tracé satellite exclusif (Clic Intelligent ou Dessin Libre)
   | 'MASTER_DETAIL';     // Étape 3 : Tableau de bord Master-Detail Liste <-> Polygones
 
-export default function CourtyardManager({
+/**
+ * Logique de CourtyardManager sans interface : états, calculs de codes et gestionnaires. Partagée par l'interface actuelle (v1)
+ * et par l'assistant de l'Atelier v2, qui ne reprend que l'interface.
+ */
+export function useCourtyardManager({
+  onStageChange,
   initialCoords,
   detectedZone,
   detectedCommune,
@@ -222,6 +229,11 @@ export default function CourtyardManager({
   // 🎯 GESTION DES ÉTAPES DU WORKFLOW
   // 1: COUNT_SELECTION -> 2: CHILDREN_TRACING -> 3: MASTER_DETAIL
   const [currentStep, setCurrentStep] = useState<CourtyardWorkflowStep>('COUNT_SELECTION');
+
+  // Progression signalée à l'interface : nombre et tracé des bâtiments = structure ; tableau et fiches = attributs.
+  useEffect(() => {
+    onStageChange?.(currentStep === 'MASTER_DETAIL' ? 'attributs' : 'structure');
+  }, [currentStep, onStageChange]);
 
   // Nombre de bâtiments cibles à tracer
   const [targetBuildingCount, setTargetBuildingCount] = useState<number>(3);
@@ -605,6 +617,15 @@ export default function CourtyardManager({
   const isAllConfigured = children.length > 0 && configuredCount === children.length;
   const activeChild = children.find(c => c.id === activeChildId);
 
+  return {
+    activeChild, activeChildArea, activeChildCenter, activeChildGeometry, activeChildId, children, configuredCount, courtyardEntryPoint, courtyardName, courtyardNumber, courtyardsInZone, currentStep, defaultChildInitialGeom, defaultCourtyardNum, detectedCommune, detectedOsmCount, detectedZone, drawPoints, existingBuildings, existingCourtyardNums, formattedCourtyardId, handleAddExtraChild, handleCancelPickCourtyardEntrance, handleConfirmChild, handleFinalSubmitAll, handleMapClickCaptured, handleRemoveChild, handleResetCourtyardEntryPoint, handleRetraceChild, handleSaveChild, handleStartPickCourtyardEntrance, handleToggleTracingMode, handleValidateFreehandDraw, hasCapturedClick, initialCoords, isAllConfigured, isDrawMode, isPickingCourtyardEntrance, motherArea, motherGeometry, motherGeometryRef, onCancel, onChildDrawCompleteRegistration, onChildMapClickRegistration, onDetectOsmBuildings, onEntrancePickerModeChange, onEntrancePointChange, onFinalSubmit, onMaskOsmBuildings, onStageChange, onUpdateCourtyardGeometries, setActiveChildArea, setActiveChildCenter, setActiveChildGeometry, setActiveChildId, setChildren, setCourtyardEntryPoint, setCourtyardName, setCurrentStep, setDetectedOsmCount, setDrawPoints, setHasCapturedClick, setIsDrawMode, setIsPickingCourtyardEntrance, setTargetBuildingCount, setTracingIndex, setTracingMode, targetBuildingCount, tracingIndex, tracingMode,
+  };
+}
+
+export default function CourtyardManager(props: CourtyardManagerProps) {
+  const {
+    activeChild, activeChildArea, activeChildCenter, activeChildGeometry, activeChildId, children, configuredCount, courtyardEntryPoint, courtyardName, courtyardNumber, courtyardsInZone, currentStep, defaultChildInitialGeom, defaultCourtyardNum, detectedCommune, detectedOsmCount, detectedZone, drawPoints, existingBuildings, existingCourtyardNums, formattedCourtyardId, handleAddExtraChild, handleCancelPickCourtyardEntrance, handleConfirmChild, handleFinalSubmitAll, handleMapClickCaptured, handleRemoveChild, handleResetCourtyardEntryPoint, handleRetraceChild, handleSaveChild, handleStartPickCourtyardEntrance, handleToggleTracingMode, handleValidateFreehandDraw, hasCapturedClick, initialCoords, isAllConfigured, isDrawMode, isPickingCourtyardEntrance, motherArea, motherGeometry, motherGeometryRef, onCancel, onChildDrawCompleteRegistration, onChildMapClickRegistration, onDetectOsmBuildings, onEntrancePickerModeChange, onEntrancePointChange, onFinalSubmit, onMaskOsmBuildings, onStageChange, onUpdateCourtyardGeometries, setActiveChildArea, setActiveChildCenter, setActiveChildGeometry, setActiveChildId, setChildren, setCourtyardEntryPoint, setCourtyardName, setCurrentStep, setDetectedOsmCount, setDrawPoints, setHasCapturedClick, setIsDrawMode, setIsPickingCourtyardEntrance, setTargetBuildingCount, setTracingIndex, setTracingMode, targetBuildingCount, tracingIndex, tracingMode,
+  } = useCourtyardManager(props);
   // Si la fiche individuelle d'un enfant est ouverte
   if (activeChild) {
     return (
