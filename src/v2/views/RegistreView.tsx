@@ -10,6 +10,7 @@ interface Props {
   buildings: Building[];
   profiles: Profile[];
   onOpenOnMap: (b: Building) => void;
+  onShowMap: () => void;
   onRefresh: () => Promise<void>;
   onNotify: (title: string, message: string, tone?: 'success' | 'warning' | 'info') => void;
 }
@@ -17,7 +18,7 @@ interface Props {
 type Row = { b: Building; depth: number };
 
 /** Module Registre (maquette) : tableau dense avec l'arbre concession → bâtiments, filtres et fiche 360°. */
-export const RegistreView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onRefresh, onNotify }) => {
+export const RegistreView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onShowMap, onRefresh, onNotify }) => {
   const [q, setQ] = useState('');
   const [commune, setCommune] = useState('');
   const [status, setStatus] = useState('');
@@ -123,6 +124,7 @@ export const RegistreView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap
             {(['table', 'tree'] as const).map((m) => (
               <button key={m} type="button" onClick={() => setMode(m)} className={`h-7 rounded-md px-2.5 text-[12.5px] ${mode === m ? 'bg-hx-hover font-semibold' : 'text-hx-dim'}`}>{m === 'table' ? 'Tableau' : 'Arbre'}</button>
             ))}
+            <button type="button" onClick={onShowMap} className="h-7 rounded-md px-2.5 text-[12.5px] text-hx-dim hover:text-hx-text">Carte</button>
           </div>
           <div className="relative">
             <button type="button" onClick={() => setMenu(menu === 'export' ? null : 'export')} className="h-[34px] rounded-lg border border-hx-line2 px-3 text-[12.5px] transition hover:bg-hx-hover/40">Exporter ▾</button>
