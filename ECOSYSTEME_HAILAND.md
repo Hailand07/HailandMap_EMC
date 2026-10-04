@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 23** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 24** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -326,7 +326,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ### NavigationX
 **Résolus par la refonte (2026-10-03)** : réclamation destructive, auto-certification, domicile inventé, faux profils/`claimed_by` fictif, repli silencieux du GPS sur Kipé, clé IA côté navigateur, `.env.example` avec identifiants réels, erreurs TypeScript.
-- 🟠 **Clé Supabase de repli rejetée (✅ 2026-10-03)** : celle codée en dur dans `src/lib/hailandData.ts` renvoie « Invalid API key » ; sans `VITE_SUPABASE_ANON_KEY` NavigationX affiche des données de secours (désormais signalées par un bandeau). À corriger (variable obligatoire, plus de repli).
+- 🟠 **Clé Supabase de repli rejetée (✅ 2026-10-03)** — **corrigé dans le code le 2026-10-04** (clé de repli supprimée, clés publiques `sb_publishable_`/`anon` acceptées, clés secrètes refusées) ; reste à définir `VITE_SUPABASE_ANON_KEY` sur Vercel : : celle codée en dur dans `src/lib/hailandData.ts` renvoie « Invalid API key » ; sans `VITE_SUPABASE_ANON_KEY` NavigationX affiche des données de secours (désormais signalées par un bandeau). À corriger (variable obligatoire, plus de repli).
 - 🟠 **Chargement complet de `buildings`** (`select *`) et recherche/détection côté navigateur : ne passera pas à l'échelle.
 - 🟠 **Authentification partielle** : seul l'e-mail est activé (§4.7) ; table `declarations` et stockage des photos non créés.
 - 🟠 **Types TypeScript divergents de la base** : statuts de validation (`approuve` vs `approved`), livraison, façades, statut `rejete` inexistant ; mappage `villa → H` (hôtel).
@@ -444,7 +444,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 **Prochaines étapes recommandées (dans l'ordre)**
 1. Créer la PR des phases B–H de NavigationX, relire sur un vrai téléphone (GPS, partage WhatsApp/SMS, thèmes) puis fusionner.
 2. Fournir l'identifiant « Accès non autorisé » de HailandMap pour déclarer le premier admin dans `agents`, déclarer les agents, vérifier la connexion de HailandMap, **puis** (nouvel accord) appliquer `close_public_writes`.
-3. Définir `VITE_SUPABASE_ANON_KEY` (et les autres variables) sur Vercel ; corriger la clé de repli.
+3. Définir `VITE_SUPABASE_ANON_KEY` (clé **publique**, Production + Aperçu) et `VITE_MAPBOX_TOKEN` sur Vercel puis redéployer : sans elle, la connexion (e-mail/SMS) est indisponible et la carte affiche des données de secours (la clé de repli en dur a été supprimée).
 4. Trancher §9 (lien de partage, placement, table d'avis, format du code) ; accord pour créer `declarations`, les avis et le stockage des photos.
 5. Importer les bâtiments OSM en base (stabilité des identifiants de polygone) ; catégories de lieux.
 6. Faire pivoter les clés exposées ; protéger `main` dans les deux dépôts.
@@ -478,3 +478,4 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 | 2026-10-04 | Révision 21 : authentification des agents HailandMap codée, règles de sécurité proposées et non appliquées (§4.8) — impacte : HailandMap / NavigationX. |
 | 2026-10-03 | Révision 20 : refonte NavigationX terminée (phase 5) — ancien assistant d'enregistrement supprimé (NavigationX n'écrit plus dans `buildings`), §5.3 réécrit, §7 NavigationX mis à jour — impacte : NavigationX / HailandMap. |
 | 2026-10-04 | Révision 23 : point de situation — refonte NavigationX v5 codée (phases A à H), §2 état de NavigationX, §9 décisions 8 à 10 (lien de partage, placement, table d'avis), §14 réécrit — impacte : NavigationX / HailandMap. |
+| 2026-10-04 | Révision 24 : connexion NavigationX « indisponible » diagnostiquée (clé publique Supabase absente sur Vercel + clé de repli invalide) ; clé de repli supprimée, clés secrètes refusées (§7, §14) — impacte : NavigationX. |
