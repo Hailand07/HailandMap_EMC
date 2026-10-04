@@ -40,11 +40,12 @@ src/
     administrativeAddressingService.ts  # point-dans-polygone → hiérarchie admin, trigrammes, codes, backfill
     spatialReassignment.ts           # recalage commune des bâtiments (Turf)
     interactiveMapService.ts / interactiveMapEngine.ts  # « Carte Interactive » (Région→Préfecture→Commune→Quartier) + couches Mapbox
+    agentAuth.ts / actor.ts          # connexion des agents (Supabase Auth) et auteur courant des écritures
     guineaBoundariesData.ts (6,4 Mo) / guineaOfflineData.ts (1,4 Mo)  # frontières et référentiel embarqués dans le bundle
   components/
     registration/                    # Studio d'enregistrement (voir §5)
     BuildingsView (Registre cadastral) · ValidationsView (Modération) · ZonesView · Dashboard (Tour de contrôle)
-    BuildingPanel · GridPanel · InteractiveTerritoryTree · Edit3DMenu · Building3DModal/DetailModal · Tracing3DHUD · Sidebar · AgentHistoryModal
+    AgentGate (connexion des agents) · BuildingPanel · GridPanel · InteractiveTerritoryTree · Edit3DMenu · Building3DModal/DetailModal · Tracing3DHUD · Sidebar · AgentHistoryModal
   utils/ safeJson.ts (assainissement géométries), agentHelper.ts, houseModelData.ts
 scripts/                             # génération SQL/TS depuis OSM et GeoJSON ; tests d'étapes (.ts)
 supabase_setup.sql                   # schéma + RLS (idempotent)
@@ -89,7 +90,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Détection spatiale automatique des bâtiments OSM **dans l'enceinte** de la cour, puis **masquage** en bloc dans la vue (liste dans `localStorage`, clé `hailandmap_hidden_buildings_list`).
 - **Portail** : point d'entrée GPS choisi sur le mur de la cour avec **aimantation** (`turf.nearestPointOnLine`).
 - Écriture en **deux temps** (`saveCourtyardWithBuildings`) : cour mère puis enfants ; si le parent manque, il est pré-créé.
-- Statut d'entrée : **`actif`**, `is_validated = true`, `validated_by = 'admin-auto'`, `submitted_by = 'admin'` (l'agent certifie en saisissant).
+- Statut d'entrée : **`actif`**, `is_validated = true`, `validated_by` et `submitted_by` = **identifiant de l'agent connecté** (depuis le 2026-10-04 ; avant : `admin-auto` / `admin`). L'agent certifie en saisissant.
 
 ### Règles de génération des codes ✅
 | Cas | Code métrique |
@@ -137,7 +138,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 ## 7. Problèmes spécifiques à HailandMap (voir `ECOSYSTEME_HAILAND.md` §7)
 - 🔴 Séquences de codes calculées côté navigateur (doublons possibles) ; validation en masse aléatoire.
 - 🔴 Unicité du code administratif non garantie (lot par carreau ≠ unique par quartier ; collisions de trigrammes).
-- 🔴 Politiques RLS **ouvertes en écriture au rôle public** (constaté le 2026-10-02, y compris sur le référentiel territorial) ; aucune authentification des agents (validateur codé en dur `admin-1`) : fermer l'écriture publique impose d'abord d'authentifier HailandMap.
+- 🔴 Politiques RLS **ouvertes en écriture au rôle public** (constaté le 2026-10-02, y compris sur le référentiel territorial). **Authentification des agents codée (2026-10-04)** : connexion par code, auteur réel des écritures ; il reste à appliquer les règles de sécurité (`migrations/proposed/`, non appliquées) pour fermer l'écriture publique.
 - 🟠 `App.tsx` monolithique ; `main.tsx` surcharge `JSON.stringify` globalement.
 - 🟠 Bâtiment OSM non enregistré créé avec `commune: 'Bamako'`, `quartier: 'Centre'` (reste d'un autre projet).
 - 🟠 Détection de commune par bandes de longitude ; frontières embarquées au lieu d'être lues en base ; `zones.commune` faux.
@@ -162,6 +163,13 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 
 ---
 
+## 9 bis. Authentification des agents ✅ (codée le 2026-10-04)
+- **Connexion** (`AgentGate`) : l'application n'apparaît qu'après connexion par **code** (e-mail aujourd'hui ; SMS dès que Supabase l'active). Le nom de l'agent s'affiche dans l'en-tête ; un petit bouton permet de se déconnecter.
+- **Auteur réel** : `submitted_by`, `validated_by`, `validator_id`, `reviewed_by` reçoivent l'identifiant d'authentification (`src/lib/actor.ts`) au lieu de `admin-1` / `Admin` / `admin-auto`. Le profil de l'agent est ajouté **en mémoire** à la liste des profils (aucune écriture en base) pour que l'historique affiche son nom. Les anciennes lignes gardent leurs anciennes valeurs.
+- **Autorisation** : table `agents` (id d'authentification, nom, rôle `agent`/`admin`, actif) — **proposée, non créée** (`migrations/proposed/2026-10-04_agents.sql`). Tant qu'elle n'existe pas : **mode transition** (tout compte connecté est accepté, badge « TRANSITION »). Une fois créée : compte absent ou inactif = écran « Accès non autorisé » affichant son identifiant à transmettre au fondateur.
+- **Fermeture de l'écriture publique** : `migrations/proposed/2026-10-04_close_public_writes.sql` (non appliquée) — écriture réservée aux agents, suppression et référentiel territorial réservés aux admins, lecture publique inchangée (NavigationX lit avec la clé publique). Ordre : sauvegarde → table `agents` → ajout des agents → vérification de HailandMap connecté → fermeture.
+- **Vérifié à l'écran** (headless, requêtes d'authentification simulées) : connexion, mode transition, accès refusé, accès admin. **Non testé en réel** : l'envoi d'un code (dépend de l'activation des méthodes) et l'application des règles en base.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -183,3 +191,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-03 | Écosystème révision 18 : refonte NavigationX phases 1 à 3 codées ; les déclarations des résidents (niveaux 1 et 2) resteront à lire et vérifier par HailandMap quand la table `declarations` existera — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 19 : réglages d'authentification Supabase relevés (§4.7) et refonte NavigationX phase 4 — aucun changement fonctionnel de l'appli. |
 | 2026-10-03 | Écosystème révision 20 : refonte NavigationX terminée ; NavigationX n'écrit plus jamais dans `buildings` (HailandMap reste seul à certifier) — aucun changement fonctionnel de l'appli. |
+| 2026-10-04 | Authentification des agents : écran de connexion par code, auteur réel des écritures (fin de `admin-1` / `admin-auto`), contrôle d'accès par table `agents` (proposée) avec mode transition ; règles de fermeture de l'écriture publique proposées (non appliquées). |

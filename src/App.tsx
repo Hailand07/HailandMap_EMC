@@ -49,6 +49,7 @@ import {
   PenTool
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { actorId } from './lib/actor';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ValidationsView from './components/ValidationsView';
@@ -660,23 +661,23 @@ export default function App() {
       const newV: Validation = {
         id: 'val-' + Math.random().toString(36).substring(2, 11),
         building_id: building.id,
-        validator_id: 'admin-1',
+        validator_id: actorId(),
         type: 'livreur_validation',
         old_geom: null,
         new_geom: null,
         comment: `Génération officielle HailandCode : ${newCode}`,
         status: 'approved',
-        reviewed_by: 'admin-1',
+        reviewed_by: actorId(),
         created_at: new Date().toISOString()
       };
       
       await saveValidationInSupabase({
         building_id: building.id,
-        validator_id: 'admin-1',
+        validator_id: actorId(),
         type: 'livreur_validation',
         comment: `Génération officielle HailandCode : ${newCode}`,
         status: 'approved',
-        reviewed_by: 'admin-1'
+        reviewed_by: actorId()
       });
       
       setBuildings(prev => prev.map(b => b.id === building.id ? {
@@ -712,23 +713,23 @@ export default function App() {
       const newV: Validation = {
         id: 'val-' + Math.random().toString(36).substring(2, 11),
         building_id: building.id,
-        validator_id: 'admin-1',
+        validator_id: actorId(),
         type: 'correct_polygon',
         old_geom: null,
         new_geom: null,
         comment: `Rejet : ${comment}`,
         status: 'rejected',
-        reviewed_by: 'admin-1',
+        reviewed_by: actorId(),
         created_at: new Date().toISOString()
       };
       
       await saveValidationInSupabase({
         building_id: building.id,
-        validator_id: 'admin-1',
+        validator_id: actorId(),
         type: 'correct_polygon',
         comment: `Rejet : ${comment}`,
         status: 'rejected',
-        reviewed_by: 'admin-1'
+        reviewed_by: actorId()
       });
       
       setBuildings(prev => prev.map(b => b.id === building.id ? {
@@ -777,11 +778,11 @@ export default function App() {
 
         await saveValidationInSupabase({
           building_id: b.id,
-          validator_id: 'admin-1',
+          validator_id: actorId(),
           type: 'livreur_validation',
           comment: `Génération bulk officielle HailandCode : ${code}`,
           status: 'approved',
-          reviewed_by: 'admin-1'
+          reviewed_by: actorId()
         });
       }
 
@@ -2816,9 +2817,9 @@ export default function App() {
                   access_note: `Volume 3D personnalisé (${foundCustom.height}m)`,
                   is_validated: true,
                   validation_count: 1,
-                  validated_by: 'Admin',
+                  validated_by: actorId(),
                   validated_at: foundCustom.created_at,
-                  submitted_by: 'Admin',
+                  submitted_by: actorId(),
                   claimed_by: null,
                   rejection_reason: null,
                   modification_request: null,
@@ -6572,7 +6573,8 @@ export default function App() {
     }
   }, []);
 
-  const currentAdmin = profiles.find((p) => p.role === 'admin') || profiles[0];
+  // L'utilisateur affiché est l'agent réellement connecté (et non un profil de démonstration).
+  const currentAdmin = profiles.find((p) => p.id === actorId()) || profiles.find((p) => p.role === 'admin') || profiles[0];
   const pendingCount = buildings.filter((b) => b.status === 'en_attente').length;
   const conflictCount = buildings.filter((b) => b.status === 'conteste').length;
 

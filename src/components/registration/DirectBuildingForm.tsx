@@ -11,6 +11,7 @@ import UnitsPerFloorInput, { LevelInfo } from './UnitsPerFloorInput';
 import FloorDoorsSelector, { generateFloorDoors } from './FloorDoorsSelector';
 import { sanitizeGeometry, sanitizeObject, normalizeBuildingType, calculateFixedCentroid } from '../../utils/safeJson';
 import { resolveAdministrativeHierarchy } from '../../lib/administrativeAddressingService';
+import { actorId } from '../../lib/actor';
 
 interface DirectBuildingFormProps {
   initialCoords: {
@@ -365,7 +366,7 @@ export default function DirectBuildingForm({
       access_note: accessNote.trim() || null,
       is_validated: true,
       validation_count: 1,
-      validated_by: 'admin-auto',
+      validated_by: actorId(),
       validated_at: new Date().toISOString(),
       submitted_by: 'admin',
       claimed_by: null,
