@@ -86,7 +86,7 @@ import { computeDualAddressing } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
 import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, RegistrationSlot, TOOLS, type AtelierTool } from './shell/AtelierShell';
-import { getUiVersion } from './shell/uiVersion';
+import { getUiVersion, setUiVersion } from './shell/uiVersion';
 import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
 import { CandidateInspector, BuildingInspector, EmptyInspector } from './v2/atelier/Inspector';
 import { CommandPalette } from './v2/atelier/CommandPalette';
@@ -606,6 +606,7 @@ export default function App() {
   const [activityOpen, setActivityOpen] = useState(false);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [activitySeen, setActivitySeen] = useState(0);
+  const [cursorPos, setCursorPos] = useState<{ lng: number; lat: number } | null>(null);
   const uiV2 = getUiVersion() === 'v2'; // Atelier v2 (refonte en cours) : coque et thème seulement pour l'instant
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
   const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(true);
@@ -6641,6 +6642,32 @@ export default function App() {
     return () => clearTimeout(t);
   }, [mapNotification]);
 
+  // La carte suit la largeur disponible quand les panneaux latéraux apparaissent ou disparaissent (Atelier v2).
+  useEffect(() => {
+    if (!uiV2) return;
+    const t = setTimeout(() => mapRef.current?.resize(), 60);
+    return () => clearTimeout(t);
+  }, [uiV2, activeAdminView, clickedCoords, assistantStarted, selectedBuilding, selectedGridCell, isGridPanelOpen]);
+
+  // Coordonnées du curseur dans la barre d'état (Atelier v2).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!uiV2 || !map || activeAdminView !== 'carte') return;
+    let raf = 0;
+    const move = (e: mapboxgl.MapMouseEvent) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setCursorPos({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+      });
+    };
+    map.on('mousemove', move);
+    return () => {
+      map.off('mousemove', move);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [uiV2, activeAdminView]);
+
   // Ctrl K : recherche universelle.
   useEffect(() => {
     if (!uiV2) return;
@@ -6835,7 +6862,7 @@ export default function App() {
                 />
               )}
 
-              {uiV2 && (
+              {uiV2 && !(clickedCoords && assistantStarted) && (
                 <AtelierLeftPanel
                   buildings={buildings}
                   selectedId={selectedBuilding?.id ?? null}
@@ -8562,6 +8589,7 @@ export default function App() {
                   buildings={buildings}
                   profiles={profiles}
                   onOpenOnMap={handleSelectBuildingFromAdmin}
+                  onShowMap={() => setActiveAdminView('carte')}
                   onRefresh={async () => {
                     const refreshed = await loadRealBuildings();
                     setBuildings(refreshed);
@@ -8709,6 +8737,28 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Interface : nouvelle (v2) ou ancienne (v1) */}
+                <div className="border-t border-slate-800/60 pt-4 space-y-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Interface</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => !uiV2 && setUiVersion('v2')}
+                      className={`py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${uiV2 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'}`}
+                    >
+                      Nouvelle (Atelier v2)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => uiV2 && setUiVersion('v1')}
+                      className={`py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${!uiV2 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'}`}
+                    >
+                      Ancienne
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Le choix est mémorisé sur cet appareil. La page se recharge.</p>
+                </div>
+
                 {/* Section 2 : Informations Système */}
                 <div className="border-t border-slate-800/60 pt-4 space-y-2">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Informations Système</span>
@@ -8742,6 +8792,7 @@ export default function App() {
           zonesCount={zones.length}
           adminName={currentAdmin.full_name}
           zoom={activeAdminView === 'carte' ? zoomLevel : undefined}
+          cursor={activeAdminView === 'carte' ? cursorPos : null}
           toolHint={activeAdminView === 'carte' && activeTool ? TOOLS.find((t) => t.id === activeTool)?.hint : undefined}
           message={statusMsg}
         />

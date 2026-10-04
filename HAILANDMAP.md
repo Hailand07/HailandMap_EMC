@@ -221,6 +221,11 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 - Sous 768 px : barre du haut compacte (recherche en icône), rail des modules en **barre d'onglets en bas**, panneau gauche masqué, assistant de création et inspecteurs en **feuille du bas** (58 % de la hauteur), Revue en pile (liste puis décision, sans plan), fiche du Registre en feuille du bas, Pilotage en 2 colonnes, barre d'état masquée. Capturé à 390 × 844 ; non testé au doigt sur appareil réel.
 - Reste à valider sur un vrai téléphone : tracé au doigt (clic intelligent, tracé libre), pose du portail, saisie dans l'assistant.
 
+### Finitions de fidélité aux maquettes (2026-10-04) ✅
+- Pendant une création, le panneau gauche disparaît (carte + assistant, comme la maquette « Création ») et la carte se redimensionne ; coordonnées du curseur dans la barre d'état ; mode « Carte » au Registre.
+- **Interrupteur d'interface** dans les Réglages (engrenage) : « Nouvelle (Atelier v2) » / « Ancienne », en plus de `?ui=v2` / `?ui=v1`.
+- Déclarations des résidents NavigationX dans la Revue : **impossible sans nouvelle règle d'accès en base** (la table `declarations` n'est lisible que par son auteur) → à décider avec le fondateur (création d'une politique de lecture pour les agents, accord explicite requis).
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -253,3 +258,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-04 | Atelier v2 : écran Atelier reconstruit selon les maquettes (panneau Territoire/Couches, inspecteur de sélection, légende, Ctrl K, boîte Activité) ; interface seulement, logique inchangée. |
 | 2026-10-04 | Modules Revue, Registre, Pilotage et Territoire v2 reconstruits selon les maquettes ; décisions de revue branchées sur les fonctions existantes ; exports et maintenance du registre conservés. |
 | 2026-10-04 | Atelier v2 adapté au téléphone (barre d'onglets, feuille du bas, Revue en pile) ; v1 inchangée par défaut. |
+| 2026-10-04 | Finitions v2 : panneau gauche masqué pendant la création, redimensionnement de la carte, coordonnées du curseur, mode Carte du Registre, interrupteur d'interface dans les Réglages. |

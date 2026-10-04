@@ -108,14 +108,21 @@ interface StatusProps {
   adminName: string;
   /** Module Atelier : zoom de la carte et conseil de l'outil actif. */
   zoom?: number;
+  /** Position du curseur sur la carte. */
+  cursor?: { lng: number; lat: number } | null;
   toolHint?: string;
   /** Dernier message d'activité (remplace les messages flottants). */
   message?: string | null;
 }
 
 /** Barre d'état en bas : remplace le pied de page et, plus tard, les messages flottants. */
-export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName, zoom, toolHint, message }) => (
+export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesCount, adminName, zoom, cursor, toolHint, message }) => (
   <footer className="flex h-7 shrink-0 select-none items-center gap-[18px] border-t border-slate-950 bg-slate-900 px-3.5 font-mono text-[11.5px] text-slate-500 max-md:hidden">
+    {cursor && (
+      <span>
+        {Math.abs(cursor.lat).toFixed(4)}° {cursor.lat >= 0 ? 'N' : 'S'} · {Math.abs(cursor.lng).toFixed(4)}° {cursor.lng >= 0 ? 'E' : 'O'}
+      </span>
+    )}
     <span>{buildingsCount} bâtiments</span>
     <span>{zonesCount} zones</span>
     <span>Conakry, Guinée</span>
