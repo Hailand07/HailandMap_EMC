@@ -16,12 +16,6 @@ export interface HiddenBuildingData {
   name?: string | null;
 }
 
-export interface RouteInfo {
-  distance: number; // en mètres
-  duration: number; // en secondes
-  coordinates: [number, number][];
-}
-
 // ===== ZONES (Carreaux 200m×200m) =====
 export interface Zone {
   id: string;

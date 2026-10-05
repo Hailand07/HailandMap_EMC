@@ -14,7 +14,7 @@ import { generate200mGridGeoJSON,  } from '../../map/grid';
 
 /** Gestionnaire extrait d'App.tsx : `ctx` regroupe l'état et les références du composant au moment de l'initialisation de la carte. */
 export function handleMapClick(e: any, ctx: Record<string, any>) {
-  const { buildings, buildingsRef, childDrawCompleteHandlerRef, childMapClickHandlerRef, clickSelectionTargetRef, currentStyle, custom3DBuildingsRef, detectOsmBuildingsInZone, drawPoints3DRef, drawPointsRef, entrancePickerConfigRef, handleFinalizeCustomDrawRef, is200mGridActiveRef, is3DDrawModeRef, isDrawModeRef, isSelectionModeRef, map, markerRef, previewEntranceMarkerRef, selectionTargetNatureRef, setClickedCoords, setDrawPoints, setDrawPoints3D, setIs3DConfigModalOpen, setIsGridPanelOpen, setMapNotification, setSelected3DBuilding, setSelectedBuilding, setSelectedGridBuildings, setSelectedGridCell, setSelectedPolygonHideAction, snappedCoordsRef } = ctx;
+  const { buildings, buildingsRef, childDrawCompleteHandlerRef, childMapClickHandlerRef, clickSelectionTargetRef, currentStyle, custom3DBuildingsRef, detectOsmBuildingsInZone, drawPointsRef, entrancePickerConfigRef, handleFinalizeCustomDrawRef, is200mGridActiveRef, isDrawModeRef, isSelectionModeRef, map, markerRef, previewEntranceMarkerRef, selectionTargetNatureRef, setClickedCoords, setDrawPoints, setIsGridPanelOpen, setMapNotification, setSelected3DBuilding, setSelectedBuilding, setSelectedGridBuildings, setSelectedGridCell, setSelectedPolygonHideAction, snappedCoordsRef } = ctx;
         const { lng, lat } = e.lngLat;
 
         // MODE SÉLECTION D'ENTRÉE / PORTAIL DE COUR (AVEC AIMANTATION STRICTE AU MUR) :
@@ -51,26 +51,6 @@ export function handleMapClick(e: any, ctx: Record<string, any>) {
             previewEntranceMarkerRef.current = null;
           }
           map.getCanvas().style.cursor = '';
-          return;
-        }
-
-        // MODE TRACÉ DE BÂTIMENT 3D MANUEL ACTIVÉ :
-        if (is3DDrawModeRef.current) {
-          const currentPts = drawPoints3DRef.current;
-          if (currentPts.length >= 3) {
-            try {
-              const p0Screen = map.project(currentPts[0]);
-              const distPx = Math.hypot(p0Screen.x - e.point.x, p0Screen.y - e.point.y);
-              if (distPx < 20) {
-                setIs3DConfigModalOpen(true);
-                return;
-              }
-            } catch (err) {}
-          }
-          setDrawPoints3D(prev => {
-            const next = [...prev, [lng, lat]];
-            return next;
-          });
           return;
         }
 

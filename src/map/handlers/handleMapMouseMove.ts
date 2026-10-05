@@ -8,7 +8,7 @@ import * as turf from '@turf/turf';
 
 /** Gestionnaire extrait d'App.tsx : `ctx` regroupe l'état et les références du composant au moment de l'initialisation de la carte. */
 export function handleMapMouseMove(e: any, ctx: Record<string, any>) {
-  const { drawRafRef, entrancePickerConfigRef, is3DDrawModeRef, isDrawModeRef, lastMouseCoordRef, map, previewEntranceMarkerRef, renderDrawRubberbandPreviewRef, snappedCoordsRef, wallLineCacheRef } = ctx;
+  const { drawRafRef, entrancePickerConfigRef, isDrawModeRef, lastMouseCoordRef, map, previewEntranceMarkerRef, renderDrawRubberbandPreviewRef, snappedCoordsRef, wallLineCacheRef } = ctx;
         // MODE SÉLECTION D'ENTRÉE / PORTAIL DE COUR AVEC VERROUILLAGE ET AIMANTATION CONTINUE SUR LE MUR
         if (entrancePickerConfigRef.current && entrancePickerConfigRef.current.active) {
           const picker = entrancePickerConfigRef.current;
@@ -63,7 +63,7 @@ export function handleMapMouseMove(e: any, ctx: Record<string, any>) {
           return;
         }
 
-        if (is3DDrawModeRef.current || isDrawModeRef.current) {
+        if (isDrawModeRef.current) {
           lastMouseCoordRef.current = { lng: e.lngLat.lng, lat: e.lngLat.lat, point: e.point };
           if (drawRafRef.current === null) {
             drawRafRef.current = requestAnimationFrame(() => {
