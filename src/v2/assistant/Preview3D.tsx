@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 
-export interface PreviewBuilding {
+interface PreviewBuilding {
   ring: [number, number][]; // [lng, lat]
   levels: number; // nombre total de niveaux (RDC compris)
   label?: string;

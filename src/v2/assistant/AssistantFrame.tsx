@@ -3,7 +3,7 @@ import { GhostButton, PrimaryButton } from '../atoms';
 
 export type AssistantStage = 'structure' | 'attributs' | 'acces' | 'verification';
 
-export const STAGE_LIST: { id: 'emprise' | AssistantStage; label: string }[] = [
+const STAGE_LIST: { id: 'emprise' | AssistantStage; label: string }[] = [
   { id: 'emprise', label: 'Emprise' },
   { id: 'structure', label: 'Structure' },
   { id: 'attributs', label: 'Attributs' },

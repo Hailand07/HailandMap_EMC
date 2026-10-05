@@ -14,12 +14,12 @@ import {
   TERRITORY_QUARTIER_BOUNDARIES,
   getTerritoryRealGeometry,
 } from './guineaBoundariesData';
-import { supabase, updateBuildingInSupabase } from './supabase';
+import { updateBuildingInSupabase } from './supabase';
 import type { Building, AdministrativeHierarchy, DualAddressingInfo } from '../types';
 
 // ===== NORMALISATION & TRIGRAMMES OFFICIELS =====
 
-export const REGION_TRIGRAMS: Record<string, string> = {
+const REGION_TRIGRAMS: Record<string, string> = {
   'reg-conakry': 'CKY',
   'reg-kindia': 'KIN',
   'reg-boke': 'BKE',
@@ -30,7 +30,7 @@ export const REGION_TRIGRAMS: Record<string, string> = {
   'reg-nzerekore': 'NZE',
 };
 
-export const COMMUNE_TRIGRAMS: Record<string, string> = {
+const COMMUNE_TRIGRAMS: Record<string, string> = {
   'ratoma': 'RTM',
   'com-ratoma': 'RTM',
   'dixinn': 'DXN',
@@ -71,7 +71,7 @@ export const COMMUNE_TRIGRAMS: Record<string, string> = {
 /**
  * Nettoie une chaîne pour matching toponymique
  */
-export function cleanToponym(str?: string | null): string {
+function cleanToponym(str?: string | null): string {
   if (!str) return '';
   return str
     .toLowerCase()
@@ -84,7 +84,7 @@ export function cleanToponym(str?: string | null): string {
 /**
  * Génère un trigramme mnémonique propre pour une entité (3 à 4 lettres majuscules)
  */
-export function generateTrigram(name?: string | null, fallback = 'LOT'): string {
+function generateTrigram(name?: string | null, fallback = 'LOT'): string {
   if (!name) return fallback;
   const cleaned = cleanToponym(name).toUpperCase();
   if (cleaned.length <= 3) return cleaned.padEnd(3, 'X');

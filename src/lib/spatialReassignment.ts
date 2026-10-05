@@ -13,7 +13,7 @@ import { TERRITORY_COMMUNE_BOUNDARIES, getTerritoryRealGeometry } from './guinea
 import { GUINEA_OFFLINE_DATA } from './guineaOfflineData';
 import type { Building } from '../types';
 
-export interface ReassignmentDetail {
+interface ReassignmentDetail {
   buildingId: string;
   hailandCode: string | null;
   oldCommune: string | null;
@@ -42,7 +42,7 @@ export interface ReassignOptions {
 /**
  * Normalise une chaîne pour comparaison toponymique insensible aux accents et à la casse
  */
-export function normalizeCommuneName(name?: string | null): string {
+function normalizeCommuneName(name?: string | null): string {
   if (!name) return '';
   return name
     .toLowerCase()
@@ -55,7 +55,7 @@ export function normalizeCommuneName(name?: string | null): string {
 /**
  * Charge l'ensemble des polygones de communes officielles de Guinée (342 communes)
  */
-export function getCommunesWithBoundaries(): Array<{
+function getCommunesWithBoundaries(): Array<{
   id: string;
   nom: string;
   normalizedNom: string;
@@ -121,7 +121,7 @@ export function getCommunesWithBoundaries(): Array<{
 /**
  * Extrait les coordonnées [longitude, latitude] du centroïde d'un bâtiment
  */
-export function extractBuildingCentroidCoordinates(building: any): [number, number] | null {
+function extractBuildingCentroidCoordinates(building: any): [number, number] | null {
   if (
     building.centroid &&
     Array.isArray(building.centroid.coordinates) &&

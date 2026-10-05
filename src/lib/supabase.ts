@@ -5,20 +5,12 @@
 import { createClient } from '@supabase/supabase-js';
 import type { 
   Building, 
-  BuildingStatus, 
   BuildingType, 
   Zone, 
   Profile, 
   Validation, 
-  Delivery, 
-  Facade,
-  Region,
-  Commune,
-  Quartier,
-  Batiment3D,
-  QuartierStatistique3D
-} from '../types';
-import { safeJsonStringify, sanitizeObject, sanitizeGeometry, normalizeBuildingType, createDefaultBuildingPolygon, calculateFixedCentroid } from '../utils/safeJson';
+  } from '../types';
+import { safeJsonStringify, sanitizeObject, sanitizeGeometry, normalizeBuildingType, calculateFixedCentroid } from '../utils/safeJson';
 import { computeDualAddressing } from './administrativeAddressingService';
 import { actorId, getActor } from './actor';
 
@@ -285,38 +277,7 @@ export const MOCK_VALIDATIONS: Validation[] = [
   },
 ];
 
-export const MOCK_DELIVERIES: Delivery[] = [
-  {
-    id: 'del-1',
-    order_id: 'CMD-2026-0891',
-    building_id: 'b1',
-    hailand_code: 'GN-Z014-M007-E1-101',
-    livreur_id: 'livreur-1',
-    client_id: 'user-1',
-    status: 'delivered',
-    is_validation_delivery: true,
-    pickup_geom: { type: 'Point', coordinates: [-13.6280, 9.5850] },
-    delivery_geom: { type: 'Point', coordinates: [-13.62125, 9.58875] },
-    distance_m: 850,
-    duration_min: 6,
-    note_livreur: 'Colis remis en main propre au 1er étage',
-    delivered_at: '2026-06-14T09:30:00Z',
-    created_at: '2026-06-14T09:10:00Z',
-  },
-];
 
-export const MOCK_FACADES: Facade[] = [
-  {
-    id: 'fac-1',
-    building_id: 'b1',
-    uploaded_by: 'user-1',
-    storage_path: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop&q=80',
-    caption: 'Façade avant avec portail noir',
-    direction: 'nord',
-    is_primary: true,
-    created_at: '2026-05-10T08:30:00Z',
-  },
-];
 
 // ===== UTILITAIRES HAILANDCODE =====
 
@@ -330,77 +291,9 @@ export const MOCK_FACADES: Facade[] = [
  * - GN-Z00142-CR003-RL1-CH1
  * - GN-Z00142-CR003-M01-E1-101
  */
-export function isValidHailandCode(code: string): boolean {
-  if (!code || typeof code !== 'string') return false;
-  return /^GN-[A-Z0-9]+(-[A-Z0-9]+)+$/i.test(code.trim());
-}
-
 /**
  * Parse un HailandCode en ses composantes selon le format officiel.
  */
-export function parseHailandCode(code: string): {
-  pays: string;
-  zone: string;
-  cour: string | null;
-  batiment: string;
-  etage: string | null;
-  unite: string | null;
-  ville?: string;
-  commune?: string;
-} {
-  const parts = code.trim().split('-');
-  if (parts.length < 3) {
-    throw new Error(`Code invalide : ${code}`);
-  }
-
-  const pays = parts[0];
-  const zone = parts[1];
-  let idx = 2;
-  let cour: string | null = null;
-
-  if (parts[idx] && /^CR\d+/i.test(parts[idx])) {
-    cour = parts[idx];
-    idx++;
-  }
-
-  const batiment = parts[idx] || '';
-  idx++;
-
-  let etage: string | null = null;
-  let unite: string | null = null;
-
-  while (idx < parts.length) {
-    const part = parts[idx];
-    if (/^E\d+/i.test(part) && !etage) {
-      etage = part;
-    } else if (!unite) {
-      unite = part;
-    }
-    idx++;
-  }
-
-  return {
-    pays,
-    zone,
-    cour,
-    batiment,
-    etage,
-    unite,
-    ville: 'CKY',
-    commune: 'Conakry'
-  };
-}
-
-export function getCommuneAbbr(commune: string): string {
-  const c = commune.toUpperCase();
-  if (c.includes('RATOMA') || c === 'RAT') return 'RAT';
-  if (c.includes('MATOTO') || c === 'MAT') return 'MAT';
-  if (c.includes('KALOUM') || c === 'KAL') return 'KAL';
-  if (c.includes('DIXINN') || c === 'DIX') return 'DIX';
-  if (c.includes('MATAM') || c === 'MTM') return 'MTM';
-  return c.substring(0, 3).toUpperCase();
-}
-
 /**
  * Génère un HailandCode unique lors de la validation admin selon le NOUVEAU FORMAT OFFICIEL FLÉCHISSANT :
  * [PAYS]-[ZONE]-[COUR]*-[BÂTIMENT]-[ÉTAGE]*-[UNITÉ]*
@@ -469,27 +362,9 @@ export function generateHailandCode(
 /**
  * Calcule le nombre de bâtiments par statut.
  */
-export function getBuildingCountsByStatus(buildings: Building[]) {
-  const counts: Record<BuildingStatus, number> = {
-    non_reclame: 0,
-    en_attente: 0,
-    actif: 0,
-    conteste: 0,
-    inactif: 0,
-  };
-  buildings.forEach((b) => {
-    counts[b.status]++;
-  });
-  return counts;
-}
-
 /**
  * Retourne les bâtiments qui nécessitent une attention (en_attente ou conteste).
  */
-export function getPendingBuildings(buildings: Building[]): Building[] {
-  return buildings.filter((b) => b.status === 'en_attente' || b.status === 'conteste');
-}
-
 // ===== CHARGEMENT EN LIGNE DES DONNÉES DEPUIS SUPABASE AVEC RETOURS DE SECOURS =====
 
 export async function loadRealBuildings(): Promise<Building[]> {
@@ -608,7 +483,7 @@ export async function loadRealProfiles(): Promise<Profile[]> {
  * Élimine explicitement les colonnes inexistantes (notamment 'quartier', 'buildings_count')
  * qui causent l'erreur PostgREST PGRST204.
  */
-export function prepareBuildingPayloadForSupabase(raw: any): Record<string, any> {
+function prepareBuildingPayloadForSupabase(raw: any): Record<string, any> {
   const normType = normalizeBuildingType(raw.building_type || raw.buildingType || 'R');
   const fallbackCoords = raw.centroid?.coordinates || 
     (typeof raw.longitude === 'number' && typeof raw.latitude === 'number' 
@@ -691,23 +566,15 @@ export async function updateBuildingInSupabase(id: string, updates: Partial<Buil
 
 // Ré-export du module d'attribution spatiale automatisée
 export {
-  reassignBuildingsToCommunes,
+  
   verifyAndReassignBuildings,
-  type ReassignCommuneReport,
-  type ReassignmentDetail,
-  type ReassignOptions
+  
+  
+  
 } from './spatialReassignment';
 
 // Ré-export du module d'adressage administratif et hybride
-export {
-  resolveAdministrativeHierarchy,
-  computeDualAddressing,
-  backfillAdministrativeAddresses,
-  REGION_TRIGRAMS,
-  COMMUNE_TRIGRAMS,
-  cleanToponym,
-  generateTrigram,
-} from './administrativeAddressingService';
+;
 
 export async function insertBuildingInSupabase(building: Building) {
   const cleanBuilding = prepareBuildingPayloadForSupabase(building);
@@ -943,243 +810,7 @@ export async function saveZoneInSupabase(zone: Partial<Zone>) {
 
 // ===== LIVRAISONS (DELIVERIES) =====
 
-export async function loadRealDeliveries(): Promise<Delivery[]> {
-  try {
-    const { data, error } = await supabase
-      .from('deliveries')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.warn("[Supabase WARN] Impossible de charger les livraisons depuis Supabase, utilisation du fallback:", error.message);
-      return MOCK_DELIVERIES;
-    }
-
-    if (!data || data.length === 0) {
-      return MOCK_DELIVERIES;
-    }
-
-    return data.map((d: any) => ({
-      ...d,
-      pickup_geom: sanitizeGeometry(d.pickup_geom),
-      delivery_geom: sanitizeGeometry(d.delivery_geom),
-    })) as Delivery[];
-  } catch (err) {
-    console.warn("[Supabase WARN] Erreur lors de la récupération des livraisons:", err);
-    return MOCK_DELIVERIES;
-  }
-}
-
-export async function saveDeliveryInSupabase(delivery: Partial<Delivery>) {
-  const generatedId = delivery.id || 'del-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
-  const finalDelivery = {
-    id: generatedId,
-    created_at: delivery.created_at || new Date().toISOString(),
-    ...delivery,
-    pickup_geom: sanitizeGeometry(delivery.pickup_geom),
-    delivery_geom: sanitizeGeometry(delivery.delivery_geom),
-  };
-  const cleanDelivery = sanitizeObject(finalDelivery);
-  console.log("[Supabase DEBUG] Intent to UPSERT delivery:", cleanDelivery.id);
-  try {
-    const { data, error } = await supabase
-      .from('deliveries')
-      .upsert([cleanDelivery], { onConflict: 'id' });
-
-    if (error) {
-      if (error.code === '23505') {
-        return { success: true, alreadyExists: true, data };
-      }
-      console.error(`[Supabase ERROR] UPSERT failed for table "deliveries":`, error.message);
-      return { success: false, localOnly: true, error: error.message };
-    }
-    console.log("[Supabase DEBUG] UPSERT delivery successfully completed!");
-    return { success: true, data };
-  } catch (e: any) {
-    console.error("[Supabase EXCEPTION] Exception during saveDeliveryInSupabase:", e.message || e);
-    return { success: false, localOnly: true, error: e.message || String(e) };
-  }
-}
-
-export async function updateDeliveryInSupabase(id: string, updates: Partial<Delivery>) {
-  const cleanUpdates = sanitizeObject({
-    ...updates,
-    pickup_geom: updates.pickup_geom ? sanitizeGeometry(updates.pickup_geom) : undefined,
-    delivery_geom: updates.delivery_geom ? sanitizeGeometry(updates.delivery_geom) : undefined,
-  });
-  try {
-    const { data, error } = await supabase
-      .from('deliveries')
-      .update(cleanUpdates)
-      .eq('id', id);
-
-    if (error) {
-      console.error(`[Supabase ERROR] UPDATE failed for table "deliveries":`, error.message);
-      return { success: false, localOnly: true, error: error.message };
-    }
-    return { success: true, data };
-  } catch (e: any) {
-    console.error("[Supabase EXCEPTION] Exception during updateDeliveryInSupabase:", e.message || e);
-    return { success: false, localOnly: true, error: e.message || String(e) };
-  }
-}
-
 // ===== FAÇADES =====
-
-export async function loadRealFacades(buildingId?: string): Promise<Facade[]> {
-  try {
-    let query = supabase.from('facades').select('*').order('created_at', { ascending: false });
-    if (buildingId) {
-      query = query.eq('building_id', buildingId);
-    }
-    const { data, error } = await query;
-
-    if (error) {
-      console.warn("[Supabase WARN] Impossible de charger les façades:", error.message);
-      return buildingId ? MOCK_FACADES.filter(f => f.building_id === buildingId) : MOCK_FACADES;
-    }
-
-    if (!data || data.length === 0) {
-      return buildingId ? MOCK_FACADES.filter(f => f.building_id === buildingId) : MOCK_FACADES;
-    }
-
-    return data as Facade[];
-  } catch (err) {
-    console.warn("[Supabase WARN] Erreur lors de la récupération des façades:", err);
-    return buildingId ? MOCK_FACADES.filter(f => f.building_id === buildingId) : MOCK_FACADES;
-  }
-}
-
-export async function saveFacadeInSupabase(facade: Partial<Facade>) {
-  const generatedId = facade.id || 'fac-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
-  const finalFacade = {
-    id: generatedId,
-    created_at: facade.created_at || new Date().toISOString(),
-    ...facade
-  };
-  const cleanFacade = sanitizeObject(finalFacade);
-  console.log("[Supabase DEBUG] Intent to UPSERT facade:", cleanFacade.id);
-  try {
-    const { data, error } = await supabase
-      .from('facades')
-      .upsert([cleanFacade], { onConflict: 'id' });
-
-    if (error) {
-      console.error(`[Supabase ERROR] UPSERT failed for table "facades":`, error.message);
-      return { success: false, localOnly: true, error: error.message };
-    }
-    console.log("[Supabase DEBUG] UPSERT facade successfully completed!");
-    return { success: true, data };
-  } catch (e: any) {
-    console.error("[Supabase EXCEPTION] Exception during saveFacadeInSupabase:", e.message || e);
-    return { success: false, localOnly: true, error: e.message || String(e) };
-  }
-}
-
-export async function deleteFacadeInSupabase(id: string) {
-  try {
-    const { data, error } = await supabase
-      .from('facades')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error(`[Supabase ERROR] DELETE failed for table "facades":`, error.message);
-      return { success: false, error: error.message };
-    }
-    return { success: true, data };
-  } catch (e: any) {
-    console.error("[Supabase EXCEPTION] Exception during deleteFacadeInSupabase:", e.message || e);
-    return { success: false, error: e.message || String(e) };
-  }
-}
 
 // ===== STRUCTURE HIÉRARCHIQUE CARTOGRAPHIQUE (GUINÉE) =====
 
-export async function fetchRegionsFromSupabase(): Promise<Region[]> {
-  try {
-    const { data, error } = await supabase
-      .from('regions')
-      .select('*')
-      .order('nom');
-    if (error) {
-      console.warn('[Supabase WARN] Impossible de charger les régions:', error.message);
-      return [];
-    }
-    return (data || []) as Region[];
-  } catch (err) {
-    console.warn('[Supabase WARN] Exception fetchRegionsFromSupabase:', err);
-    return [];
-  }
-}
-
-export async function fetchCommunesFromSupabase(regionId?: string): Promise<Commune[]> {
-  try {
-    let query = supabase.from('communes').select('*').order('nom');
-    if (regionId) {
-      query = query.eq('region_id', regionId);
-    }
-    const { data, error } = await query;
-    if (error) {
-      console.warn('[Supabase WARN] Impossible de charger les communes:', error.message);
-      return [];
-    }
-    return (data || []) as Commune[];
-  } catch (err) {
-    console.warn('[Supabase WARN] Exception fetchCommunesFromSupabase:', err);
-    return [];
-  }
-}
-
-export async function fetchQuartiersFromSupabase(communeId?: string): Promise<Quartier[]> {
-  try {
-    let query = supabase.from('quartiers').select('*').order('nom');
-    if (communeId) {
-      query = query.eq('commune_id', communeId);
-    }
-    const { data, error } = await query;
-    if (error) {
-      console.warn('[Supabase WARN] Impossible de charger les quartiers:', error.message);
-      return [];
-    }
-    return (data || []) as Quartier[];
-  } catch (err) {
-    console.warn('[Supabase WARN] Exception fetchQuartiersFromSupabase:', err);
-    return [];
-  }
-}
-
-export async function fetchBatiments3DFromSupabase(quartierId?: string): Promise<Batiment3D[]> {
-  try {
-    let query = supabase.from('batiments_3d').select('*');
-    if (quartierId) {
-      query = query.eq('quartier_id', quartierId);
-    }
-    const { data, error } = await query;
-    if (error) {
-      console.warn('[Supabase WARN] Impossible de charger les bâtiments 3D:', error.message);
-      return [];
-    }
-    return (data || []) as Batiment3D[];
-  } catch (err) {
-    console.warn('[Supabase WARN] Exception fetchBatiments3DFromSupabase:', err);
-    return [];
-  }
-}
-
-export async function fetchQuartierStats3DFromSupabase(): Promise<QuartierStatistique3D[]> {
-  try {
-    const { data, error } = await supabase
-      .from('vue_quartiers_statistiques_3d')
-      .select('*')
-      .order('total_batiments_3d', { ascending: false });
-    if (error) {
-      console.warn('[Supabase WARN] Impossible de charger vue_quartiers_statistiques_3d:', error.message);
-      return [];
-    }
-    return (data || []) as QuartierStatistique3D[];
-  } catch (err) {
-    console.warn('[Supabase WARN] Exception fetchQuartierStats3DFromSupabase:', err);
-    return [];
-  }
-}

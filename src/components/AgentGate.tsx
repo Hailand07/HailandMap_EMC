@@ -24,7 +24,6 @@ import {
 import { AuthLayout } from './auth/AuthLayout';
 import { OtpInput } from './auth/OtpInput';
 import { Splash } from './auth/Splash';
-import { getUiVersion } from '../shell/uiVersion';
 
 const field =
   'h-12 w-full min-w-0 rounded-[9px] border bg-[#262626] px-3.5 text-base text-hx-text outline-none transition placeholder:text-hx-faint/60 focus:border-hx-accent';
@@ -348,17 +347,6 @@ export default function AgentGate({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      {getUiVersion() === 'v1' && (
-        <div className="pointer-events-none fixed bottom-9 left-3 z-[9999] font-sans">
-          <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-[#0A0F1E]/90 py-1.5 pl-3 pr-1.5 text-xs font-bold text-slate-200 shadow-lg backdrop-blur">
-            <span className="max-w-[140px] truncate">{displayNameOf(session.user)}</span>
-            {access.transition && <span title="La table des agents n’existe pas encore : tout compte connecté est accepté" className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] text-amber-300">TRANSITION</span>}
-            <button type="button" onClick={logout} aria-label="Se déconnecter" className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
-              <LogOut size={13} />
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

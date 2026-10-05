@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Box, Layers, Trash2, X, Ruler, Check, Palette, Eye, RotateCw } from 'lucide-react';
+import { Box, Layers, Trash2, X, Check, Palette, Eye,  } from 'lucide-react';
 import type { Custom3DBuilding } from '../types';
 
 interface Building3DDetailModalProps {

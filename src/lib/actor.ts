@@ -22,6 +22,3 @@ export function getActor(): AgentActor | null {
 export function actorId(): string {
   return currentActor?.id || 'admin-auto';
 }
-export function actorName(): string {
-  return currentActor?.name || 'Agent';
-}

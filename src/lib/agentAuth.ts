@@ -12,7 +12,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 import type { AgentRole } from './actor';
-export type { AgentRole, AgentActor } from './actor';
+;
 
 export type AccessState =
   | { state: 'allowed'; role: AgentRole; transition: false }
@@ -118,4 +118,4 @@ export async function checkAgentAccess(user: User): Promise<AccessState> {
   }
 }
 
-export { setActor, getActor, actorId, actorName } from './actor';
+export { setActor,    } from './actor';

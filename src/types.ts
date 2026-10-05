@@ -33,7 +33,7 @@ export interface Zone {
 }
 
 // ===== PROFILS UTILISATEURS =====
-export type UserRole = 'client' | 'livreur' | 'admin' | 'proprietaire';
+type UserRole = 'client' | 'livreur' | 'admin' | 'proprietaire';
 
 export interface Profile {
   id: string;
@@ -121,7 +121,7 @@ export interface Building {
 }
 
 // ===== FAÇADES =====
-export type DirectionCardinale = 'nord' | 'sud' | 'est' | 'ouest' | 'entree';
+type DirectionCardinale = 'nord' | 'sud' | 'est' | 'ouest' | 'entree';
 
 export interface Facade {
   id: string;
@@ -135,7 +135,7 @@ export interface Facade {
 }
 
 // ===== LIVRAISONS =====
-export type DeliveryStatus = 'pending' | 'in_transit' | 'delivered' | 'failed' | 'returned';
+type DeliveryStatus = 'pending' | 'in_transit' | 'delivered' | 'failed' | 'returned';
 
 export interface Delivery {
   id: string;
@@ -156,7 +156,7 @@ export interface Delivery {
 }
 
 // ===== VALIDATIONS =====
-export type ValidationType =
+type ValidationType =
   | 'confirm_location'
   | 'correct_polygon'
   | 'add_landmark'
@@ -164,7 +164,7 @@ export type ValidationType =
   | 'livreur_validation'
   | 'modification_request';
 
-export type ValidationStatus = 'pending' | 'approved' | 'rejected';
+type ValidationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Validation {
   id: string;
@@ -180,13 +180,6 @@ export interface Validation {
 }
 
 // ===== COULEURS PAR STATUT =====
-export const STATUS_COLORS: Record<BuildingStatus, { fill: string; stroke: string; label: string }> = {
-  non_reclame: { fill: '#F59E0B', stroke: '#D97706', label: 'Non réclamé' },
-  en_attente:  { fill: '#3B82F6', stroke: '#2563EB', label: 'En attente' },
-  actif:       { fill: '#00FFB2', stroke: '#00CC8E', label: 'Actif' },
-  conteste:    { fill: '#EF4444', stroke: '#DC2626', label: 'Contesté' },
-  inactif:     { fill: '#6B7280', stroke: '#4B5563', label: 'Inactif' },
-};
 
 // ===== VUES DE L'ADMIN =====
 export type View = 'carte' | 'validations' | 'batiments' | 'zones' | 'dashboard';
@@ -215,16 +208,6 @@ export interface EntrancePickerConfig {
   onCancel?: () => void;
 }
 
-// ===== PAYLOAD ADMIN =====
-export interface AdminActionPayload {
-  buildingId: string;
-  action: 'approve' | 'reject' | 'modify' | 'merge' | 'archive';
-  comment?: string;
-  updatedGeom?: GeoJSON.Polygon;
-  newType?: BuildingType;
-  mergeTargetId?: string;
-}
-
 // ===== STRUCTURE HIÉRARCHIQUE CARTOGRAPHIQUE (GUINÉE) =====
 
 export interface Region {
@@ -235,21 +218,6 @@ export interface Region {
   chef_lieu?: string | null;
   superficie_km2?: number | null;
   population?: number | null;
-  geom?: GeoJSON.Geometry | null;
-  geom_em?: GeoJSON.Geometry | null;
-  centroid?: GeoJSON.Point | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Prefecture {
-  id: string;
-  region_id: string;
-  code: string;
-  pcode?: string | null;
-  nom: string;
-  chef_lieu?: string | null;
-  superficie_km2?: number | null;
   geom?: GeoJSON.Geometry | null;
   geom_em?: GeoJSON.Geometry | null;
   centroid?: GeoJSON.Point | null;
@@ -270,40 +238,6 @@ export interface Commune {
   centroid?: GeoJSON.Point | null;
   created_at: string;
   updated_at: string;
-}
-
-export interface AdminPays {
-  id: string;
-  code: string;
-  nom: string;
-  iso2?: string | null;
-  iso3?: string | null;
-  superficie_km2?: number | null;
-  geom?: GeoJSON.Geometry | null;
-  centroid?: GeoJSON.Point | null;
-}
-
-export interface PopulatedPlace {
-  id: string;
-  nom: string;
-  pcode?: string | null;
-  classe_titre?: string | null;
-  classe_numero?: number | null;
-  adm1_name?: string | null;
-  adm2_name?: string | null;
-  adm3_name?: string | null;
-  geom: GeoJSON.Point;
-}
-
-export interface AdminCapital {
-  id: string;
-  nom: string;
-  pcode?: string | null;
-  adm_p_lvl?: number | null;
-  adm1_name?: string | null;
-  adm2_name?: string | null;
-  adm3_name?: string | null;
-  geom: GeoJSON.Point;
 }
 
 export interface Quartier {
@@ -435,17 +369,6 @@ export interface TerritorySearchResult {
   totalBatiments3D?: number;
   centroid?: GeoJSON.Point | null;
   geom?: GeoJSON.Geometry | null;
-}
-
-export interface InteractiveMapFilterState {
-  isActive: boolean;
-  activeLevel: AdminLevel | 'none';
-  selectedRegionId: string | null;
-  selectedPrefectureId: string | null;
-  selectedCommuneId: string | null;
-  selectedQuartierId: string | null;
-  expandedNodeIds: string[];
-  searchQuery: string;
 }
 
 // ===== SYSTÈME D'ADRESSAGE ADMINISTRATIF & HYBRIDE =====

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useDirectBuildingForm } from '../../components/registration/DirectBuildingForm';
-import { generateFloorDoors } from '../../components/registration/FloorDoorsSelector';
+import { useDirectBuildingForm } from '../../registration/useDirectBuildingForm';
+import { generateFloorDoors } from '../../registration/floorDoors';
 import type { Building, BuildingType, EntrancePickerConfig, PhysicalPosition } from '../../types';
 import { actorId } from '../../lib/actor';
 import { AssistantFrame, type AssistantStage } from './AssistantFrame';

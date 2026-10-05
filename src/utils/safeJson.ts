@@ -38,7 +38,7 @@ export function normalizeBuildingType(rawType: any): BuildingType {
 /**
  * Crée un polygone carré valide de taille donnée en mètres autour d'un point (lng, lat)
  */
-export function createDefaultBuildingPolygon(lng: number, lat: number, sizeMeters: number = 12): GeoJSON.Polygon {
+function createDefaultBuildingPolygon(lng: number, lat: number, sizeMeters: number = 12): GeoJSON.Polygon {
   const safeLat = typeof lat === 'number' && !isNaN(lat) ? lat : 9.58875;
   const safeLng = typeof lng === 'number' && !isNaN(lng) ? lng : -13.62125;
   const radLat = (safeLat * Math.PI) / 180;
