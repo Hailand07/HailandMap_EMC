@@ -50,6 +50,7 @@ import { DEFAULT_MAPBOX_TOKEN, CUSTOM_STYLE_URL,  } from './map/constants';
 import { applyHiddenBuildingsFilter, enforceBuildingsAboveCourtyardsOrder, syncCourtyardsLayer, syncEntryPointsLayer, syncCustom3DBuildingsLayer, syncFixedGpsCentroidsLayer } from './map/layers';
 import type { LayerEnv } from './map/layers';
 import { useRegistry } from './hooks/useRegistry';
+import { loadAdminCodes, saveUnits } from './lib/attachment';
 import { SettingsModal } from './shell/SettingsModal';
 import { handleMapLoad, handleMapClick, handleMapMouseMove } from './map/handlers';
 
@@ -78,7 +79,7 @@ export default function App() {
     }
   }, [mapNotification]);
 
-  const { buildings, setBuildings, zones, setZones, validations, profiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit } = useRegistry(setMapNotification);
+  const { buildings, setBuildings, zones, setZones, validations, profiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit, declarations, occupancy, attachmentError, syncAttachments, handleLinkDeclaration } = useRegistry(setMapNotification);
   const [assistantStarted, setAssistantStarted] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -97,6 +98,21 @@ export default function App() {
       console.log("Bâtiment sélectionné :", selectedBuilding.id, selectedBuilding.hailand_code || selectedBuilding.landmark_note);
     }
   }, [selectedBuilding]);
+
+  // Ouvre l'Atelier centré sur un point (déclaration d'un résident) : vue satellite proche, sans sélection.
+  const handleOpenPointOnMap = (lng: number, lat: number) => {
+    setSelectedBuilding(null);
+    setActiveAdminView('carte');
+    setTimeout(() => {
+      try {
+        mapRef.current?.flyTo({ center: [lng, lat], zoom: 19, pitch: 0, bearing: 0, duration: 1250, essential: true });
+        markerRef.current?.remove();
+        markerRef.current = new mapboxgl.Marker({ color: '#f5b83d' }).setLngLat([lng, lat]).addTo(mapRef.current!);
+      } catch (e) {
+        console.warn('Centrage impossible :', e);
+      }
+    }, 350);
+  };
 
   const handleSelectBuildingFromAdmin = (b: Building) => {
     setSelectedBuilding(b);
@@ -1904,12 +1920,22 @@ export default function App() {
 
         // Insertion séquentielle du bâtiment
         const res = await insertBuildingInSupabase(newBuilding);
-        if (res.success && !res.localOnly) {
-        } else {
+        const units = (newBuilding as any).units;
+        if (res.success && !res.localOnly && Array.isArray(units) && units.length) {
+          try {
+            await saveUnits(newBuilding.id, units);
+          } catch (e: any) {
+            setMapNotification({ type: 'warning', title: 'Unités non enregistrées', message: `${newBuilding.hailand_code || newBuilding.id} : ${e?.message || e}` });
+          }
         }
       } catch (err: any) {
       }
     }
+    // Le serveur a attribué les codes publics et rattaché les personnes déjà déclarées dans ces bâtiments.
+    syncAttachments();
+    loadAdminCodes(listToInsert.map((b) => b.id))
+      .then((codes) => setBuildings((prev) => prev.map((b) => (b.id in codes ? { ...b, admin_code: codes[b.id] } : b))))
+      .catch(() => {});
 
     // =========================================================================
     // ÉTAPE 3 : EXTRUSION 3D VOLUMÉTRIQUE + MUR D'ENCEINTE DE CONCESSION (SUBMIT)
@@ -2576,7 +2602,7 @@ export default function App() {
           />
         )}
         {activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
-          <BuildingCard map={mapRef.current} building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
+          <BuildingCard map={mapRef.current} building={selectedBuilding} residents={occupancy[selectedBuilding.id]?.residents ?? 0} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
         )}
 
         {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
@@ -2826,6 +2852,10 @@ export default function App() {
                   onApprove={handleApproveBuilding}
                   onReject={handleRejectBuilding}
                   onRequestVisit={handleRequestVisit}
+                  declarations={declarations}
+                  declarationsError={attachmentError}
+                  onOpenPoint={handleOpenPointOnMap}
+                  onLinkDeclaration={handleLinkDeclaration}
                 />
             </motion.div>
           )}

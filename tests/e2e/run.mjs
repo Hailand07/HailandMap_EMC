@@ -24,6 +24,15 @@ const FIXTURE = {
   courtyard_geom: null, centroid: { type: 'Point', coordinates: [-13.6775, 9.53075] }, created_at: '2026-09-16T00:00:00Z',
 };
 
+const DECLARATION = {
+  id: 'd0000000-0000-4000-8000-000000000001', user_id: 'u1', detected_level: 2, hailand_code: 'GN-CKY-01-03-008-0042',
+  gps_point: { type: 'Point', coordinates: [-13.6436, 9.5498] }, anchor_point: { type: 'Point', coordinates: [-13.6436, 9.5498] },
+  osm_polygon_geom: null, commune_id: 'com-matam', quartier_id: 'qtr-osm-5567222', admin_source: 'quartier',
+  declared_label: 'Chez Mariama', declared_building_type: 'R', declared_floor_count: 1, declared_units_per_floor: 2,
+  declared_landmark: 'Derrière la mosquée', declared_note: null, location_floor: null, location_door: null,
+  certification_requested_at: '2026-10-05T10:00:00Z', certified_building_id: null, unit_id: null, link_method: null, linked_at: null,
+  created_at: '2026-10-05T09:00:00Z',
+};
 const results = [];
 const check = (name, ok, detail = '') => {
   results.push({ name, ok, detail });
@@ -56,7 +65,7 @@ async function startServer() {
 }
 
 /** Simule Supabase : authentification par code, table des agents, lecture du registre. */
-async function mockSupabase(page, { agent = 'admin', registry = 'ok', writes = [] } = {}) {
+async function mockSupabase(page, { agent = 'admin', registry = 'ok', writes = [], declarations = [] } = {}) {
   await page.route('**/auth/v1/settings', (r) => r.fulfill({ json: { external: { email: true, phone: true } } }));
   await page.route('**/auth/v1/otp', (r) => r.fulfill({ json: {} }));
   await page.route('**/auth/v1/verify', (r) =>
@@ -77,6 +86,7 @@ async function mockSupabase(page, { agent = 'admin', registry = 'ok', writes = [
     if (table === 'agents') return r.fallback();
     if (registry === 'down' && table === 'buildings') return r.abort();
     if (table === 'buildings' && registry === 'one') return r.fulfill({ json: [FIXTURE] });
+    if (table === 'declarations') return r.fulfill({ json: declarations });
     return r.fulfill({ json: [] });
   });
 }
@@ -139,6 +149,24 @@ async function main() {
       await page.context().close();
     }
 
+    // 2 bis. Revue → Demandes : une déclaration de résident (indice de niveau 2, vérification demandée)
+    {
+      const errors = [];
+      const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+      page.on('pageerror', (e) => errors.push(e.message));
+      await mockSupabase(page, { agent: 'admin', declarations: [DECLARATION] });
+      await login(page);
+      await page.getByRole('button', { name: 'Revue', exact: true }).first().waitFor({ timeout: 25000 });
+      await page.getByRole('button', { name: 'Revue', exact: true }).first().click();
+      check('Revue : onglet « Demandes » avec la déclaration', await page.getByRole('button', { name: 'Demandes · 1' }).isVisible({ timeout: 8000 }).catch(() => false));
+      check('la déclaration est un indice non officiel (niveau 2)', await page.getByText('INDICE · POLYGONE OSM (NIVEAU 2)').isVisible().catch(() => false));
+      check('« vérification demandée » est signalée', await page.getByText(/VÉRIFICATION DEMANDÉE/).first().isVisible().catch(() => false));
+      check('aucun bâtiment certifié proche : « le bâtiment reste à créer »', await page.getByText('Aucun : le bâtiment reste à créer.').isVisible().catch(() => false));
+      check('aucune erreur de page (Demandes)', errors.length === 0, errors.join(' | ').slice(0, 300));
+      if (process.env.E2E_SHOTS) await page.screenshot({ path: `${process.env.E2E_SHOTS}/revue-demandes.png` });
+      await page.context().close();
+    }
+
     // 3. Base injoignable : bandeau et « Réessayer »
     {
       const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
@@ -191,6 +219,8 @@ async function main() {
           check('la fiche est signée par l’agent connecté', row.submitted_by === AGENT_ID, String(row.submitted_by));
           check('statut « actif » et certifié par l’agent', row.status === 'actif' && row.is_validated === true);
         }
+        const rpc = writes.find((w) => w.table === 'rpc');
+        check('les unités du bâtiment sont enregistrées après la fiche', Boolean(rpc) && /p_units/.test(rpc.body), rpc ? rpc.body.slice(0, 120) : 'aucun appel');
       }
       check('aucune erreur de page pendant la création', errors.length === 0, errors.join(' | ').slice(0, 300));
       await page.context().close();

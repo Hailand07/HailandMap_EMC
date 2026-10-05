@@ -9,6 +9,7 @@ import {
   updateBuildingInSupabase,
 } from '../lib/supabase';
 import { actorId } from '../lib/actor';
+import { linkDeclaration, loadDeclarations, loadOccupancy, type Declaration, type Occupancy } from '../lib/attachment';
 
 export type Notify = (n: { type: 'success' | 'info' | 'warning'; title: string; message: string }) => void;
 
@@ -21,6 +22,21 @@ export function useRegistry(notify: Notify) {
   const [zones, setZones] = useState<Zone[]>([]);
   const [validations, setValidations] = useState<Validation[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  // Rattachements (§16) : déclarations des résidents (lecture réservée aux agents) et nombre de personnes par bâtiment.
+  const [declarations, setDeclarations] = useState<Declaration[]>([]);
+  const [occupancy, setOccupancy] = useState<Record<string, Occupancy>>({});
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+
+  const syncAttachments = useCallback(async () => {
+    try {
+      const [d, o] = await Promise.all([loadDeclarations(), loadOccupancy()]);
+      setDeclarations(d);
+      setOccupancy(o);
+      setAttachmentError(null);
+    } catch (err: any) {
+      setAttachmentError(err?.message || 'Déclarations illisibles.');
+    }
+  }, []);
 
   // Chargement du registre depuis Supabase. En cas d'échec, l'agent le voit et peut réessayer (aucune donnée de démonstration).
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -60,7 +76,19 @@ export function useRegistry(notify: Notify) {
   }, []);
   useEffect(() => {
     syncData();
-  }, [syncData]);
+    syncAttachments();
+  }, [syncData, syncAttachments]);
+
+  /** Rattache (ou détache, `buildingId = null`) une déclaration à un bâtiment certifié ; la base refuse tout bâtiment non certifié. */
+  const handleLinkDeclaration = async (declarationId: string, buildingId: string | null, unitId: string | null = null) => {
+    try {
+      await linkDeclaration(declarationId, buildingId, unitId);
+      await syncAttachments();
+      notify({ type: 'success', title: buildingId ? 'Rattachement officiel' : 'Rattachement retiré', message: buildingId ? 'La personne est rattachée au bâtiment certifié.' : 'La déclaration redevient un simple indice.' });
+    } catch (err: any) {
+      notify({ type: 'warning', title: 'Rattachement impossible', message: err?.message || 'La base n\u2019a pas répondu : rien n\u2019a été modifié.' });
+    }
+  };
 
   const handleApproveBuilding = async (building: Building, newCode: string) => {
     try {
@@ -104,6 +132,8 @@ export function useRegistry(notify: Notify) {
       } : b));
       
       setValidations(prev => [newV, ...prev]);
+      // Le serveur vient d'attribuer le code public et de rattacher les personnes déjà déclarées dans ce bâtiment.
+      await Promise.all([syncData(), syncAttachments()]);
       
     } catch (err: any) {
       notify({ type: 'warning', title: 'Action impossible', message: err?.message || 'La base n\u2019a pas répondu : rien n\u2019a été modifié.' });
@@ -166,5 +196,5 @@ export function useRegistry(notify: Notify) {
   };
 
 
-  return { buildings, setBuildings, zones, setZones, validations, setValidations, profiles, setProfiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit };
+  return { buildings, setBuildings, zones, setZones, validations, setValidations, profiles, setProfiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit, declarations, occupancy, attachmentError, syncAttachments, handleLinkDeclaration };
 }

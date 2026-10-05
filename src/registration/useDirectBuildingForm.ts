@@ -1,3 +1,4 @@
+import { buildUnits } from './units';
 import type { RegistrationStage } from '../shell/registrationStage';
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -388,6 +389,8 @@ export function useDirectBuildingForm({
       updated_at: new Date().toISOString()
     });
 
+    // Unités du bâtiment (maison familiale = une seule unité) : enregistrées après le bâtiment (building_units).
+    (newBuilding as any).units = buildUnits({ levels: availableFloorsList, isSubdivided, unitsPerFloor, buildingType });
     onSubmit(newBuilding);
   };
 

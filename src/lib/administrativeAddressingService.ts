@@ -519,3 +519,10 @@ export async function backfillAdministrativeAddresses(
   console.log(`[BackfillAdministrativeAddresses] Terminé ! ${updatedCount} bâtiment(s) mis à jour dans Supabase.`);
   return { updatedCount, enrichedBuildings };
 }
+
+/** Noms lisibles d'un quartier et d'une commune à partir de leurs identifiants en base (ex. « qtr-osm-5567222 »). */
+export function adminNamesById(quartierId?: string | null, communeId?: string | null): { quartier: string | null; commune: string | null } {
+  const q = quartierId ? (GUINEA_OFFLINE_DATA.qtrs || []).find((x: any) => x.id === quartierId) : null;
+  const c = communeId ? (GUINEA_OFFLINE_DATA.comms || []).find((x: any) => x.id === communeId) : null;
+  return { quartier: (q as any)?.nom ?? null, commune: (c as any)?.nom ?? null };
+}
