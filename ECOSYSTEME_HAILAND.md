@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 37** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 38** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -437,8 +437,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-05 (révision 37).**
+**Dernière mise à jour de cette section : 2026-10-05 (révision 38).**
 
+- **Décidé (2026-10-05)** : les 4 décisions du §16.6 sont tranchées (code public administratif, règle des niveaux et du rattachement officiel, HailandX séparé, paiement à la livraison + Orange Money). **Prochaine étape : étape 1 du §16.5** (rattachement dans HailandMap), qui demandera des changements en base (table des unités, colonne géométrique, fonctions de rattachement).
 - **Décidé / proposé (2026-10-05)** : modèle de rattachement des personnes aux bâtiments (bâtiment / unité / rattachement, bâtiments « sur écoute »), certification officielle (adresse ≠ propriété) et HailandX — **§16**. Trou principal relevé : les déclarations de NavigationX n'arrivent jamais dans HailandMap. **Prochaine étape : le fondateur tranche les 4 décisions du §16.6, puis étape 1 du §16.5.**
 - **Fait (2026-10-05, partie 2 APPLIQUÉE)** : fermeture de l'écriture publique, lecture de `declarations` par les agents, téléphones de `profiles` restreints, alertes Supabase traitées (voir §4.4 et `migrations/2026-10-05_partie2_securite.sql`). Vérifié sous les rôles `anon`/`authenticated` (écritures refusées, lecture publique intacte) et en agent (écriture OK) ; une fiche créée depuis la nouvelle appli à 06:00 est bien signée par l'agent. **Conséquence NavigationX** : la création d'un profil `user-…` en base est désormais refusée (profil gardé sur l'appareil) et le sélecteur de profils de démonstration n'affiche que l'invité. **Prochaine étape = partie 3** (codes attribués par le serveur, `quartier_id`/`commune_id` enregistrés, brouillon « Reprendre », journal d'audit, certification des déclarations par fonction dédiée) puis partie 4 (273 937 bâtiments OSM).
 - **Fait (2026-10-05, préparation partie 2, lecture seule)** : export de sécurité des 11 tables métier (hors référentiels territoriaux) + script de retour arrière des règles ; plan en 3 étapes A (alertes sans effet sur les apps) / B (fermeture de l'écriture publique, corrigée pour l'upsert de `zones`/`validations`) / C (lecture de `declarations` par les agents) + D optionnelle (téléphones de `profiles` lisibles par tous) — voir `HailandMap_EMC/migrations/proposed/PLAN_PARTIE2.md`. **Rien appliqué : attend l'accord explicite du fondateur, étape par étape.** Constat : NavigationX crée ses profils avec un identifiant `user-…` ≠ compte ; ils seront refusés après l'étape B (profil gardé sur l'appareil).
@@ -560,7 +561,7 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 - Deux façons de créer un bâtiment, même objet à la fin : **sur demande** (une déclaration demande le niveau 3 → file « Demandes » dans la Revue de HailandMap) ; **d'avance** (relevé sans personne).
 - **Bâtiment « sur écoute »** : (a) à chaque nouvelle déclaration, le serveur cherche un bâtiment certifié qui contient le point GPS (ou recouvre le polygone OSM) et pose le rattachement automatiquement ; (b) à chaque bâtiment créé ou modifié dans HailandMap, le serveur rattache les déclarations déjà présentes dedans (effet rétroactif). Cour sans bâtiment précis → rattachement à la concession, la personne choisit son bâtiment ensuite.
 - Le statut du bâtiment ne parle plus de réclamation : cycle de vie (`brouillon`, `actif`, `inactif`, `conteste`) + **nombre de personnes rattachées** calculé. `claimed_by` et `non_reclame` deviennent obsolètes.
-- Le niveau d'une adresse : 3 dès que la déclaration est rattachée à un bâtiment certifié ; l'étage/la porte restent « déclarés » jusqu'à confirmation (agent, ou livraison réussie : `deliveries.is_validation_delivery`).
+- **Niveaux et rattachement (règle du fondateur, 2026-10-05)** ✅ décidé : le niveau est celui du **bâtiment trouvé**, pas de la personne. **Niveau 3** = bâtiment certifié par Hailand (il existe bien, à cet endroit, avec ce type et cette structure) → le rattachement est **officiel** et la personne choisit son emplacement (étage/porte) dans la liste des unités connues. **Niveau 2** = le GPS tombe dans un polygone OSM non vérifié → on sait seulement que la personne est **dans ce bâtiment**, sans emplacement exigé ; rattachement **non officiel**, simple indice pour les agents, **non compté**. **Niveau 1** = aucun bâtiment, simple point. Quand un bâtiment de niveau 2 est certifié, les personnes qui s'y étaient déclarées sont invitées à choisir leur emplacement et leur rattachement devient officiel. Le nombre de personnes d'un bâtiment = rattachements officiels seulement (les indices de niveau 2 sont affichés à part). Codes stables : à la certification, le bâtiment reprend le code déjà attribué aux déclarations de niveau 2 de ce polygone (personne ne change de code).
 - Prérequis technique : une colonne géométrique PostGIS (avec index) sur `buildings` (aujourd'hui `geom` est du JSON).
 
 ### 16.3 Certification officielle (propriété) 📄 — ce qui est possible
@@ -571,22 +572,22 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 ### 16.4 HailandX (« Shopify guinéen » fondé sur l'adresse) 📄💡
 - Parcours vendeur : compte → lieu enregistré (code Hailand) → « Ouvrir ma boutique » → vitrine publique avec **lien partageable** (WhatsApp, Facebook, TikTok) → produits (photos, description, prix, stock) → commandes → paiement → livraison → tableau de bord.
 - Force : l'acheteur a aussi un code Hailand → livraison jusqu'à la porte ; le vendeur n'a plus à expliquer où il est.
-- Premier lancement conseillé : **paiement à la livraison** d'abord, mobile money (Orange Money, MTN MoMo) ensuite ⚠️ conditions d'agrément à vérifier si Hailand encaisse pour le compte des vendeurs ; livraison par le vendeur ou un livreur partenaire.
+- Lancement : **paiement à la livraison et Orange Money** (décision du fondateur), automatisation et fidélisation dès le départ ; MTN MoMo plus tard ⚠️ agrément à vérifier si Hailand encaisse pour le compte des vendeurs ; livraison par le vendeur ou un livreur partenaire.
 - Revenus : abonnement boutique (10 000 GNF/mois évoqué, avec une offre gratuite pour démarrer) + marge sur les livraisons.
 - Nouvelles tables (noms provisoires) : `shops`, `products`, `orders`, `order_items`, `payments` ; `deliveries` existe.
 
 ### 16.5 Ordre proposé 💡
 1. **Rattachement dans HailandMap** (file « Demandes », unités, rattachement par l'agent, rattachement automatique « sur écoute », nombre de personnes, code unique attribué par le serveur) — corrige le trou principal ; inclut la partie 3 déjà prévue.
-2. **NavigationX** : afficher le passage au niveau 3 et faire choisir l'unité.
+2. **NavigationX** : afficher le niveau du bâtiment trouvé ; dans un bâtiment de niveau 3, faire choisir l'emplacement (rattachement officiel) ; prévenir quand un bâtiment de niveau 2 vient d'être certifié.
 3. **HailandX, version minimale** (vitrine + lien + commandes + paiement à la livraison).
 4. **Attestation d'adresse** (PDF + QR + page de vérification).
 5. **En parallèle, hors code (fondateur)** : juriste, commune, ministère pour la certification officielle.
 
-### 16.6 Décisions à prendre par le fondateur
-1. **Code public unique** : le code administratif (`GN-CKY-…`, recommandé) ou le code de grille (`GN-Z…`) ? L'autre resterait interne.
-2. Le rattachement automatique par GPS donne-t-il **immédiatement le niveau 3** (recommandé, avec « porte déclarée ») ou faut-il une confirmation ?
-3. HailandX : **application séparée** (recommandé : vitrines rapides et partageables) ou intégrée à NavigationX ?
-4. Paiement du lancement : **à la livraison seulement** (recommandé) ou mobile money dès le départ ?
+### 16.6 Décisions du fondateur ✅ (2026-10-05)
+1. **Code public = code administratif** (`GN-CKY-01-05-034-0002`) : la capitale est déjà structurée et délimitée administrativement. Le **code de grille** (`GN-Z…`) reste **interne** (HailandMap, logistique).
+2. **Niveaux** : règle ci-dessus (§16.2) — le rattachement par GPS à un bâtiment non certifié est de **niveau 2, non officiel** ; il devient officiel seulement dans un bâtiment de **niveau 3**, avec choix de l'emplacement.
+3. **HailandX = application séparée** (vitrines rapides et partageables).
+4. **Paiement au lancement : à la livraison ET Orange Money**, avec automatisation et fidélisation dès le début (confirmations automatiques, suivi de commande, rappels, clients récurrents). ⚠️ À vérifier : compte marchand et accès API Orange Money auprès d'Orange Guinée, conditions si Hailand encaisse pour le compte des vendeurs.
 
 ---
 
@@ -620,3 +621,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-04 | Révision 26 : vision « Guinée numérique » (§15) — visibilité publique des domiciles/lieux, foyer, voisinage numérique, fil Découvrir, urgences, commerce/HailandX, livraison/API, plan en 8 étapes ; décisions §9 n°13–15 tranchées, n°16–18 ouvertes ; rien codé ni créé en base — impacte : NavigationX / HailandMap (vérification des institutions) / HailandX. |
 | 2026-10-04 | Révision 27 : refonte HailandMap « Atelier v2 » — maquettes validées par le fondateur, plan de reconstruction en 8 phases (`HAILANDMAP.md` §9 ter) ; rien codé — impacte : HailandMap. |
 | 2026-10-05 | Révision 37 : §16 (rattachement des personnes aux bâtiments, certification officielle, HailandX) — plan proposé, rien codé. |
+| 2026-10-05 | Révision 38 : décisions du fondateur sur le §16 (code public administratif, niveau = celui du bâtiment, rattachement officiel seulement en niveau 3, HailandX séparé, paiement à la livraison + Orange Money). |
