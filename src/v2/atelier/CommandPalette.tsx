@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Building } from '../../types';
 
-export interface PaletteCommand {
+interface PaletteCommand {
   id: string;
   label: string;
   hint?: string;

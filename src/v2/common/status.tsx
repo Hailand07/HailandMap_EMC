@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Building } from '../../types';
 
-export const STATUS: Record<string, { label: string; text: string; dot: string }> = {
+const STATUS: Record<string, { label: string; text: string; dot: string }> = {
   actif: { label: 'Actif', text: 'text-hx-ok', dot: 'bg-hx-ok' },
   en_attente: { label: 'En attente', text: 'text-hx-warn', dot: 'bg-hx-warn' },
   conteste: { label: 'Contesté', text: 'text-hx-bad', dot: 'bg-hx-bad' },
@@ -24,9 +24,3 @@ export const levelsOf = (b: Building) => (b.floor_count === 0 ? 'RDC' : `R+${b.f
 export const typeLabel: Record<string, string> = { R: 'Résidentiel', C: 'Commercial', M: 'Mixte', A: 'Administratif', H: 'Hébergement', P: 'Public', T: 'Temporaire' };
 export const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
-export const ViewHeader: React.FC<{ title: string; right?: React.ReactNode }> = ({ title, right }) => (
-  <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-hx-line px-[18px] py-3">
-    <h1 className="m-0 text-[15px] font-semibold text-hx-text">{title}</h1>
-    {right}
-  </div>
-);

@@ -1,9 +1,7 @@
 import React from 'react';
 import type { Building, EntrancePickerConfig } from '../types';
-import RegistrationEngineV3 from './registration/RegistrationEngineV3';
 import type { RegistrationStage } from '../shell/registrationStage';
 import { AssistantEngine } from '../v2/assistant/AssistantEngine';
-import { getUiVersion } from '../shell/uiVersion';
 
 export interface InteractiveBuildingFormProps {
   clickedCoords: {
@@ -50,27 +48,7 @@ export interface InteractiveBuildingFormProps {
   onStageChange?: (stage: RegistrationStage) => void;
 }
 
-/**
- * MOTEUR D'ENREGISTREMENT HAILANDMAP ADMIN v3.0
- * 
- * Saisie séquentielle à une seule question par écran (Machine d'état).
- * L'utilisateur ne saisit jamais de code manuellement : le HailandCode est calculé dynamiquement.
- * 
- * 🛑 ÉTAPE 0 — CHOIX INITIAL DE LA STRUCTURE :
- *   - [ Option A : COUR / CONCESSION ]
- *   - [ Option B : BÂTIMENT DIRECT ]
- * 
- * 🔷 PARCOURS A : COUR / CONCESSION
- *   - Tracé Cour Mère (PostGIS CRxxx)
- *   - Tracé & Inventaire Bâtiments Enfants (🔴 Non configuré ➔ 🟢 Configuré)
- *   - Saisie séquentielle individuelle (Nature, Relation occupation, Niveaux, Subdivision Unités, Repères)
- * 
- * 🟧 PARCOURS B : BÂTIMENT DIRECT
- *   - Tracé Bâtiment Autonome (PostGIS Chrono M007/R001...)
- *   - Saisie séquentielle (Nature, Niveaux, Subdivision Unités, Repères)
- */
+/** Formulaire d'enregistrement : l'assistant en 5 étapes (v2). La logique de codes et d'enregistrement est dans `src/registration/`. */
 export default function InteractiveBuildingForm(props: InteractiveBuildingFormProps) {
-  // Atelier v2 : assistant en 5 étapes (maquettes) ; v1 : parcours d'origine. Même logique de codes et d'enregistrement.
-  if (getUiVersion() === 'v2') return <AssistantEngine {...(props as any)} />;
-  return <RegistrationEngineV3 {...props} />;
+  return <AssistantEngine {...(props as any)} />;
 }

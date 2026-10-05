@@ -9,58 +9,33 @@ import {
   Navigation, 
   Search, 
   Compass, 
-  Layers, 
   Check, 
-  Code, 
   Clock, 
   X, 
   ChevronRight, 
-  Plus, 
-  CheckCircle, 
   Truck, 
   Map as MapIcon, 
   RefreshCw,
   Info,
   Sparkles,
-  Undo2,
-  ChevronUp,
-  ChevronDown,
-  AlertTriangle,
-  Menu,
   ChevronLeft,
   Play,
   Pause,
   RotateCcw,
   Camera,
-  Eye,
   EyeOff,
   Gauge,
-  Building2,
-  Home,
-  LayoutDashboard,
   Settings,
-  Wrench,
-  Grid,
-  Crosshair,
   Loader2,
-  Locate,
   LocateFixed,
-  PenTool
+  
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { actorId } from './lib/actor';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import ValidationsView from './components/ValidationsView';
-import BuildingsView from './components/BuildingsView';
-import ZonesView from './components/ZonesView';
-import BuildingPanel from './components/BuildingPanel';
 import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
-import { Building3DModal } from './components/Building3DModal';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
-import { Tracing3DHUD } from './components/Tracing3DHUD';
-import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, BuildingStatus, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
+import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
 import {
   MOCK_BUILDINGS,
   MOCK_ZONES,
@@ -72,18 +47,15 @@ import {
   loadRealProfiles,
   updateBuildingInSupabase,
   insertBuildingInSupabase,
-  saveCourtyardWithBuildings,
   saveValidationInSupabase,
   saveZoneInSupabase,
   generateHailandCode,
-  getCommuneAbbr,
   verifyAndReassignBuildings,
 } from './lib/supabase';
 import { computeDualAddressing } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
 import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, RegistrationSlot, TOOLS, type AtelierTool } from './shell/AtelierShell';
-import { getUiVersion, setUiVersion } from './shell/uiVersion';
 import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
 import { CandidateCard, BuildingCard } from './v2/atelier/FloatingCards';
 import { MapStyleControl, SatelliteOptions, ZoomCluster, PanelHandle } from './shell/MapControls';
@@ -96,7 +68,6 @@ import { TerritoireView } from './v2/views/TerritoireView';
 import InteractiveTerritoryTree, { type SelectedTerritoryPayload } from './components/InteractiveTerritoryTree';
 import {
   setupInteractiveTerritoryLayers,
-  applyTerritoryHighlight,
   applyTerritoriesHighlight,
   zoomToTerritory,
   zoomToTerritories,
@@ -110,10 +81,6 @@ const DEFAULT_MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN 
 const CUSTOM_STYLE_URL = 'mapbox://styles/hailand/cmqbiiccq000b01qr7ckjeut1';
 
 // Point par défaut à Conakry pour la simulation de départ
-const DEFAULT_SIMULATED_GPS = {
-  latitude: 9.5180, // Proche Kaloum
-  longitude: -13.7050
-};
 
 // Palette volumétrique 3D par type d'usage de bâtiment (Étape 3)
 const BUILDING_TYPE_3D_COLORS: Record<string, string> = {
@@ -393,20 +360,6 @@ const generate200mGridGeoJSON = (bounds?: { minLng: number; maxLng: number; minL
 /**
  * Génère un UUID v4 standard pour garantir la compatibilité de type UUID dans Supabase.
  */
-const generateUUID = (): string => {
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
-    try {
-      return window.crypto.randomUUID();
-    } catch (e) {
-      // fallback if any issue
-    }
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
 
 /**
  * Détecte de manière déterministe le carreau de 200m x 200m (l'ID unique de la ZONE)
@@ -523,79 +476,10 @@ function generateSquarePolygon(lng: number, lat: number, halfSideMeters: number 
  * Récupère dynamiquement tous les calques polygonaux de la carte actifs
  * pour s'assurer que chaque polygone (bâtiment, parcelle, etc.) soit cliquable / sélectionnable.
  */
-function getSelectableLayers(map: mapboxgl.Map): string[] {
-  try {
-    const existingLayers = map.getStyle()?.layers || [];
-    return existingLayers
-      .filter(l => l.type === 'fill' || l.type === 'fill-extrusion')
-      .map(l => l.id)
-      .filter(id => 
-        id !== 'selected-building-fill' &&
-        id !== 'selected-building-outline' &&
-        id !== 'selected-courtyard-outline' &&
-        id !== 'selected-courtyard-outline-casing' &&
-        id !== 'selected-building-3d' &&
-        id !== 'hovered-building-fill' &&
-        id !== 'hovered-building-outline' &&
-        id !== 'hovered-building-3d' &&
-        id !== 'draw-fill' &&
-        id !== 'draw-line' &&
-        id !== 'draw-line-casing' &&
-        id !== 'draw-points-shadow' &&
-        id !== 'draw-points' &&
-        id !== 'courtyard-children-fill' &&
-        id !== 'courtyard-children-outline' &&
-        id !== 'courtyard-active-child-fill' &&
-        id !== 'courtyard-active-child-outline'
-      );
-  } catch (err) {
-    return [];
-  }
-}
-
 /**
  * Simplification de polygone via l'algorithme classique de Douglas-Peucker
  * Réduit le bruit de crénelage de pixels pour donner un rendu géométrique propre (droites de toitures).
  */
-function simplifyPolygon(points: [number, number][], tolerance: number): [number, number][] {
-  if (points.length <= 4) return points;
-  
-  const getSqSegDist = (p: [number, number], p1: [number, number], p2: [number, number]) => {
-    let x = p1[0], y = p1[1], dx = p2[0] - x, dy = p2[1] - y;
-    if (dx !== 0 || dy !== 0) {
-      const t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
-      if (t > 1) {
-        x = p2[0]; y = p2[1];
-      } else if (t > 0) {
-        x += dx * t; y += dy * t;
-      }
-    }
-    dx = p[0] - x; dy = p[1] - y;
-    return dx * dx + dy * dy;
-  };
-
-  const simplifyDPStep = (pts: [number, number][], first: number, last: number, sqTolerance: number, simplified: [number, number][]) => {
-    let maxSqDist = sqTolerance, index = -1;
-    for (let i = first + 1; i < last; i++) {
-      const sqDist = getSqSegDist(pts[i], pts[first], pts[last]);
-      if (sqDist > maxSqDist) {
-        index = i;
-        maxSqDist = sqDist;
-      }
-    }
-    if (index !== -1) {
-      if (index - first > 1) simplifyDPStep(pts, first, index, sqTolerance, simplified);
-      simplified.push(pts[index]);
-      if (last - index > 1) simplifyDPStep(pts, index, last, sqTolerance, simplified);
-    }
-  };
-
-  const simplified: [number, number][] = [points[0]];
-  simplifyDPStep(points, 0, points.length - 1, tolerance * tolerance, simplified);
-  simplified.push(points[points.length - 1]);
-  return simplified;
-}
-
 export default function App() {
   const [assistantHost, setAssistantHost] = useState<HTMLDivElement | null>(null);
   const [assistantStarted, setAssistantStarted] = useState(false);
@@ -604,10 +488,8 @@ export default function App() {
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [activitySeen, setActivitySeen] = useState(0);
   const [cursorPos, setCursorPos] = useState<{ lng: number; lat: number } | null>(null);
-  const uiV2 = getUiVersion() === 'v2'; // Atelier v2 (refonte en cours) : coque et thème seulement pour l'instant
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
-  const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(true);
-  const [buildings, setBuildings] = useState<Building[]>(MOCK_BUILDINGS);
+    const [buildings, setBuildings] = useState<Building[]>(MOCK_BUILDINGS);
   const [zones, setZones] = useState<Zone[]>(MOCK_ZONES);
   const [validations, setValidations] = useState<Validation[]>(MOCK_VALIDATIONS);
   const [profiles, setProfiles] = useState<Profile[]>(MOCK_PROFILES);
@@ -615,8 +497,7 @@ export default function App() {
   const [selectedGridCell, setSelectedGridCell] = useState<any | null>(null);
   const [selectedGridBuildings, setSelectedGridBuildings] = useState<Building[]>([]);
   const [isGridPanelOpen, setIsGridPanelOpen] = useState(false);
-  const [isSatelliteOptionsCollapsed, setIsSatelliteOptionsCollapsed] = useState(true);
-
+  
   // Journalisation automatique du bâtiment sélectionné
   useEffect(() => {
     if (selectedBuilding) {
@@ -649,20 +530,7 @@ export default function App() {
     }
   };
 
-  const handleCreateZone = async (zone: Zone) => {
-    addApiLog('POST', `/api/zone`, zone, { status: 'Processing' });
-    try {
-      await saveZoneInSupabase(zone);
-      setZones(prev => [...prev, zone]);
-      addApiLog('POST_SUCCESS', `/api/zone`, null, {
-        zone_code: zone.zone_code,
-        message: 'Nouveau quadrillage de 200m géosynchronisé sur Supabase.'
-      });
-    } catch (err: any) {
-      addApiLog('POST_ERROR', `/api/zone`, null, { message: err.message || err });
-    }
-  };
-
+  
   const handleApproveBuilding = async (building: Building, newCode: string) => {
     addApiLog('POST', `/api/building/approve/${building.id}`, { newCode }, { status: 'Processing' });
     try {
@@ -860,38 +728,10 @@ export default function App() {
     }
   };
 
-  const handleModifyBuilding = async (building: Building, editForm: any) => {
-    addApiLog('PATCH', `/api/building/modify/${building.id}`, editForm, { status: 'Processing' });
-    try {
-      await updateBuildingInSupabase(building.id, editForm);
-      
-      setBuildings(prev => prev.map(b => b.id === building.id ? {
-        ...b,
-        ...editForm,
-        updated_at: new Date().toISOString()
-      } : b));
-      
-      addApiLog('PATCH_SUCCESS', `/api/building/modify/${building.id}`, null, {
-        updatedFields: Object.keys(editForm),
-        message: 'Changements enregistrés avec succès.'
-      });
-    } catch (err: any) {
-      addApiLog('PATCH_ERROR', `/api/building/modify/${building.id}`, null, { message: err.message || err });
-    }
-  };
-
+  
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   
-  const scrollSidebar = (direction: 'up' | 'down') => {
-    if (sidebarScrollRef.current) {
-      const scrollAmount = 240;
-      sidebarScrollRef.current.scrollBy({
-        top: direction === 'down' ? scrollAmount : -scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
-
+  
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -948,7 +788,7 @@ export default function App() {
   }, [buildings, custom3DBuildings]);
 
   const custom3DBuildingsRef = useRef<Custom3DBuilding[]>([]);
-  const [is3DDrawMode, setIs3DDrawMode] = useState(false);
+  const [is3DDrawMode] = useState(false);
   const is3DDrawModeRef = useRef<boolean>(false);
   const [drawPoints3D, setDrawPoints3D] = useState<[number, number][]>([]);
   const drawPoints3DRef = useRef<[number, number][]>([]);
@@ -956,7 +796,7 @@ export default function App() {
   const drawRafRef = useRef<number | null>(null);
   const renderDrawRubberbandPreviewRef = useRef<((lng?: number, lat?: number, point?: mapboxgl.Point) => void) | null>(null);
   const handleFinalizeCustomDrawRef = useRef<(() => void) | null>(null);
-  const [is3DConfigModalOpen, setIs3DConfigModalOpen] = useState<boolean>(false);
+  const [, setIs3DConfigModalOpen] = useState<boolean>(false);
   const [selected3DBuilding, setSelected3DBuilding] = useState<Custom3DBuilding | null>(null);
   const [currentPitch, setCurrentPitch] = useState<number>(45);
 
@@ -1268,8 +1108,7 @@ export default function App() {
     return localStorage.getItem('hailandmap_token') || DEFAULT_MAPBOX_TOKEN;
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(false);
-  
+    
   // Styles de carte disponibles
   const styles = [
     { id: 'custom', name: 'Original Perso (3D)', url: CUSTOM_STYLE_URL },
@@ -1278,8 +1117,7 @@ export default function App() {
   ];
   const [currentStyle, setCurrentStyle] = useState('custom');
   const hasAttemptedStyleFallbackRef = useRef(false);
-  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
-
+  
   // États de l'application
   const [zoomLevel, setZoomLevel] = useState(13.5);
   // Atelier v2 : panneau gauche (repliable, onglet piloté par le bouton Couches de la carte) et centre de la carte (pastille de progression)
@@ -1312,7 +1150,7 @@ export default function App() {
 
   // Position utilisateur (Réelle)
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [isLocating, setIsLocating] = useState(false);
+  const [isLocating] = useState(false);
   const [isRecentering, setIsRecentering] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -1337,18 +1175,17 @@ export default function App() {
     clickedCoordsRef.current = clickedCoords;
   }, [clickedCoords]);
 
-  const [newOccupantName, setNewOccupantName] = useState('');
-  const [newDeliveryNotes, setNewDeliveryNotes] = useState('');
-  const [newBuildingType, setNewBuildingType] = useState<BuildingType>('R');
-  const [newFloorLevel, setNewFloorLevel] = useState<string>('');
-  const [newUnitCode, setNewUnitCode] = useState<string>('');
+  const [, setNewOccupantName] = useState('');
+  const [, setNewDeliveryNotes] = useState('');
+  const [, setNewBuildingType] = useState<BuildingType>('R');
+  const [, setNewFloorLevel] = useState<string>('');
+  const [, setNewUnitCode] = useState<string>('');
 
   // Itinéraire
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
-  const [isNavMode, setIsNavMode] = useState(false);
-
+  
   // Système de suivi d'itinéraire professionnel réel (Live GPS ou Clics d'Émulation)
   const [isGpsTrackingActive, setIsGpsTrackingActive] = useState(false);
   const [trackingCameraMode, setTrackingCameraMode] = useState<'chase' | 'orbit' | 'overhead' | 'free'>('chase');
@@ -1363,7 +1200,7 @@ export default function App() {
   const [guidanceList, setGuidanceList] = useState<string[]>([]);
 
   // Logs API pour l'aspect de développeur expert Full-Stack
-  const [apiLogs, setApiLogs] = useState<{ timestamp: string; method: string; url: string; body?: any; response?: any }[]>([]);
+  const [, setApiLogs] = useState<{ timestamp: string; method: string; url: string; body?: any; response?: any }[]>([]);
 
   // Notifications algorithmiques de détourage ou de superposition
   const [mapNotification, setMapNotification] = useState<{
@@ -3201,28 +3038,7 @@ export default function App() {
     }
   }, [isSidebarOpen, activeAdminView]);
 
-  const handleFlyToAndHighlight3DBuilding = (b: Custom3DBuilding) => {
-    setHighlighted3DBuildingId(b.id);
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: b.centroid,
-        zoom: 18,
-        pitch: 60,
-        bearing: -25,
-        duration: 1200,
-        essential: true
-      });
-      setCurrentPitch(60);
-    }
-    setTimeout(() => {
-      setSelected3DBuilding(b);
-    }, 600);
-
-    setTimeout(() => {
-      setHighlighted3DBuildingId(null);
-    }, 3500);
-  };
-
+  
   // ===== FILTRE ET MASQUAGE DYNAMIQUE DES BÂTIMENTS/POLYGONES =====
   const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList: HiddenBuildingData[], retryCount = 0) => {
     if (!mapInstance) return;
@@ -4780,9 +4596,7 @@ export default function App() {
     const centerLng = lngs.reduce((a, b) => a + b, 0) / points.length;
 
     let finalGeometry: any = customPolygonGeometry;
-    let finalArea = areaVal;
-    let finalBuildingId: string | number = "Zone Dessinée Librement";
-    let finalLat = centerLat;
+            let finalLat = centerLat;
     let finalLng = centerLng;
 
     // Étape 0 : Prévenir les superpositions avec les bâtiments déjà enregistrés par l'utilisateur
@@ -5148,62 +4962,7 @@ export default function App() {
   }, [userLocation]);
 
   // Événement Ma Position GPS
-  const handleGetLocation = () => {
-    setIsLocating(true);
-    addApiLog('GEOLOCATION', '/client/gps', null, { status: 'Requesting permission' });
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ latitude, longitude });
-          setIsLocating(false);
-
-          if (mapRef.current && typeof longitude === 'number' && typeof latitude === 'number' && !isNaN(longitude) && !isNaN(latitude)) {
-            try {
-              mapRef.current.flyTo({
-                center: [longitude, latitude],
-                zoom: 16,
-                pitch: currentStyle === 'satellite' ? 0 : 45,
-                bearing: currentStyle === 'satellite' ? 0 : undefined,
-                duration: 1500
-              });
-            } catch (e) {
-              console.warn("flyTo failed:", e);
-            }
-          }
-          addApiLog('GEOLOCATION', '/client/gps', null, { 
-            status: 'Success', 
-            coords: { lat: latitude, lng: longitude },
-            simulated: false 
-          });
-          setMapNotification({
-            type: 'success',
-            title: 'GPS Activé',
-            message: 'Votre position de départ réelle a été identifiée avec succès !'
-          });
-        },
-        (error) => {
-          console.warn("Erreur GPS réelle:", error.message);
-          setIsLocating(false);
-          setMapNotification({
-            type: 'warning',
-            title: 'Erreur de Géolocalisation',
-            message: `La détection de votre GPS a échoué (${error.message}). Veuillez autoriser la localisation ou lancer l'application en externe.`
-          });
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    } else {
-      setIsLocating(false);
-      setMapNotification({
-        type: 'warning',
-        title: 'Navigateur non compatible',
-        message: 'La géolocalisation native n\'est pas supportée par votre navigateur.'
-      });
-    }
-  };
-
+  
   // Recherche dynamique des adresses nationales HailandCode
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -6372,7 +6131,7 @@ export default function App() {
   // Atelier v2 : les messages d'opération vont dans la boîte « Activité » et dans la barre d'état, jamais en fenêtre flottante.
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   useEffect(() => {
-    if (!uiV2 || !mapNotification) return;
+    if (!mapNotification) return;
     const entry: ActivityEntry = { id: Date.now(), at: Date.now(), tone: (mapNotification.type as any) || 'info', title: mapNotification.title, message: mapNotification.message };
     setActivity((prev) => [entry, ...prev].slice(0, 50));
     setStatusMsg(mapNotification.title);
@@ -6382,15 +6141,15 @@ export default function App() {
 
   // La carte suit la largeur disponible quand les panneaux latéraux apparaissent ou disparaissent (Atelier v2).
   useEffect(() => {
-    if (!uiV2) return;
+    
     const t = setTimeout(() => mapRef.current?.resize(), 60);
     return () => clearTimeout(t);
-  }, [uiV2, activeAdminView, clickedCoords, assistantStarted, selectedBuilding, selectedGridCell, isGridPanelOpen, leftOpen]);
+  }, [true, activeAdminView, clickedCoords, assistantStarted, selectedBuilding, selectedGridCell, isGridPanelOpen, leftOpen]);
 
   // Coordonnées du curseur dans la barre d'état (Atelier v2).
   useEffect(() => {
     const map = mapRef.current;
-    if (!uiV2 || !map || activeAdminView !== 'carte') return;
+    if (!map || activeAdminView !== 'carte') return;
     let raf = 0;
     const move = (e: mapboxgl.MapMouseEvent) => {
       if (raf) return;
@@ -6404,11 +6163,11 @@ export default function App() {
       map.off('mousemove', move);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [uiV2, activeAdminView]);
+  }, [true, activeAdminView]);
 
   // Ctrl K : recherche universelle.
   useEffect(() => {
-    if (!uiV2) return;
+    
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -6417,7 +6176,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [uiV2]);
+  }, [true]);
 
   const startAssistant = (nature: 'single' | 'courtyard') => {
     setSelectionTargetNature(nature);
@@ -6435,7 +6194,7 @@ export default function App() {
 
   // Raccourcis clavier de l'Atelier v2 (V, B, C, P) : seulement sur la carte, hors champs de saisie.
   useEffect(() => {
-    if (!uiV2 || activeAdminView !== 'carte') return;
+    if (activeAdminView !== 'carte') return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (paletteOpen) return;
@@ -6461,102 +6220,19 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
-      {uiV2 && (
-        <AtelierTopBar
+      {<AtelierTopBar
           view={activeAdminView}
           adminName={currentAdmin.full_name}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onSearch={() => setPaletteOpen(true)}
           onBell={() => { setActivityOpen((o) => !o); setActivitySeen(activity.length); }}
           unread={activity.length > activitySeen}
-        />
-      )}
-      {!uiV2 && (
-        <>
-      {/* HEADER UNIFIÉ DE L'INTERFACE UNIQUE (GLASSMORPHISM FIN & MODERNE) */}
-      <header className="h-14 flex items-center justify-between px-4 lg:px-6 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 shrink-0 select-none z-50">
-        <div className="flex items-center gap-4">
-          {/* LOGO ÉPURÉ & MINIMALISTE */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <MapIcon className="w-4 h-4" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5 leading-none">
-                HailandMap
-                <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 font-mono font-bold">
-                  SIG
-                </span>
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        {/* ONGLES DE NAVIGATION COMPACTES ET SANS SOUFFLE INUTILE */}
-        <nav className="flex items-center bg-slate-950/40 border border-slate-800/60 p-0.5 rounded-xl text-xs gap-0.5 max-w-[60%] overflow-x-auto scrollbar-none">
-          {[
-            { id: 'carte', label: 'Cartographie 3D', icon: <MapIcon className="w-3.5 h-3.5" /> },
-            { id: 'validations', label: 'Modération', icon: <CheckCircle className="w-3.5 h-3.5" />, badge: pendingCount, badgeColor: 'bg-indigo-500 text-white font-semibold' },
-            { id: 'batiments', label: 'Registre Cadastre', icon: <Building2 className="w-3.5 h-3.5" />, badge: conflictCount, badgeColor: 'bg-rose-500 text-white font-semibold' },
-            { id: 'zones', label: 'Frontières Geofence', icon: <Layers className="w-3.5 h-3.5" /> },
-            { id: 'dashboard', label: 'Tour de Contrôle', icon: <LayoutDashboard className="w-3.5 h-3.5" /> }
-          ].map((tab) => {
-            const isActive = activeAdminView === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveAdminView(tab.id as any);
-                  setSelectedBuilding(null);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer whitespace-nowrap active:scale-95 ${
-                  isActive
-                    ? 'bg-slate-800 text-white shadow-sm border border-slate-700/50'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/20'
-                }`}
-              >
-                {tab.icon}
-                <span className="hidden lg:inline text-[11px]">{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-[9px] px-1.5 py-0.1 rounded-full ${tab.badgeColor}`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* DROITE DU HEADER : INFOS ET AVATAR */}
-        <div className="flex items-center gap-2.5">
-          <span className="text-[10px] font-mono text-slate-500 hidden xl:inline">v6.0 PRO</span>
-          
-          {/* BOUTON PARAMÈTRES GLOBAUX ATELIER */}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-1.5 rounded-lg bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-indigo-400 border border-slate-800/80 transition-all cursor-pointer active:scale-95 flex items-center justify-center"
-            title="Paramètres de l'Atelier"
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
-
-          <div className="flex items-center gap-2 p-1 px-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
-            <div className="w-5.5 h-5.5 rounded bg-indigo-650 text-white flex items-center justify-center text-[10px] font-bold font-sans">
-              {currentAdmin.full_name.split(' ').map((n) => n[0]).join('')}
-            </div>
-            <span className="hidden sm:inline text-[11px] font-medium text-slate-300">
-              {currentAdmin.full_name}
-            </span>
-          </div>
-        </div>
-      </header>
-        </>
-      )}
+        />}
+      
 
       {/* CONTAINER MAÎTRE DES VUES (rail des modules en v2) */}
       <div className="flex min-h-0 flex-1 max-md:pb-14">
-        {uiV2 && (
-          <ModuleRail
+        {<ModuleRail
             view={activeAdminView}
             onViewChange={(v) => {
               setActiveAdminView(v);
@@ -6564,8 +6240,7 @@ export default function App() {
             }}
             pendingCount={pendingCount}
             conflictCount={conflictCount}
-          />
-        )}
+          />}
       <div className="flex-1 relative overflow-hidden flex">
         
         {/* VUE DE LA CARTE COMPLÈTE (Préservation de l'arbre et du chargement Mapbox) */}
@@ -6594,14 +6269,9 @@ export default function App() {
               `}</style>
               
               {/* Overlay Backdrop de mise au point pour Mobile */}
-              {isSidebarOpen && !uiV2 && (
-                <div 
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="absolute inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden transition-opacity duration-300"
-                />
-              )}
+              
 
-              {uiV2 && leftOpen && !(clickedCoords && assistantStarted) && (
+              {leftOpen && !(clickedCoords && assistantStarted) && (
                 <AtelierLeftPanel
                   buildings={buildings}
                   selectedId={selectedBuilding?.id ?? null}
@@ -6641,7 +6311,7 @@ export default function App() {
               {/* 1. PANNEAU LATÉRAL GAUCHE DE CONTROLE DE L'APPLICATION (v1) */}
               <div 
                 className={`absolute md:relative inset-y-0 left-0 z-40 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl h-full transition-all duration-300 ease-in-out shrink-0
-                  ${uiV2 ? '!hidden' : ''} ${isSidebarOpen 
+                  ${'!hidden'} ${isSidebarOpen 
                     ? 'w-full sm:w-[390px] md:w-[390px] translate-x-0 opacity-100' 
                     : '-translate-x-full md:translate-x-0 md:w-0 overflow-hidden border-r-0 opacity-0 pointer-events-none'
                   }`}
@@ -6739,177 +6409,7 @@ export default function App() {
           </div>
 
           {/* BANDEAU INTERACTIF MODE SÉLECTION DE ZONE (en v2 : remplacé par la barre d'outils de la carte) */}
-          {!uiV2 && (
-          <div className="p-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl flex flex-col gap-2.5 shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-orange-400" />
-                MODE SÉLECTION DE ZONE
-              </span>
-              <button
-                onClick={() => {
-                  const nextMode = !isSelectionMode;
-                  setIsSelectionMode(nextMode);
-                  setIsDrawMode(false);
-                  setDrawPoints([]);
-                  addApiLog('SET_SELECTION_MODE', `/client/selection-mode/${nextMode}`, null, { active: nextMode });
-                  if (!nextMode) {
-                    setClickedCoords(null);
-                    if (mapRef.current) {
-                      const selSource = mapRef.current.getSource('selected-building') as mapboxgl.GeoJSONSource;
-                      if (selSource) {
-                        selSource.setData({
-                          type: 'FeatureCollection',
-                          features: []
-                        });
-                      }
-                      const hoverSource = mapRef.current.getSource('hovered-building') as mapboxgl.GeoJSONSource;
-                      if (hoverSource) {
-                        hoverSource.setData({
-                          type: 'FeatureCollection',
-                          features: []
-                        });
-                      }
-                      const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
-                      if (drawSource) {
-                        drawSource.setData({
-                          type: 'FeatureCollection',
-                          features: []
-                        });
-                      }
-                    }
-                  }
-                }}
-                className={`py-1 px-3 rounded-lg text-[10px] font-bold font-display cursor-pointer transition-all ${
-                  isSelectionMode 
-                    ? 'bg-orange-500 text-slate-950 shadow shadow-orange-500/10 hover:bg-orange-400' 
-                    : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {isSelectionMode ? 'ACTIF' : 'ACTIVER'}
-              </button>
-            </div>
-
-            {isSelectionMode && (
-              <>
-                {/* Sélecteur de nature : Bâtiment Unique vs Cour / Concession */}
-                <div className="space-y-1.5 border-t border-slate-800/80 pt-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                      Nature de la cible
-                    </span>
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-orange-400">
-                      {selectionTargetNature === 'single' ? '🏢 Bâtisse Individuelle' : '🏡 Concession Partagée'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectionTargetNature('single')}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-[11px] font-bold font-display transition-all border cursor-pointer ${
-                        selectionTargetNature === 'single'
-                          ? 'bg-orange-500/20 border-orange-500 text-orange-300 shadow-md shadow-orange-500/10'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                      }`}
-                    >
-                      <Building2 className={`w-3.5 h-3.5 ${selectionTargetNature === 'single' ? 'text-orange-400' : 'text-slate-500'}`} />
-                      <span>Bâtiment Unique</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectionTargetNature('courtyard')}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-[11px] font-bold font-display transition-all border cursor-pointer ${
-                        selectionTargetNature === 'courtyard'
-                          ? 'bg-orange-500/20 border-orange-500 text-orange-300 shadow-md shadow-orange-500/10'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                      }`}
-                    >
-                      <Home className={`w-3.5 h-3.5 ${selectionTargetNature === 'courtyard' ? 'text-orange-400' : 'text-slate-500'}`} />
-                      <span>Cour / Concession</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mode Dessin Libre */}
-                {!isDrawMode ? (
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsDrawMode(true);
-                        setDrawPoints([]);
-                      }}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold font-mono transition-all border cursor-pointer bg-slate-900/80 border-slate-800 text-slate-300 hover:text-orange-400 hover:border-orange-500/40"
-                    >
-                      <PenTool className="w-3.5 h-3.5 text-orange-400" />
-                      <span>Dessin Libre</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-2.5 bg-slate-900/95 border border-slate-700/80 rounded-xl space-y-2 mt-1 animate-fadeIn shadow-xl backdrop-blur-md">
-                    <p className="text-[10px] font-sans text-slate-400">
-                      Cliquez pour placer les sommets. Double-clic pour fermer.
-                    </p>
-                    <div className="flex items-center justify-between font-mono text-[10px] text-slate-300 bg-slate-950/80 p-1.5 rounded border border-slate-800">
-                      <span>Sommets posés :</span>
-                      <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{drawPoints.length}</span>
-                    </div>
-
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={handleFinalizeCustomDraw}
-                        disabled={drawPoints.length < 3}
-                        className={`flex-1 py-1.5 px-2.5 rounded-lg text-[10px] font-bold text-center transition-all flex items-center justify-center gap-1.5 shadow-sm ${
-                          drawPoints.length >= 3 
-                            ? 'bg-emerald-600 text-white cursor-pointer hover:bg-emerald-500 active:scale-95 ring-1 ring-white/20' 
-                            : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/60'
-                        }`}
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Valider ({drawPoints.length >= 3 ? `${Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]]))} m²` : 'Min. 3 pts'})</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (drawPoints.length === 0) return;
-                          setDrawPoints(prev => {
-                            const next = prev.slice(0, -1);
-                            addApiLog('DRAW_POINT_UNDO', `/map/draw/undo`, null, { total_points: next.length });
-                            return next;
-                          });
-                        }}
-                        disabled={drawPoints.length === 0}
-                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition-all ${
-                          drawPoints.length > 0 
-                            ? 'bg-slate-800 hover:bg-slate-750 border-slate-700 text-slate-200 cursor-pointer' 
-                            : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
-                        }`}
-                        title="Annuler le dernier point tracé"
-                      >
-                        <Undo2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Retour</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsDrawMode(false);
-                          setDrawPoints([]);
-                          if (mapRef.current) {
-                            const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
-                            if (drawSource) drawSource.setData({ type: 'FeatureCollection', features: [] });
-                          }
-                          addApiLog('DRAW_RESET', `/map/draw/reset`, null, { success: true });
-                        }}
-                        className="py-1.5 px-2.5 rounded-lg text-[10px] font-bold bg-slate-850 hover:bg-slate-750 border border-slate-800 text-slate-400 hover:text-white cursor-pointer transition"
-                        title="Quitter le mode dessin"
-                      >
-                        Quitter
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          )}
+          
 
           {/* SECTION CARTE INTERACTIVE & NAVIGATION GÉOSPATIALE HIÉRARCHIQUE (ÉTAPES 1-4) */}
           <div className="p-3.5 bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-700/70 rounded-2xl flex flex-col gap-3 shadow-xl ring-1 ring-white/5">
@@ -7097,8 +6597,8 @@ export default function App() {
 
           {/* CRÉATION D'ADRESSE : Étape interactive par Clic (Module 1) */}
           <AnimatePresence mode="wait">
-            {clickedCoords && (!uiV2 || assistantStarted) ? (
-              <RegistrationSlot v2={uiV2} host={assistantHost}>
+            {clickedCoords && (assistantStarted) ? (
+              <RegistrationSlot v2={true} host={assistantHost}>
               <InteractiveBuildingForm
                 clickedCoords={clickedCoords}
                 buildings={buildings}
@@ -7600,8 +7100,7 @@ export default function App() {
         {/* LE CONTENEUR DE LA CARTE */}
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" id="mapbox-viewport" />
 
-              {uiV2 && (
-                <AtelierToolbar
+              {<AtelierToolbar
                   tool={activeTool}
                   onTool={selectAtelierTool}
                   is3D={currentPitch > 15}
@@ -7622,22 +7121,12 @@ export default function App() {
                         }
                       : null
                   }
-                />
-              )}
+                />}
 
 
         {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
-        <div className={`absolute left-4 z-20 flex items-center gap-2 ${uiV2 ? "top-16" : "top-4"}`}>
-          {!uiV2 && !isSidebarOpen && (
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2.5 px-3.5 bg-slate-900/95 border border-slate-700/80 hover:border-indigo-500/50 text-indigo-400 rounded-2xl shadow-2xl transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2 hover:bg-slate-850 group ring-1 ring-white/10"
-              title="Ouvrir l'Atelier cadastral"
-            >
-              <Wrench className="w-4 h-4 text-indigo-400 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="text-xs font-bold text-white font-display uppercase tracking-wide px-0.5">Atelier</span>
-            </button>
-          )}
+        <div className={`absolute left-4 z-20 flex items-center gap-2 ${"top-16"}`}>
+          
 
         </div>
 
@@ -7672,83 +7161,6 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* HUD FLOTTANT DE TRACÉ 3D ACTIF */}
-        <AnimatePresence>
-          {is3DDrawMode && (
-            <Tracing3DHUD
-              pointsCount={drawPoints3D.length}
-              onClosePolygon={() => {
-                if (drawPoints3D.length < 3) return;
-                setIs3DConfigModalOpen(true);
-              }}
-              onUndoPoint={() => {
-                setDrawPoints3D(prev => prev.slice(0, -1));
-              }}
-              onCancel={() => {
-                setIs3DDrawMode(false);
-                setDrawPoints3D([]);
-                if (mapRef.current) {
-                  const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
-                  if (drawSource) drawSource.setData({ type: 'FeatureCollection', features: [] });
-                }
-              }}
-              areaEstimate={drawPoints3D.length >= 3 ? calculatePolygonArea([[...drawPoints3D, drawPoints3D[0]]]) : undefined}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* MODALE DE CONFIGURATION RAPIDE DU BÂTIMENT 3D (Nombre d'étages & Extrusion) */}
-        <Building3DModal
-          isOpen={is3DConfigModalOpen}
-          onClose={() => setIs3DConfigModalOpen(false)}
-          drawPoints={drawPoints3D}
-          areaM2={drawPoints3D.length >= 3 ? calculatePolygonArea([[...drawPoints3D, drawPoints3D[0]]]) : 100}
-          defaultColor="#f0eee9"
-          centroid={
-            drawPoints3D.length > 0
-              ? [
-                  drawPoints3D.reduce((acc, p) => acc + p[0], 0) / drawPoints3D.length,
-                  drawPoints3D.reduce((acc, p) => acc + p[1], 0) / drawPoints3D.length
-                ]
-              : [-13.62125, 9.58875]
-          }
-          onConfirm={(bData) => {
-            const newBldg: Custom3DBuilding = {
-              id: `3d-bldg-${Date.now()}`,
-              ...bData,
-              created_at: new Date().toISOString()
-            };
-            setCustom3DBuildings(prev => [newBldg, ...prev]);
-            setIs3DConfigModalOpen(false);
-            setIs3DDrawMode(false);
-            setDrawPoints3D([]);
-
-            // Nettoyer draw-source
-            if (mapRef.current) {
-              const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
-              if (drawSource) drawSource.setData({ type: 'FeatureCollection', features: [] });
-
-              // Pitch dynamique vers 50° pour révéler le volume 3D immédiatement
-              if (mapRef.current.getPitch() < 15) {
-                mapRef.current.easeTo({
-                  pitch: 50,
-                  bearing: -20,
-                  duration: 1000
-                });
-                setCurrentPitch(50);
-              }
-            }
-
-            setMapNotification({
-              type: 'success',
-              title: 'Bâtiment 3D Extrudé !',
-              message: `${bData.name} (${bData.floors} étages, ${bData.height}m) a été modélisé en 3D avec succès.`
-            });
-
-            addApiLog('CREATE_3D_BUILDING', `/map/3d-buildings/create`, newBldg, { success: true });
-          }}
-        />
 
         {/* MODALE D'INSPECTION / MODIFICATION DU BÂTIMENT 3D */}
         <Building3DDetailModal
@@ -7788,62 +7200,11 @@ export default function App() {
 
         {/* ENCART DE NOTIFICATION DES OPÉRATIONS DE DÉTOURAGE ET DE VALIDATION ALGORITHMIQUE */}
         <AnimatePresence>
-          {!uiV2 && mapNotification && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute top-4 right-4 z-50 max-w-sm w-[90vw] bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-md ring-1 ring-white/10"
-            >
-              <div className="flex gap-3">
-                <div className={`p-2 rounded-lg shrink-0 flex items-center justify-center ${
-                  mapNotification.type === 'success' ? 'bg-emerald-950/85 text-emerald-400 border border-emerald-500/20' :
-                  mapNotification.type === 'warning' ? 'bg-amber-950/85 text-amber-500 border border-amber-500/20' :
-                  'bg-blue-950/85 text-blue-400 border border-blue-500/20'
-                }`}>
-                  {mapNotification.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> :
-                   mapNotification.type === 'warning' ? <AlertTriangle className="w-5 h-5 flex-shrink-0" /> :
-                   <Info className="w-5 h-5 flex-shrink-0" />}
-                </div>
-                
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-start justify-between">
-                    <h4 className="text-xs font-bold text-white font-display leading-tight">
-                      {mapNotification.title}
-                    </h4>
-                    <button 
-                      onClick={() => setMapNotification(null)}
-                      className="text-slate-400 hover:text-white text-xs p-0.5 hover:bg-slate-800 rounded transition-all cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-snug font-sans text-left">
-                    {mapNotification.message}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Petite barre d'auto-destruction visuelle animée */}
-              <div className="mt-3 h-0.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: "100%" }}
-                  animate={{ width: "0%" }}
-                  transition={{ duration: 8, ease: "linear" }}
-                  className={`h-full ${
-                    mapNotification.type === 'success' ? 'bg-emerald-500' :
-                    mapNotification.type === 'warning' ? 'bg-amber-500' :
-                    'bg-blue-500'
-                  }`}
-                />
-              </div>
-            </motion.div>
-          )}
+          
         </AnimatePresence>
 
         {/* Atelier v2 : fond de carte et réglages du satellite en haut à droite */}
-        {uiV2 && activeAdminView === 'carte' && (
+        {activeAdminView === 'carte' && (
           <div className="absolute right-3.5 top-3.5 z-20 flex flex-col items-end gap-2">
             <MapStyleControl current={currentStyle} onChange={handleStyleChange} onOpenLayers={() => { setLeftTab('couches'); setLeftOpen(true); }} />
             {currentStyle === 'satellite' && (
@@ -7858,225 +7219,11 @@ export default function App() {
           </div>
         )}
 
-        {!uiV2 && (
-        <div className={`absolute right-4 z-20 flex flex-col items-end ${uiV2 ? "top-4 max-md:top-[68px]" : "top-4"}`}>
-          <div className="relative">
-            <button
-              onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
-              className={`flex items-center gap-1.5 p-2 px-3 rounded-xl bg-slate-900/95 border shadow-xl transition-all cursor-pointer text-[11px] font-semibold select-none active:scale-95 ${
-                isLayerMenuOpen 
-                  ? 'border-indigo-500 text-indigo-400' 
-                  : 'border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Fonds de carte</span>
-            </button>
+        
 
-            <AnimatePresence>
-              {isLayerMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  className="absolute right-0 mt-1.5 w-48 bg-slate-900 border border-slate-800 rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-30 space-y-1 text-left"
-                >
-                  {styles.map(style => {
-                    const isActive = currentStyle === style.id;
-                    return (
-                      <button
-                        key={style.id}
-                        onClick={() => {
-                          handleStyleChange(style.id);
-                          setIsLayerMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center justify-between active:scale-98 ${
-                          isActive 
-                            ? 'bg-indigo-600 text-white font-bold' 
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>{style.name}</span>
-                        {isActive && <Check className="w-3.5 h-3.5 text-white font-bold" />}
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+        
 
-        )}
-
-        {!uiV2 && (
-        <>
-        {/* VOLET D'OPTIONS SATELLITE (SUPER-RÉSOLUTION & GRILLE 200M) EN BAS À GAUCHE */}
-        {currentStyle === 'satellite' && isSatelliteOptionsCollapsed && (
-          <button
-            onClick={() => setIsSatelliteOptionsCollapsed(false)}
-            className="absolute bottom-6 lg:bottom-28 left-4 z-20 flex items-center gap-2 bg-slate-950/95 border border-indigo-500/30 backdrop-blur-md rounded-2xl p-2.5 px-3.5 shadow-2xl hover:bg-slate-900 text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer ring-1 ring-indigo-505/10 animate-in fade-in slide-in-from-bottom-2"
-          >
-            <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span className="text-[10px] font-bold font-display uppercase tracking-wider">Option IA & Grille</span>
-          </button>
-        )}
-
-        {currentStyle === 'satellite' && !isSatelliteOptionsCollapsed && (
-          <div className="absolute bottom-6 lg:bottom-28 left-4 z-20 flex flex-col gap-1.5 max-w-[85vw] sm:max-w-[280px] bg-slate-950/95 border border-indigo-500/30 backdrop-blur-md rounded-2xl p-3 shadow-2xl ring-1 ring-indigo-505/10 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isHdEnhanceForce ? 'bg-emerald-500' : 'bg-slate-600'}`}></span>
-                </span>
-                <span className="text-[10px] font-bold font-display text-indigo-400 uppercase tracking-wider">
-                  Super-Résolution IA
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`text-[8px] px-1.5 py-0.5 rounded font-mono font-bold ${isHdEnhanceForce ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'}`}>
-                  {isHdEnhanceForce ? 'HD' : 'BRUT'}
-                </span>
-                <button
-                  onClick={() => setIsSatelliteOptionsCollapsed(true)}
-                  className="text-slate-400 hover:text-white text-xs p-1 hover:bg-slate-800 rounded transition cursor-pointer"
-                  title="Réduire"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setIsHdEnhanceForce(!isHdEnhanceForce);
-                addApiLog('TOGGLE_CV_HD', `/map/satellite/hd-mode`, null, { active: !isHdEnhanceForce });
-              }}
-              className={`w-full py-1.5 px-3 rounded-xl text-[10px] font-bold font-display transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
-                isHdEnhanceForce 
-                  ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20' 
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{isHdEnhanceForce ? "Désactiver la Super-Netteté IA" : "Activer la Super-Netteté (Dé-flouter)"}</span>
-            </button>
-
-            <div className="h-px bg-slate-800/60 my-1"></div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  {is200mGridActive && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  )}
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${is200mGridActive ? 'bg-cyan-500' : 'bg-slate-600'}`}></span>
-                </span>
-                <span className="text-[10px] font-bold font-display text-cyan-400 uppercase tracking-wider">
-                  Grille Alphanumérique (200m)
-                </span>
-              </div>
-              <span className={`text-[8px] px-1.5 py-0.5 rounded font-mono font-bold ${is200mGridActive ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/20' : 'bg-slate-800 text-slate-400'}`}>
-                {is200mGridActive ? 'AFFICHÉE' : 'MASQUÉE'}
-              </span>
-            </div>
-
-            <button
-              onClick={() => {
-                setIs200mGridActive(!is200mGridActive);
-                addApiLog('TOGGLE_GRID_200M', `/map/satellite/grid-200m`, null, { active: !is200mGridActive });
-              }}
-              className={`w-full py-1.5 px-3 rounded-xl text-[10px] font-bold font-display transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
-                is200mGridActive 
-                  ? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-500/20' 
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
-              }`}
-            >
-              <Grid className="w-3.5 h-3.5" />
-              <span>{is200mGridActive ? "Masquer la Grille de 200m" : "Afficher la Grille de 200m"}</span>
-            </button>
-
-            {is200mGridActive && (
-              <>
-                <div className="h-px bg-slate-800/60 my-1"></div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className={`relative inline-flex rounded-full h-2 w-2 ${clickSelectionTarget === 'grid_cell' ? 'bg-amber-500' : 'bg-cyan-500'}`}></span>
-                    </span>
-                    <span className="text-[10px] font-bold font-display text-slate-300 uppercase tracking-wider">
-                      Mode Clic sur Carte
-                    </span>
-                  </div>
-                  <span className={`text-[8px] px-1.5 py-0.5 rounded font-mono font-bold ${clickSelectionTarget === 'grid_cell' ? 'bg-amber-950 text-amber-300 border border-amber-500/20' : 'bg-cyan-950 text-cyan-300 border border-cyan-500/20'}`}>
-                    {clickSelectionTarget === 'grid_cell' ? 'CARREAU' : 'POLYGONE'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1 mt-0.5">
-                  <button
-                    onClick={() => {
-                      setClickSelectionTarget('grid_cell');
-                      addApiLog('SET_SELECTION_TARGET', `/map/selection-target/grid_cell`, null, { target: 'grid_cell' });
-                      setSelectedBuilding(null);
-                    }}
-                    className={`py-1.5 px-2 rounded-xl text-[9px] font-bold font-display transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95 ${
-                      clickSelectionTarget === 'grid_cell'
-                        ? 'bg-amber-600 text-white shadow-md shadow-amber-600/10'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
-                    }`}
-                    title="Sélectionne le carreau entier de 200m avec ses bâtiments"
-                  >
-                    <Grid className="w-3 h-3 text-amber-300" />
-                    Carreau 200m
-                  </button>
-                  <button
-                    onClick={() => {
-                      setClickSelectionTarget('building');
-                      addApiLog('SET_SELECTION_TARGET', `/map/selection-target/building`, null, { target: 'building' });
-                      setSelectedGridCell(null);
-                      setSelectedGridBuildings([]);
-                      setIsGridPanelOpen(false);
-                      if (mapRef.current) {
-                        const selSource = mapRef.current.getSource('selected-building') as mapboxgl.GeoJSONSource;
-                        if (selSource) {
-                          selSource.setData({
-                            type: 'FeatureCollection',
-                            features: []
-                          });
-                        }
-                        if (markerRef.current) {
-                          markerRef.current.remove();
-                          markerRef.current = null;
-                        }
-                      }
-                    }}
-                    className={`py-1.5 px-2 rounded-xl text-[9px] font-bold font-display transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95 ${
-                      clickSelectionTarget === 'building'
-                        ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/10'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
-                    }`}
-                    title="Sélectionne uniquement le polygone du bâtiment cliqué"
-                  >
-                    <Layers className="w-3 h-3 text-cyan-300" />
-                    Bâtiment Unique
-                  </button>
-                </div>
-              </>
-            )}
-
-            <div className="flex justify-between items-center text-[8px] text-slate-400 font-mono mt-0.5 pt-1 border-t border-slate-800">
-              <span>Zoom : <strong className="text-white">{zoomLevel.toFixed(1)}</strong> / 22.0</span>
-              <span className="text-[8px] text-slate-500">{isHdEnhanceForce ? "Convolution active" : "Brut"}</span>
-            </div>
-          </div>
-        )}
-
-        </>
-        )}
-
-        {uiV2 && activeAdminView === 'carte' && (
+        {activeAdminView === 'carte' && (
           <div className="absolute bottom-4 right-3.5 z-20 max-md:bottom-auto max-md:top-[64px]">
             <ZoomCluster
               onZoomIn={() => mapRef.current?.zoomIn()}
@@ -8089,78 +7236,10 @@ export default function App() {
           </div>
         )}
 
-        {!uiV2 && (
-        <>
-        {/* CONTROLEURS DE LA CARTE STYLE GOOGLE MAPS (Angle en bas à droite) */}
-        <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-2 items-end">
-          {/* BOUTON UNIQUE DE GÉOLOCALISATION STYLE GOOGLE MAPS (My Location / Recentrer) */}
-          <button
-            onClick={recenterMap}
-            disabled={isRecentering || isLocating}
-            id="btn-recenter-gps"
-            className={`group relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900/95 border ${
-              isRecentering || isLocating
-                ? 'border-blue-500/70 text-blue-400 bg-slate-900 shadow-lg shadow-blue-500/15'
-                : userLocation
-                  ? 'border-blue-500/80 bg-slate-900 text-blue-500 shadow-xl shadow-blue-500/25 hover:bg-slate-850 hover:border-blue-400'
-                  : 'border-slate-800 text-slate-300 hover:text-blue-400 hover:border-slate-700 hover:bg-slate-850 shadow-2xl'
-            } backdrop-blur-md transition-all duration-150 active:scale-95 cursor-pointer`}
-            title="Recentrer sur ma position"
-            aria-label="Recentrer sur ma position"
-          >
-            {isRecentering || isLocating ? (
-              <Loader2 className="w-4.5 h-4.5 animate-spin text-blue-400" />
-            ) : userLocation ? (
-              <LocateFixed className="w-5 h-5 text-blue-500 transition-transform duration-200 group-hover:scale-110" />
-            ) : (
-              <Locate className="w-5 h-5 text-slate-300 group-hover:text-blue-400 transition-transform duration-200 group-hover:scale-110" />
-            )}
-
-            {/* Infobulle au survol style Google Maps */}
-            <div className="absolute right-full mr-2.5 px-2.5 py-1.5 bg-slate-950/95 text-white text-[11px] font-medium font-sans rounded-xl border border-slate-800 shadow-2xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none flex items-center gap-1.5 backdrop-blur-md">
-              <LocateFixed className="w-3.5 h-3.5 text-blue-400" />
-              <span>{isRecentering || isLocating ? "Acquisition GPS..." : "Recentrer sur ma position"}</span>
-            </div>
-          </button>
-
-          {/* CONTROLEURS DE ZOOM & ORIENTATION */}
-          <div className="flex flex-col gap-1 bg-slate-900/95 border border-slate-800 rounded-xl p-1 shadow-2xl backdrop-blur-md">
-            {/* Zoom In */}
-            <button
-              onClick={() => mapRef.current?.zoomIn()}
-              className="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-indigo-400 flex items-center justify-center transition-all cursor-pointer active:scale-95"
-              title="Zoom +"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-            
-            {/* Zoom Out */}
-            <button
-              onClick={() => mapRef.current?.zoomOut()}
-              className="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-indigo-400 flex items-center justify-center transition-all cursor-pointer active:scale-95 border-t border-slate-800/40"
-              title="Zoom -"
-            >
-              <span className="text-sm font-bold leading-none select-none">-</span>
-            </button>
-
-            {/* Compass / Reset Orientation */}
-            <button
-              onClick={() => {
-                mapRef.current?.easeTo({ bearing: 0, pitch: 45, duration: 800 });
-              }}
-              className="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-indigo-400 flex items-center justify-center transition-all cursor-pointer active:scale-95 border-t border-slate-800/40"
-              title="Réinitialiser l'orientation (Nord)"
-            >
-              <Compass className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        </>
-        )}
+        
 
         {/* Atelier v2 : fiche flottante près du bâtiment sélectionné (remplace l'ancien panneau de droite) */}
-        {uiV2 && activeAdminView === 'carte' && !assistantStarted && clickedCoords && (
+        {activeAdminView === 'carte' && !assistantStarted && clickedCoords && (
           <CandidateCard
             map={mapRef.current}
             coords={clickedCoords}
@@ -8173,19 +7252,19 @@ export default function App() {
             onClose={() => setClickedCoords(null)}
           />
         )}
-        {uiV2 && activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
+        {activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
           <BuildingCard map={mapRef.current} building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
         )}
 
         {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
-        {uiV2 && activeAdminView === 'carte' && !leftOpen && !(clickedCoords && assistantStarted) && (
+        {activeAdminView === 'carte' && !leftOpen && !(clickedCoords && assistantStarted) && (
           <div className="absolute left-3.5 top-3.5 z-20 max-md:hidden">
             <PanelHandle onOpen={() => setLeftOpen(true)} />
           </div>
         )}
 
         {/* RUSTINE DE BIENVENUE & CONSEIL GPS */}
-        <div className={`absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm ${uiV2 ? "hidden" : "hidden lg:block"}`}>
+        <div className={`absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm ${"hidden"}`}>
           <div className="bg-slate-950/90 border border-slate-800 backdrop-blur-md p-3 rounded-2xl shadow-2xl pointer-events-auto flex items-start gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-400 mt-0.5 pointer-events-none shrink-0 border border-orange-500/15 flex-shrink-0">
               <Info className="w-4 h-4" />
@@ -8204,59 +7283,9 @@ export default function App() {
         {/* Panneau latéral droit pour l'administration de bâtiment sélectionné masqué temporairement */}
 
         {/* Encart flottant discret pour le carreau de grille 200m sélectionné sans ouvrir le grand volet */}
-        {!uiV2 && !selectedBuilding && selectedGridCell && !isGridPanelOpen && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-slate-950/95 border border-cyan-500/30 backdrop-blur-md rounded-2xl p-2 px-4 shadow-2xl ring-1 ring-cyan-500/20 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                Carreau {selectedGridCell.properties.id || '200m'}
-              </span>
-            </div>
-            <div className="h-4 w-px bg-slate-800 shrink-0" />
-            <span className="text-[10.5px] text-slate-300 font-sans truncate max-w-[140px] sm:max-w-none">
-              {selectedGridBuildings.length} bâtiment{selectedGridBuildings.length > 1 ? 's' : ''} détecté{selectedGridBuildings.length > 1 ? 's' : ''}
-            </span>
-            <div className="h-4 w-px bg-slate-800 shrink-0" />
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setIsGridPanelOpen(true)}
-                className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold font-display rounded-full transition-all active:scale-95 cursor-pointer shadow-lg shadow-cyan-600/10 flex items-center gap-1"
-              >
-                <Grid className="w-3 h-3" />
-                Détails / Actions
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedGridCell(null);
-                  setSelectedGridBuildings([]);
-                  setIsGridPanelOpen(false);
-                  if (mapRef.current) {
-                    const selSource = mapRef.current.getSource('selected-building') as mapboxgl.GeoJSONSource;
-                    if (selSource) {
-                      selSource.setData({
-                        type: 'FeatureCollection',
-                        features: []
-                      });
-                    }
-                    if (markerRef.current) {
-                      markerRef.current.remove();
-                      markerRef.current = null;
-                    }
-                  }
-                }}
-                className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition cursor-pointer"
-                title="Désélectionner"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
+        
 
-        {uiV2 && activeAdminView === 'carte' && clickedCoords && assistantStarted && <AssistantAside hostRef={setAssistantHost} />}
+        {activeAdminView === 'carte' && clickedCoords && assistantStarted && <AssistantAside hostRef={setAssistantHost} />}
 
         {/* Panneau latéral droit pour le carreau de grille 200m sélectionné */}
         {!selectedBuilding && selectedGridCell && isGridPanelOpen && (
@@ -8282,25 +7311,16 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
+              className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {uiV2 ? (
-                <RevueView
+              {<RevueView
                   buildings={buildings}
                   profiles={profiles}
                   onOpenOnMap={handleSelectBuildingFromAdmin}
                   onApprove={handleApproveBuilding}
                   onReject={handleRejectBuilding}
                   onRequestVisit={handleRequestVisit}
-                />
-              ) : (
-              <ValidationsView
-                buildings={buildings}
-                profiles={profiles}
-                onSelect={handleSelectBuildingFromAdmin}
-                isDark={true}
-              />
-              )}
+                />}
             </motion.div>
           )}
 
@@ -8310,10 +7330,9 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
+              className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {uiV2 ? (
-                <RegistreView
+              {<RegistreView
                   buildings={buildings}
                   profiles={profiles}
                   onOpenOnMap={handleSelectBuildingFromAdmin}
@@ -8323,19 +7342,7 @@ export default function App() {
                     setBuildings(refreshed);
                   }}
                   onNotify={(title, message, tone) => setMapNotification({ type: (tone ?? 'info') as any, title, message })}
-                />
-              ) : (
-              <BuildingsView
-                buildings={buildings}
-                profiles={profiles}
-                onSelect={handleSelectBuildingFromAdmin}
-                isDark={true}
-                onRefresh={async () => {
-                  const refreshed = await loadRealBuildings();
-                  setBuildings(refreshed);
-                }}
-              />
-              )}
+                />}
             </motion.div>
           )}
 
@@ -8345,9 +7352,9 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
+              className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {uiV2 ? <TerritoireView zones={zones} buildings={buildings} /> : <ZonesView zones={zones} isDark={true} onCreateZone={handleCreateZone} />}
+              {<TerritoireView zones={zones} buildings={buildings} />}
             </motion.div>
           )}
 
@@ -8357,25 +7364,16 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={uiV2 ? "absolute inset-0 overflow-hidden bg-hx-base" : "absolute inset-0 overflow-auto bg-slate-950"}
+              className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {uiV2 ? (
-                <PilotageView buildings={buildings} zones={zones} validations={validations} profiles={profiles} onGoRevue={() => setActiveAdminView('validations')} />
-              ) : (
-              <Dashboard
-                buildings={buildings}
-                zones={zones}
-                validations={validations}
-                isDark={true}
-              />
-              )}
+              {<PilotageView buildings={buildings} zones={zones} validations={validations} profiles={profiles} onGoRevue={() => setActiveAdminView('validations')} />}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
       </div>
 
-      {uiV2 && activityOpen && (
+      {activityOpen && (
         <ActivityPanel
           entries={activity}
           onClear={() => {
@@ -8385,8 +7383,7 @@ export default function App() {
           onClose={() => setActivityOpen(false)}
         />
       )}
-      {uiV2 && (
-        <CommandPalette
+      {<CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}
           buildings={buildings}
@@ -8399,8 +7396,7 @@ export default function App() {
             { id: 'go-territoire', label: 'Aller au Territoire', run: () => setActiveAdminView('zones') },
             { id: 'go-pilotage', label: 'Aller au Pilotage', run: () => setActiveAdminView('dashboard') },
           ]}
-        />
-      )}
+        />}
 
       {/* MODAL DES PARAMÈTRES ET CLÉS DE L'ATELIER GEOGRAPHIQUE */}
       <AnimatePresence>
@@ -8465,28 +7461,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Interface : nouvelle (v2) ou ancienne (v1) */}
-                <div className="border-t border-slate-800/60 pt-4 space-y-2">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Interface</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => !uiV2 && setUiVersion('v2')}
-                      className={`py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${uiV2 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'}`}
-                    >
-                      Nouvelle (Atelier v2)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => uiV2 && setUiVersion('v1')}
-                      className={`py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${!uiV2 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'}`}
-                    >
-                      Ancienne
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-500">Le choix est mémorisé sur cet appareil. La page se recharge.</p>
-                </div>
-
                 {/* Section 2 : Informations Système */}
                 <div className="border-t border-slate-800/60 pt-4 space-y-2">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Informations Système</span>
@@ -8514,8 +7488,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {uiV2 ? (
-        <AtelierStatusBar
+      {<AtelierStatusBar
           buildingsCount={buildings.length}
           zonesCount={zones.length}
           adminName={currentAdmin.full_name}
@@ -8523,18 +7496,7 @@ export default function App() {
           cursor={activeAdminView === 'carte' ? cursorPos : null}
           toolHint={activeAdminView === 'carte' && activeTool ? TOOLS.find((t) => t.id === activeTool)?.hint : undefined}
           message={statusMsg}
-        />
-      ) : (
-        <>
-      {/* FOOTER COULISSANT COULEUR LUXE */}
-      <footer className="h-8 flex items-center justify-between px-4 text-[11px] font-mono border-t border-slate-800 shrink-0 bg-slate-900 text-slate-400 select-none">
-        <span>HailandX © 2026 — Infrastructure d'adressage souveraine d'Afrique</span>
-        <span className="hidden sm:inline">
-          {buildings.length} bâtiments · {zones.length} zones · Conakry, Guinée
-        </span>
-      </footer>
-        </>
-      )}
+        />}
     </div>
   );
 }

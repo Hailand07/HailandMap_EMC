@@ -1,6 +1,6 @@
 import React from 'react';
-import { useChildBuildingForm, type ChildBuildingConfig } from '../../components/registration/ChildBuildingForm';
-import { generateFloorDoors } from '../../components/registration/FloorDoorsSelector';
+import { useChildBuildingForm, type ChildBuildingConfig } from '../../registration/useChildBuildingForm';
+import { generateFloorDoors } from '../../registration/floorDoors';
 import type { BuildingType, PhysicalPosition } from '../../types';
 import { CheckRow, Chips, GhostButton, NumberStepper, PrimaryButton, Section, Segmented, TextField } from '../atoms';
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useCourtyardManager } from '../../components/registration/CourtyardManager';
+import { useCourtyardManager } from '../../registration/useCourtyardManager';
 import type { Building, EntrancePickerConfig } from '../../types';
 import { actorId } from '../../lib/actor';
 import { AssistantFrame, type AssistantStage } from './AssistantFrame';

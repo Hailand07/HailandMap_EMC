@@ -4,10 +4,3 @@
  */
 export type RegistrationStage = 'emprise' | 'structure' | 'attributs' | 'acces' | 'verification';
 
-export const STAGES: { id: RegistrationStage; label: string }[] = [
-  { id: 'emprise', label: 'Emprise' },
-  { id: 'structure', label: 'Structure' },
-  { id: 'attributs', label: 'Attributs' },
-  { id: 'acces', label: 'Accès' },
-  { id: 'verification', label: 'Vérification' },
-];

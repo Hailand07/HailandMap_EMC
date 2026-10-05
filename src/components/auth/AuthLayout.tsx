@@ -9,7 +9,7 @@ export const BrandMark: React.FC<{ size?: number }> = ({ size = 34 }) => (
 );
 
 /** Fond cartographique décoratif : quadrillage, routes, bâtiments et une concession en cours de relevé. */
-export const BrandMap: React.FC<{ detail?: boolean }> = ({ detail = true }) => (
+const BrandMap: React.FC<{ detail?: boolean }> = ({ detail = true }) => (
   <svg viewBox="0 0 760 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true" className="absolute inset-0 h-full w-full">
     <rect width="760" height="900" fill="#262626" />
     <g stroke="#303030">

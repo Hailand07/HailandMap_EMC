@@ -15,7 +15,6 @@ import { supabase } from './supabase';
 import { GUINEA_OFFLINE_DATA } from './guineaOfflineData';
 import { getTerritoryRealGeometry } from './guineaBoundariesData';
 import type {
-  AdminLevel,
   InteractiveRegion,
   InteractivePrefecture,
   InteractiveCommune,
@@ -155,7 +154,7 @@ const offlineQtrsByNom = new Map<string, any>();
   }
 });
 
-export function getRefQuartierData(id: string, nom?: string): any {
+function getRefQuartierData(id: string, nom?: string): any {
   if (id && offlineQtrsById.has(id)) {
     return offlineQtrsById.get(id);
   }

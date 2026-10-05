@@ -5,8 +5,6 @@ import { useState } from 'react';
 import {
   X,
   Grid,
-  MapPin,
-  Check,
   Download,
   Building as BuildingIcon,
   User,

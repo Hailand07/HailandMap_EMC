@@ -30,7 +30,7 @@ export const TERRITORY_LEVEL_OPACITIES: Record<AdminLevel, number> = {
 };
 
 // ===== PROFILS D'ANIMATION CAMÉRA DÉDIÉS PAR COUCHE =====
-export interface LayerAnimationConfig {
+interface LayerAnimationConfig {
   pitch: number;
   bearing: number;
   maxZoom: number;
@@ -39,7 +39,7 @@ export interface LayerAnimationConfig {
   description: string;
 }
 
-export const LAYER_ANIMATION_PROFILES: Record<AdminLevel, LayerAnimationConfig> = {
+const LAYER_ANIMATION_PROFILES: Record<AdminLevel, LayerAnimationConfig> = {
   region: {
     pitch: 0,
     bearing: 0,
@@ -77,12 +77,12 @@ export const LAYER_ANIMATION_PROFILES: Record<AdminLevel, LayerAnimationConfig> 
 // Identifiants des sources et calques Mapbox
 export const TERRITORY_SOURCE_ID = 'interactive-territory-source';
 export const TERRITORY_FILL_LAYER_ID = 'hailand-territory-fill';
-export const TERRITORY_CASING_LAYER_ID = 'hailand-territory-casing';
-export const TERRITORY_GLOW_LAYER_ID = 'hailand-territory-glow';
+const TERRITORY_CASING_LAYER_ID = 'hailand-territory-casing';
+const TERRITORY_GLOW_LAYER_ID = 'hailand-territory-glow';
 export const TERRITORY_STROKE_LAYER_ID = 'hailand-territory-stroke';
-export const TERRITORY_CENTROID_GLOW_ID = 'hailand-territory-centroid-glow';
-export const TERRITORY_CENTROID_DOT_ID = 'hailand-territory-centroid-dot';
-export const TERRITORY_LABEL_LAYER_ID = 'hailand-territory-label';
+const TERRITORY_CENTROID_GLOW_ID = 'hailand-territory-centroid-glow';
+const TERRITORY_CENTROID_DOT_ID = 'hailand-territory-centroid-dot';
+const TERRITORY_LABEL_LAYER_ID = 'hailand-territory-label';
 
 /**
  * Initialise ou vérifie la présence des sources et calques de surbrillance territoriale
@@ -336,7 +336,7 @@ export function computeTerritoryBbox(territory: SelectedTerritoryPayload): [numb
 /**
  * Calcule la bounding box combinée de plusieurs entités territoriales
  */
-export function computeCombinedBbox(territories: SelectedTerritoryPayload[]): [number, number, number, number] {
+function computeCombinedBbox(territories: SelectedTerritoryPayload[]): [number, number, number, number] {
   if (!territories || territories.length === 0) {
     return [-13.72, 9.48, -13.52, 9.68]; // Conakry par défaut
   }

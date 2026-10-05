@@ -33,20 +33,26 @@ React 19 · Vite 6 · TypeScript 5.8 · Tailwind 4 · Mapbox GL 3 · Turf.js · 
 
 ```
 src/
-  App.tsx (≈8 460 lignes)            # TOUT : carte Mapbox, sélection, dessin, 3D, validation, GPS/itinéraire, onglets
-  types.ts                           # Building, Zone, Profile, Validation, Delivery, Facade, territoires…
+  App.tsx (≈7 500 lignes)            # carte Mapbox, sélection, dessin, grille, état des modules (à découper)
+  main.tsx                           # point d'entrée : thème, protections globales (à retirer), AgentGate puis App
+  types.ts                           # Building, Zone, Profile, Validation, territoires…
+  index.css                          # jetons de couleur `hx-*` (Tailwind 4) et surcharges du thème
   lib/
-    supabase.ts                      # client Supabase, mocks, génération/validation de Hailand-Code, CRUD buildings/zones/validations/deliveries/facades
+    supabase.ts                      # client Supabase, mocks, génération/validation de Hailand-Code, CRUD buildings/zones/validations
     administrativeAddressingService.ts  # point-dans-polygone → hiérarchie admin, trigrammes, codes, backfill
     spatialReassignment.ts           # recalage commune des bâtiments (Turf)
     interactiveMapService.ts / interactiveMapEngine.ts  # « Carte Interactive » (Région→Préfecture→Commune→Quartier) + couches Mapbox
     agentAuth.ts / actor.ts          # connexion des agents (Supabase Auth) et auteur courant des écritures
+    registryExports.ts               # exports CSV / GeoJSON et attestation du registre
     guineaBoundariesData.ts (6,4 Mo) / guineaOfflineData.ts (1,4 Mo)  # frontières et référentiel embarqués dans le bundle
+  registration/                      # logique de l'enregistrement (sans interface) : useDirectBuildingForm, useChildBuildingForm, useCourtyardManager, floorDoors, levels
+  shell/                             # coque de l'Atelier : barre du haut, rail des modules, dock d'outils, contrôles de la carte, barre d'état
   components/
-    registration/                    # Studio d'enregistrement (voir §5)
-    BuildingsView (Registre cadastral) · ValidationsView (Modération) · ZonesView · Dashboard (Tour de contrôle)
-    AgentGate (connexion des agents) · BuildingPanel · GridPanel · InteractiveTerritoryTree · Edit3DMenu · Building3DModal/DetailModal · Tracing3DHUD · Sidebar · AgentHistoryModal
-  utils/ safeJson.ts (assainissement géométries), agentHelper.ts, houseModelData.ts
+    AgentGate.tsx + auth/            # ouverture, connexion par code (téléphone / e-mail), compte non autorisé
+    InteractiveBuildingForm.tsx      # enveloppe de l'assistant de création
+    GridPanel · InteractiveTerritoryTree · Building3DDetailModal
+  v2/                                # interface : assistant (5 étapes), atelier (panneau gauche, fiches flottantes, Ctrl K, activité), vues Revue / Registre / Territoire / Pilotage
+  utils/ safeJson.ts                 # assainissement des géométries
 scripts/                             # génération SQL/TS depuis OSM et GeoJSON ; tests d'étapes (.ts)
 supabase_setup.sql                   # schéma + RLS (idempotent)
 supabase_admin_boundaries.sql        # frontières administratives (≈ 2,3 Mo)
@@ -54,17 +60,16 @@ supabase_batiments_and_quartiers.sql # 394 quartiers + colonnes de stats  ⚠️
 sql_batches_batiments/batch_01..28.sql  # 273 937 bâtiments OSM → batiments_3d  ⚠️ NON appliqué
 "fichier.txt données osm structurées/"   # 55 fichiers sources OSM
 gin_admin*.geojson, quartiers_conakry_osm.txt  # sources frontières
-draw_way.js, lines.js, vertices.js   # code de l'éditeur OSM iD (référence de style de tracé, non utilisé)
 ```
 
 ---
 
-## 4. Les 5 vues (onglets) ✅
-1. **Cartographie 3D** (`carte`) : carte Mapbox (styles : Original perso 3D / Satellite / Standard 3D), grille 200 m, recherche par code/adresse/occupant, sélection par carreau ou par bâtiment, dessin libre, mode « Carte Interactive », édition 3D manuelle, placement de modèles `.glb`, GPS et itinéraire de démonstration.
-2. **Modération** (`validations`) : bâtiments `en_attente` / `conteste` ; filtres, recherche, attestation provisoire (JSON).
-3. **Registre Cadastre** (`batiments`) : tableur, arbre mère-enfant, fiches ; fiche 360° ; exports CSV/JSON/GeoJSON ; « Sync Adressage État » (backfill).
-4. **Frontières Geofence** (`zones`) : carreaux 200 m.
-5. **Tour de Contrôle** (`dashboard`) : statistiques par statut.
+## 4. Les 5 modules ✅
+1. **Atelier** (`carte`) : carte Mapbox (Plan / Satellite / Rues), grille 200 m, dock d'outils (sélection, bâtiment, concession, tracé libre, carreau), fiches flottantes, assistant de création, recherche Ctrl K.
+2. **Revue** (`validations`) : bâtiments `en_attente` / `conteste`, décisions, demandes de visite.
+3. **Registre** (`batiments`) : tableau, arbre mère-enfant, carte ; exports CSV / GeoJSON / attestation ; maintenance (recalage des adresses).
+4. **Territoire** (`zones`) : carreaux 200 m et frontières.
+5. **Pilotage** (`dashboard`) : avancement par statut et quartier.
 
 ---
 
@@ -74,13 +79,13 @@ draw_way.js, lines.js, vertices.js   # code de l'éditeur OSM iD (référence de
 Clic carreau / bâtiment OSM (tuiles Mapbox) / dessin libre
         │  (le bâtiment OSM cliqué devient un Building temporaire, status 'non_reclame', id = identifiant Mapbox)
         ▼
-RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
+Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment direct]
         │
- Parcours A (CourtyardManager)                         Parcours B (DirectBuildingForm)
+ Parcours A (useCourtyardManager)                       Parcours B (useDirectBuildingForm)
   1. nombre de bâtiments à tracer                        Phase 1 : nature (R/C/M/A/H/P/T), étages, sous-sol/mezzanine,
   2. tracé de chaque enfant (clic intelligent = polygone  unités par niveau, repères, portail, couleur, interphone
      OSM détecté, ou dessin libre)                       Phase 2 (optionnelle) : étage + porte visés
-  3. tableau Master-Detail → ChildBuildingForm
+  3. tableau Master-Detail → useChildBuildingForm
      (mêmes champs + portail de la cour)
         │
         ▼ handleCreateBuilding (App.tsx)
@@ -184,7 +189,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
   7. **Seulement avec l'accord explicite du fondateur** : codes attribués par la base à l'enregistrement (fin des doublons, `ECOSYSTEME_HAILAND.md` §6.2), fermeture de l'écriture publique (`close_public_writes`).
 
 ### Phase 0 codée (2026-10-04) ✅ — socle de la refonte (coque et thème, derrière un interrupteur)
-- `src/shell/` : `uiVersion.ts` (interrupteur `?ui=v2` / `?ui=v1`, mémorisé dans `localStorage hm.ui` ; **la v2 est l'interface par défaut depuis le 2026-10-04, `?ui=v1` ramène l'ancienne**), `modules.ts` (5 modules ↔ vues actuelles : Atelier = carte, Revue = modération, Registre = bâtiments, Territoire = zones, Pilotage = dashboard), `AtelierShell.tsx` (barre du haut avec fil d'Ariane et recherche (Ctrl K à venir), rail des modules avec pastille de revue, barre d'état).
+- (Interrupteur v1/v2 supprimé le 2026-10-05, la v2 est la seule interface.) `src/shell/` : `uiVersion.ts` (interrupteur `?ui=v2` / `?ui=v1`, mémorisé dans `localStorage hm.ui` ; **la v2 est l'interface par défaut depuis le 2026-10-04, `?ui=v1` ramène l'ancienne**), `modules.ts` (5 modules ↔ vues actuelles : Atelier = carte, Revue = modération, Registre = bâtiments, Territoire = zones, Pilotage = dashboard), `AtelierShell.tsx` (barre du haut avec fil d'Ariane et recherche (Ctrl K à venir), rail des modules avec pastille de revue, barre d'état).
 - `src/index.css` : avec `<html data-ui="v2">`, les échelles Tailwind `slate`, `indigo` et `orange` sont redéfinies (gris façon Blender, bleu d'action) et la police devient IBM Plex : tout l'écran actuel prend le nouveau thème sans changer son code.
 - `App.tsx` : seuls changements = en v2, la barre du haut, le rail et la barre d'état remplacent l'en-tête à onglets et le pied de page ; le contenu des vues est **inchangé** (formulaire d'enregistrement, logique de codes, écritures en base : aucune modification). Capturé : la v1 est identique à l'ancienne interface.
 - Restent à faire (phases 1 à 7) : Atelier (barre d'outils, inspecteur), assistant de création en 5 étapes, Revue, Registre, Pilotage/Territoire, Terrain, Ctrl K, boîte Activité (remplace les messages flottants) ; découpage de `App.tsx` (≈ 8 460 lignes) encore à faire.
@@ -223,7 +228,7 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 
 ### Finitions de fidélité aux maquettes (2026-10-04) ✅
 - Pendant une création, le panneau gauche disparaît (carte + assistant, comme la maquette « Création ») et la carte se redimensionne ; coordonnées du curseur dans la barre d'état ; mode « Carte » au Registre.
-- **Interrupteur d'interface** dans les Réglages (engrenage) : « Nouvelle (Atelier v2) » / « Ancienne », en plus de `?ui=v2` / `?ui=v1`.
+- (Supprimé le 2026-10-05) **Interrupteur d'interface** dans les Réglages (engrenage) : « Nouvelle (Atelier v2) » / « Ancienne », en plus de `?ui=v2` / `?ui=v1`.
 - Déclarations des résidents NavigationX dans la Revue : **impossible sans nouvelle règle d'accès en base** (la table `declarations` n'est lisible que par son auteur) → à décider avec le fondateur (création d'une politique de lecture pour les agents, accord explicite requis).
 
 ### Version 3 de l'interface (2026-10-05) ✅ — validée par le fondateur sur artefact (« HailandMap v3 — Atelier repensé »)
@@ -273,3 +278,4 @@ RegistrationEngineV3 ── choix : [Cour / Concession]  ou  [Bâtiment direct]
 | 2026-10-05 | Version 3 de l'interface (validée sur artefact) : écran d'ouverture et connexion refaits (téléphone d'abord, code en 6 cases), Atelier sans panneau de droite (fiche flottante près du bâtiment), dock d'outils, fond de carte Plan/Satellite/Rues, zoom regroupé, pastille de progression, panneau gauche repliable. Logique métier et base inchangées. |
 | 2026-10-05 | Retrait de l'import d'objets 3D (GLTF, `house.glb`) qui n'était qu'un essai : bouton « Importer Objet 3D », liste des objets placés, mode de placement, couche Mapbox `model`, type `Placed3DModel` et fichier `utils/houseModelData.ts` supprimés ; le tracé de volumes 3D reste. Retrait de la pastille de progression en haut à gauche de l'Atelier v3. Aucune base touchée. |
 | 2026-10-05 | Suppression du menu d'édition 3D (`components/Edit3DMenu.tsx`, bouton « Édit » en v1, outil « Volumes 3D » du dock en v2) à la demande du fondateur. Les volumes 3D existants restent affichés ; une fonction équivalente sera intégrée plus tard. Aucune base touchée. |
+| 2026-10-05 | Nettoyage sans changement de comportement : ancienne interface (v1) retirée (interrupteur `?ui=v1` et Réglages supprimés), code mort supprimé (Sidebar, Dashboard, ValidationsView, BuildingsView, ZonesView, BuildingPanel, AgentHistoryModal, agentHelper, anciens formulaires et leur moteur, HUD et modale de tracé 3D) ; la logique d'enregistrement est conservée dans `src/registration/` ; fichiers de référence de l'éditeur OSM iD retirés ; exports et types inutilisés supprimés. `App.tsx` passe de 8 570 à 7 500 lignes, 12 000 lignes retirées au total. Aucune base touchée. |

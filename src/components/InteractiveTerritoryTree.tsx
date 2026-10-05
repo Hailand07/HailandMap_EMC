@@ -24,7 +24,6 @@ import {
   Folder, 
   FolderOpen, 
   RotateCcw,
-  CheckCircle2,
   Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
