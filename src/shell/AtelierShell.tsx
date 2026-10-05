@@ -210,12 +210,10 @@ interface ToolbarProps {
   onToggle3D: () => void;
   /** Tracé libre en cours : sommets posés et actions. */
   drawing: { points: number; areaM2: number | null; onFinish: () => void; onUndo: () => void; onQuit: () => void } | null;
-  /** Éléments ajoutés en fin de dock (ex. : menu des volumes 3D). */
-  extra?: React.ReactNode;
 }
 
 /** Dock d'outils en bas de la carte (Atelier v2) : outils avec nom et raccourci, vue à plat / en perspective, actions du tracé libre. Sur téléphone : colonne à gauche. */
-export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing, extra }) => (
+export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing }) => (
   <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:bottom-auto max-md:left-3 max-md:top-3 max-md:max-w-none max-md:translate-x-0 max-md:items-start">
     {drawing && (
       <div className="pointer-events-auto flex flex-wrap items-center gap-3 rounded-xl border border-hx-line2 bg-hx-panel px-3.5 py-2 text-[12.5px] text-hx-dim shadow-[0_8px_24px_rgba(0,0,0,0.35)] max-md:fixed max-md:inset-x-3 max-md:bottom-[68px]">
@@ -268,7 +266,6 @@ export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onT
         <Layers size={17} />
         <span className="text-[11px]">{is3D ? 'Vue 3D' : 'Vue 2D'}</span>
       </button>
-      {extra}
     </div>
   </div>
 );

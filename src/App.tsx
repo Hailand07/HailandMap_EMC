@@ -59,7 +59,6 @@ import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
 import { Building3DModal } from './components/Building3DModal';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
-import { Edit3DMenu } from './components/Edit3DMenu';
 import { Tracing3DHUD } from './components/Tracing3DHUD';
 import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, BuildingStatus, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
 import {
@@ -6459,34 +6458,6 @@ export default function App() {
   const pendingCount = buildings.filter((b) => b.status === 'en_attente').length;
   const conflictCount = buildings.filter((b) => b.status === 'conteste').length;
 
-  // Menu d'édition 3D : bouton « Édit » en v1, outil « Volumes 3D » du dock en v2 (mêmes actions)
-  const edit3dMenu = (dock: boolean) => (
-    <Edit3DMenu
-      dock={dock}
-            buildings3D={all3DBuildings}
-            isDrawing3D={is3DDrawMode}
-            onStartDrawing3D={() => {
-              setIs3DDrawMode(true);
-              setDrawPoints3D([]);
-              setIsSidebarOpen(false);
-              setSelectedBuilding(null);
-              setClickedCoords(null);
-              addApiLog('START_3D_DRAW', `/map/3d-draw/start`, null, { active: true });
-            }}
-            onSelectBuilding3D={(b) => handleFlyToAndHighlight3DBuilding(b)}
-            onDeleteBuilding3D={(bId) => {
-              handleDeleteCustom3DBuilding(bId);
-            }}
-            onToggle3DPitch={() => {
-              if (!mapRef.current) return;
-              const pitch = mapRef.current.getPitch();
-              const nextPitch = pitch > 15 ? 0 : 50;
-              mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
-              setCurrentPitch(nextPitch);
-            }}
-            currentPitch={currentPitch}
-    />
-  );
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
@@ -7633,7 +7604,6 @@ export default function App() {
                 <AtelierToolbar
                   tool={activeTool}
                   onTool={selectAtelierTool}
-                  extra={edit3dMenu(true)}
                   is3D={currentPitch > 15}
                   onToggle3D={() => {
                     if (!mapRef.current) return;
@@ -7669,8 +7639,6 @@ export default function App() {
             </button>
           )}
 
-          {/* BOUTON ET MENU D'ÉDITION 3D (Tracé manuel 3D & Gestion des volumes) */}
-          {!uiV2 && edit3dMenu(false)}
         </div>
 
         {/* BOUTON FLOTTANT DISCRET "MASQUER" À CÔTÉ DU CURSEUR LORSQU'UN POLYGONE EST SÉLECTIONNÉ */}
