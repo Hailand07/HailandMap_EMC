@@ -206,19 +206,6 @@ export interface Custom3DBuilding {
   created_at: string;
 }
 
-// ===== OBJETS 3D PLACÉS (MODÈLES GLTF/GLB NATIFS MAPBOX) =====
-export interface Placed3DModel {
-  id: string;
-  name: string;
-  modelUrl: string;
-  lng: number;
-  lat: number;
-  altitude?: number;
-  scale?: number;
-  rotation?: number;
-  created_at: string;
-}
-
 // ===== CONFIGURATION SÉLECTION POINT D'ENTRÉE / PORTAIL =====
 export interface EntrancePickerConfig {
   active: boolean;

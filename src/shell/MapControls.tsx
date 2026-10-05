@@ -104,34 +104,6 @@ export const ZoomCluster: React.FC<ZoomProps> = ({ onZoomIn, onZoomOut, onNorth,
   </div>
 );
 
-interface ChipProps {
-  title: string;
-  code: string;
-  total: number;
-  certified: number;
-  pending: number;
-}
-
-/** En haut à gauche : où je suis (commune et carreau au centre de la carte) et où en est le registre. */
-export const ProgressChip: React.FC<ChipProps> = ({ title, code, total, certified, pending }) => {
-  const pct = (n: number) => (total > 0 ? Math.max(0, Math.min(100, (n / total) * 100)) : 0);
-  return (
-    <div className={`flex w-[290px] flex-col gap-2 rounded-[10px] px-3.5 py-2.5 ${FLOAT}`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate text-sm font-semibold">{title}</span>
-        <span className="font-mono text-[11.5px] text-hx-dim">{code}</span>
-      </div>
-      <div className="flex h-[5px] overflow-hidden rounded-[3px] bg-hx-hover" role="img" aria-label={`${certified} certifiés, ${pending} en attente, sur ${total}`}>
-        <div className="bg-hx-ok" style={{ width: `${pct(certified)}%` }} />
-        <div className="bg-hx-warn" style={{ width: `${pct(pending)}%` }} />
-      </div>
-      <div className="text-xs text-hx-dim">
-        {total} relevé{total > 1 ? 's' : ''} · {certified} certifié{certified > 1 ? 's' : ''} · {pending} en attente
-      </div>
-    </div>
-  );
-};
-
 /** Réouvre le panneau de gauche quand il est replié. */
 export const PanelHandle: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
   <button type="button" onClick={onOpen} aria-label="Ouvrir le panneau Territoire" title="Territoire et couches" className={`flex h-10 items-center gap-2 rounded-[10px] px-3 text-[12.5px] text-[#d0d0d0] transition hover:bg-hx-hover max-md:hidden ${FLOAT}`}>

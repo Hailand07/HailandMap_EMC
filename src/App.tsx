@@ -41,7 +41,6 @@ import {
   Settings,
   Wrench,
   Grid,
-  Boxes,
   Crosshair,
   Loader2,
   Locate,
@@ -62,8 +61,7 @@ import { Building3DModal } from './components/Building3DModal';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
 import { Edit3DMenu } from './components/Edit3DMenu';
 import { Tracing3DHUD } from './components/Tracing3DHUD';
-import { getHouseModelUrl } from './utils/houseModelData';
-import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, BuildingStatus, Custom3DBuilding, HiddenBuildingData, Placed3DModel, EntrancePickerConfig } from './types';
+import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, BuildingStatus, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
 import {
   MOCK_BUILDINGS,
   MOCK_ZONES,
@@ -89,7 +87,7 @@ import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantA
 import { getUiVersion, setUiVersion } from './shell/uiVersion';
 import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
 import { CandidateCard, BuildingCard } from './v2/atelier/FloatingCards';
-import { MapStyleControl, SatelliteOptions, ZoomCluster, ProgressChip, PanelHandle } from './shell/MapControls';
+import { MapStyleControl, SatelliteOptions, ZoomCluster, PanelHandle } from './shell/MapControls';
 import { CommandPalette } from './v2/atelier/CommandPalette';
 import { ActivityPanel, type ActivityEntry } from './v2/atelier/Activity';
 import { RevueView } from './v2/views/RevueView';
@@ -963,24 +961,6 @@ export default function App() {
   const [selected3DBuilding, setSelected3DBuilding] = useState<Custom3DBuilding | null>(null);
   const [currentPitch, setCurrentPitch] = useState<number>(45);
 
-  // ===== ÉTATS POUR LES MODÈLES 3D GLTF/GLB (house.glb) =====
-  const [placed3DModels, setPlaced3DModels] = useState<Placed3DModel[]>(() => {
-    try {
-      const saved = localStorage.getItem('hailandmap_placed_3d_models');
-      if (saved) {
-        const parsed: Placed3DModel[] = JSON.parse(saved);
-        return parsed.map(m => ({
-          ...m,
-          scale: !m.scale || m.scale < 5 ? 20.0 : m.scale
-        }));
-      }
-    } catch (e) {}
-    return [];
-  });
-  const placed3DModelsRef = useRef<Placed3DModel[]>([]);
-  const [is3DModelPlacementActive, setIs3DModelPlacementActive] = useState<boolean>(false);
-  const is3DModelPlacementActiveRef = useRef<boolean>(false);
-
   const [highlighted3DBuildingId, setHighlighted3DBuildingId] = useState<string | null>(null);
 
   // Masquage dynamique de polygones / bâtiments
@@ -1046,28 +1026,6 @@ export default function App() {
   useEffect(() => {
     isDrawModeRef.current = isDrawMode;
   }, [isDrawMode]);
-
-  useEffect(() => {
-    placed3DModelsRef.current = placed3DModels;
-    try {
-      localStorage.setItem('hailandmap_placed_3d_models', safeJsonStringify(placed3DModels, 0));
-    } catch (e) {}
-    if (mapRef.current) {
-      syncPlaced3DModelsLayer(mapRef.current, placed3DModels);
-    }
-  }, [placed3DModels]);
-
-  useEffect(() => {
-    is3DModelPlacementActiveRef.current = is3DModelPlacementActive;
-    if (mapRef.current) {
-      const canvas = mapRef.current.getCanvas();
-      if (is3DModelPlacementActive) {
-        canvas.style.cursor = 'crosshair';
-      } else if (!is3DDrawMode && !isDrawMode) {
-        canvas.style.cursor = '';
-      }
-    }
-  }, [is3DModelPlacementActive, is3DDrawMode, isDrawMode]);
 
   // ===== ÉTATS & HANDLERS DU MODE CARTE INTERACTIVE (ÉTAPES 1-4 MULTI-SÉLECTION) =====
   const [isInteractiveMapActive, setIsInteractiveMapActive] = useState<boolean>(false);
@@ -1328,7 +1286,6 @@ export default function App() {
   // Atelier v2 : panneau gauche (repliable, onglet piloté par le bouton Couches de la carte) et centre de la carte (pastille de progression)
   const [leftOpen, setLeftOpen] = useState(true);
   const [leftTab, setLeftTab] = useState<'territoire' | 'couches'>('territoire');
-  const [centerKey, setCenterKey] = useState('');
   const [isHdEnhanceForce, setIsHdEnhanceForce] = useState(true);
   const isHdEnhanceForceRef = useRef(true);
 
@@ -1538,13 +1495,7 @@ export default function App() {
         pitch: initialPitch,
         bearing: initialBearing,
         antialias: true,
-        preserveDrawingBuffer: true,
-        transformRequest: (url: string, resourceType: string) => {
-          if (url && (url.includes('house.glb') || resourceType === 'Model')) {
-            return { url: getHouseModelUrl() };
-          }
-          return { url };
-        }
+        preserveDrawingBuffer: true
       });
 
       // Capture et désamorçage préventif des erreurs de style (ex: modèles 3D, tilesets absents)
@@ -1557,8 +1508,7 @@ export default function App() {
               if (
                 errMsg.includes("source 'composite' does not exist") ||
                 errMsg.includes("does not exist in the map's style") ||
-                errMsg.includes('house-model') ||
-                errMsg.includes('house.glb')
+                false
               ) {
                 return;
               }
@@ -1574,8 +1524,7 @@ export default function App() {
         if (
           errMsg.includes("source 'composite' does not exist") ||
           errMsg.includes("does not exist in the map's style") ||
-          errMsg.includes('house-model') ||
-          errMsg.includes('house.glb')
+          false
         ) {
           return;
         }
@@ -1645,7 +1594,6 @@ export default function App() {
         const currentZoom = map.getZoom();
         if (center && typeof center.lng === 'number' && typeof center.lat === 'number' && !isNaN(center.lng) && !isNaN(center.lat)) {
           currentCenterRef.current = [center.lng, center.lat];
-          setCenterKey(`${center.lng.toFixed(3)},${center.lat.toFixed(3)}`);
         }
         if (typeof currentZoom === 'number' && !isNaN(currentZoom)) {
           currentZoomRef.current = currentZoom;
@@ -2310,9 +2258,6 @@ export default function App() {
         // Charger les bâtiments 3D personnalisés tracés manuellement (fill-extrusion)
         syncCustom3DBuildingsLayer(map, custom3DBuildingsRef.current);
 
-        // Déclarer et synchroniser les modèles 3D natifs Mapbox (house.glb)
-        syncPlaced3DModelsLayer(map, placed3DModelsRef.current);
-
         // Appliquer les filtres de bâtiments/polygones masqués
         applyHiddenBuildingsFilter(map, hiddenBuildingsListRef.current);
 
@@ -2339,48 +2284,6 @@ export default function App() {
         }
 
         const { lng, lat } = e.lngLat;
-
-        // MODE PLACEMENT D'OBJET 3D GLTF/GLB (house.glb) ACTIVÉ :
-        if (is3DModelPlacementActiveRef.current) {
-          console.log("[Mapbox Native 3D] Modèle house.glb placé aux coordonnées :", { lng, lat });
-          addApiLog('PLACE_3D_MODEL', `/map/3d-models/place`, { lng, lat, model: 'house.glb' }, { status: 'Success' });
-
-          const newModel: Placed3DModel = {
-            id: `gltf-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            name: `Maison 3D (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-            modelUrl: getHouseModelUrl(),
-            lng,
-            lat,
-            altitude: 0,
-            scale: 20.0, // Échelle conforme à l'échelle moyenne des polygones 3D de la carte (~20 mètres)
-            rotation: 0,
-            created_at: new Date().toISOString()
-          };
-
-          setPlaced3DModels(prev => {
-            const updated = [newModel, ...prev];
-            try {
-              localStorage.setItem('hailandmap_placed_3d_models', safeJsonStringify(updated, 0));
-            } catch (err) {}
-            syncPlaced3DModelsLayer(map, updated);
-            return updated;
-          });
-
-          setIs3DModelPlacementActive(false);
-
-          // Inclinaison douce de la caméra si elle est plate pour admirer le modèle 3D
-          if (map.getPitch() < 25) {
-            map.easeTo({ pitch: 50, duration: 800 });
-            setCurrentPitch(50);
-          }
-
-          setMapNotification({
-            type: 'success',
-            title: 'Objet 3D Placé',
-            message: 'Objet 3D (house.glb) placé avec succès !'
-          });
-          return;
-        }
 
         // MODE SÉLECTION D'ENTRÉE / PORTAIL DE COUR (AVEC AIMANTATION STRICTE AU MUR) :
         if (entrancePickerConfigRef.current && entrancePickerConfigRef.current.active) {
@@ -3519,71 +3422,6 @@ export default function App() {
     addApiLog('DELETE_3D_BUILDING', `/map/3d-buildings/${targetId}`, null, { deleted: true });
   };
 
-  // ===== GESTION DES MODÈLES 3D GLTF/GLB (house.glb) =====
-  const handleStartModel3DPlacement = () => {
-    setIs3DModelPlacementActive(true);
-    setIs3DDrawMode(false);
-    setIsDrawMode(false);
-    setIsSidebarOpen(false);
-    setSelectedBuilding(null);
-    setClickedCoords(null);
-
-    setMapNotification({
-      type: 'info',
-      title: 'Placement 3D',
-      message: "Cliquez sur la carte pour placer l'objet 3D"
-    });
-
-    addApiLog('START_3D_MODEL_PLACEMENT', `/map/3d-models/start`, null, { active: true, model: 'house.glb' });
-  };
-
-  const handleSelectPlaced3DModel = (model: Placed3DModel) => {
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [model.lng, model.lat],
-        zoom: 18.5,
-        pitch: 55,
-        duration: 1000
-      });
-      setCurrentPitch(55);
-    }
-  };
-
-  const handleDeletePlaced3DModel = (modelId: string) => {
-    setPlaced3DModels(prev => {
-      const updated = prev.filter(m => m.id !== modelId);
-      try {
-        localStorage.setItem('hailandmap_placed_3d_models', safeJsonStringify(updated, 0));
-      } catch (err) {}
-      if (mapRef.current) {
-        syncPlaced3DModelsLayer(mapRef.current, updated);
-      }
-      return updated;
-    });
-
-    setMapNotification({
-      type: 'info',
-      title: 'Objet 3D Supprimé',
-      message: 'Le modèle 3D a été retiré de la carte.'
-    });
-
-    addApiLog('DELETE_3D_MODEL', `/map/3d-models/${modelId}`, null, { deleted: true });
-  };
-
-  const handleUpdatePlaced3DModelScale = (modelId: string, newScale: number) => {
-    setPlaced3DModels(prev => {
-      const updated = prev.map(m => m.id === modelId ? { ...m, scale: newScale } : m);
-      try {
-        localStorage.setItem('hailandmap_placed_3d_models', safeJsonStringify(updated, 0));
-      } catch (err) {}
-      if (mapRef.current) {
-        syncPlaced3DModelsLayer(mapRef.current, updated);
-      }
-      return updated;
-    });
-    addApiLog('UPDATE_3D_MODEL_SCALE', `/map/3d-models/${modelId}/scale`, { scale: newScale }, { status: 'Success' });
-  };
-
   const handleHideSelectedPolygon = () => {
     if (!selectedPolygonHideAction) return;
 
@@ -4426,110 +4264,6 @@ export default function App() {
         return;
       }
       console.warn("Erreur synchronisation layer custom 3d buildings:", err);
-    }
-  };
-
-  // ===== GESTION DES MODÈLES 3D NATIFS MAPBOX (ADDMODEL & LAYER TYPE MODEL) =====
-  const syncPlaced3DModelsLayer = (mapInstance: mapboxgl.Map, list: Placed3DModel[], retryCount = 0) => {
-    if (!mapInstance) return;
-    
-    try {
-      const mapAny = mapInstance as any;
-
-      // 1. Déclaration du modèle 3D auprès du style Mapbox
-      const houseModelUrl = getHouseModelUrl();
-      if (typeof mapAny.hasModel === 'function') {
-        if (!mapAny.hasModel('house-model')) {
-          mapAny.addModel('house-model', houseModelUrl);
-        }
-      } else if (typeof mapAny.addModel === 'function') {
-        try {
-          mapAny.addModel('house-model', houseModelUrl);
-        } catch (e) {}
-      }
-
-      // 2. Préparation des entités GeoJSON Point
-      const features = list.map(m => {
-        const s = m.scale && m.scale > 3 ? m.scale : 20.0;
-        return {
-          type: 'Feature' as const,
-          id: m.id,
-          properties: {
-            id: m.id,
-            name: m.name,
-            modelUrl: m.modelUrl || houseModelUrl,
-            scale: s,
-            scale_xyz: [s, s, s],
-            created_at: m.created_at
-          },
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [m.lng, m.lat]
-          }
-        };
-      });
-
-      const sourceData = {
-        type: 'FeatureCollection' as const,
-        features
-      };
-
-      // 3. Source GeoJSON dynamique dédiée
-      const existingSource = mapInstance.getSource('placed-3d-objects-source') as mapboxgl.GeoJSONSource;
-      if (existingSource) {
-        existingSource.setData(sourceData);
-      } else {
-        mapInstance.addSource('placed-3d-objects-source', {
-          type: 'geojson',
-          data: sourceData
-        });
-      }
-
-      // 4. Couche native Mapbox de type 'model'
-      if (!mapInstance.getLayer('placed-3d-objects-layer')) {
-        const layers = mapInstance.getStyle()?.layers;
-        const firstSymbolId = layers?.find(l => l.type === 'symbol' && l.layout?.['text-field'])?.id;
-
-        mapAny.addLayer(
-          {
-            id: 'placed-3d-objects-layer',
-            type: 'model',
-            source: 'placed-3d-objects-source',
-            layout: {
-              'model-id': 'house-model'
-            },
-            paint: {
-              'model-scale': ['coalesce', ['get', 'scale_xyz'], ['literal', [20, 20, 20]]],
-              'model-rotation': [0, 0, 0],
-              'model-translation': [0, 0, 0],
-              'model-opacity': 1.0
-            }
-          },
-          firstSymbolId
-        );
-
-        mapInstance.on('mouseenter', 'placed-3d-objects-layer', () => {
-          mapInstance.getCanvas().style.cursor = 'pointer';
-        });
-        mapInstance.on('mouseleave', 'placed-3d-objects-layer', () => {
-          if (!is3DModelPlacementActiveRef.current && !is3DDrawModeRef.current && !isDrawModeRef.current) {
-            mapInstance.getCanvas().style.cursor = '';
-          }
-        });
-      }
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      if (msg.includes('Style is not done loading') || msg.includes('not done loading')) {
-        if (retryCount < 20) {
-          setTimeout(() => {
-          syncPlaced3DModelsLayer(mapInstance, list, retryCount + 1);
-        }, 150);
-        } else {
-          console.warn("Abandon synchronisation syncPlaced3DModelsLayer après 20 tentatives");
-        }
-        return;
-      }
-      console.warn('[Mapbox Native 3D] Erreur synchronisation couche model:', err);
     }
   };
 
@@ -6733,7 +6467,6 @@ export default function App() {
             isDrawing3D={is3DDrawMode}
             onStartDrawing3D={() => {
               setIs3DDrawMode(true);
-              setIs3DModelPlacementActive(false);
               setDrawPoints3D([]);
               setIsSidebarOpen(false);
               setSelectedBuilding(null);
@@ -6752,12 +6485,6 @@ export default function App() {
               setCurrentPitch(nextPitch);
             }}
             currentPitch={currentPitch}
-            isPlacingModel3D={is3DModelPlacementActive}
-            onStartModel3DPlacement={handleStartModel3DPlacement}
-            placed3DModels={placed3DModels}
-            onSelectPlaced3DModel={handleSelectPlaced3DModel}
-            onDeletePlaced3DModel={handleDeletePlaced3DModel}
-            onUpdatePlaced3DModelScale={handleUpdatePlaced3DModelScale}
     />
   );
 
@@ -7946,33 +7673,6 @@ export default function App() {
           {!uiV2 && edit3dMenu(false)}
         </div>
 
-        {/* HUD FLOTTANT DE PLACEMENT D'OBJET 3D GLTF ACTIF */}
-        <AnimatePresence>
-          {is3DModelPlacementActive && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-slate-900/95 border border-emerald-500/60 rounded-2xl px-4 py-2.5 shadow-2xl backdrop-blur-md ring-1 ring-emerald-400/30 select-none"
-            >
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-              <div className="flex items-center gap-2">
-                <Boxes className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-white font-display">
-                  Cliquez sur la carte pour placer l'objet 3D (house.glb)
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIs3DModelPlacementActive(false)}
-                className="text-[10px] font-mono font-bold text-slate-300 hover:text-rose-400 px-2 py-1 bg-slate-800 hover:bg-rose-950/40 rounded-lg border border-slate-700 hover:border-rose-500/40 transition cursor-pointer"
-              >
-                Annuler
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* BOUTON FLOTTANT DISCRET "MASQUER" À CÔTÉ DU CURSEUR LORSQU'UN POLYGONE EST SÉLECTIONNÉ */}
         <AnimatePresence>
           {selectedPolygonHideAction && (
@@ -8510,18 +8210,9 @@ export default function App() {
         )}
 
         {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
-        {uiV2 && activeAdminView === 'carte' && !(clickedCoords && assistantStarted) && (
-          <div className="absolute left-3.5 top-3.5 z-20 flex flex-col items-start gap-2 max-md:hidden">
-            {!leftOpen && <PanelHandle onOpen={() => setLeftOpen(true)} />}
-            {(() => {
-              const c = currentCenterRef.current;
-              const zone = c ? detect200mZoneFromCoords(c[0], c[1]) : '';
-              const commune = c ? detectCommuneFromCoords(c[0], c[1]) : '';
-              const certified = buildings.filter((b) => b.status === 'actif').length;
-              const pending = buildings.filter((b) => b.status === 'en_attente').length;
-              void centerKey;
-              return <ProgressChip title={commune || 'Conakry'} code={zone || '—'} total={buildings.length} certified={certified} pending={pending} />;
-            })()}
+        {uiV2 && activeAdminView === 'carte' && !leftOpen && !(clickedCoords && assistantStarted) && (
+          <div className="absolute left-3.5 top-3.5 z-20 max-md:hidden">
+            <PanelHandle onOpen={() => setLeftOpen(true)} />
           </div>
         )}
 
