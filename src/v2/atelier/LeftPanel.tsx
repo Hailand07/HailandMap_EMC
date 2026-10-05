@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
+import { PanelLeftClose } from 'lucide-react';
 import type { Building } from '../../types';
+import { MAP_STYLES } from '../../shell/MapControls';
 
 const statusColor = (b: Building) =>
   b.status === 'actif' ? 'bg-hx-ok' : b.status === 'en_attente' ? 'bg-hx-warn' : b.status === 'conteste' ? 'bg-hx-bad' : b.status === 'non_reclame' ? 'bg-hx-violet' : 'bg-hx-faint';
@@ -18,17 +20,16 @@ interface Props {
   onMapStyle: (id: string) => void;
   /** Contenu de la « Carte interactive » (arbre région → quartier) quand elle est activée. */
   interactiveTree?: React.ReactNode;
+  /** Onglet affiché : piloté par l'Atelier pour que le bouton « Couches » de la carte l'ouvre. */
+  tab: 'territoire' | 'couches';
+  onTab: (t: 'territoire' | 'couches') => void;
+  onCollapse: () => void;
 }
 
-const STYLES = [
-  { id: 'custom', label: 'Plan Hailand' },
-  { id: 'satellite', label: 'Satellite' },
-  { id: 'standard-3d', label: 'Standard 3D' },
-];
+const STYLES = MAP_STYLES;
 
 /** Panneau gauche de l'Atelier v2 (maquette) : onglets Territoire / Couches, arbre commune → quartier → fiches, affichage. */
-export const AtelierLeftPanel: React.FC<Props> = ({ buildings, selectedId, onSelectBuilding, gridOn, onToggleGrid, interactiveOn, onToggleInteractive, is3D, onToggle3D, mapStyle, onMapStyle, interactiveTree }) => {
-  const [tab, setTab] = useState<'territoire' | 'couches'>('territoire');
+export const AtelierLeftPanel: React.FC<Props> = ({ buildings, selectedId, onSelectBuilding, gridOn, onToggleGrid, interactiveOn, onToggleInteractive, is3D, onToggle3D, mapStyle, onMapStyle, interactiveTree, tab, onTab, onCollapse }) => {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [q, setQ] = useState('');
 
@@ -53,13 +54,16 @@ export const AtelierLeftPanel: React.FC<Props> = ({ buildings, selectedId, onSel
   const isOpen = (k: string) => (q ? true : (open[k] ?? true));
 
   return (
-    <aside aria-label="Territoire et couches" className="relative z-40 flex h-full w-[272px] shrink-0 flex-col border-r border-hx-line bg-hx-panel text-hx-text max-md:hidden">
+    <aside aria-label="Territoire et couches" className="relative z-40 flex h-full w-[264px] shrink-0 flex-col border-r border-hx-line bg-hx-panel text-hx-text max-md:hidden">
       <div className="flex gap-1 px-2.5 pt-2.5">
         {(['territoire', 'couches'] as const).map((t) => (
-          <button key={t} type="button" onClick={() => setTab(t)} className={`h-[30px] flex-1 rounded-md text-[12.5px] transition ${tab === t ? 'bg-hx-hover font-semibold text-hx-text' : 'text-hx-dim hover:bg-hx-hover/40'}`}>
+          <button key={t} type="button" onClick={() => onTab(t)} className={`h-[30px] flex-1 rounded-md text-[12.5px] transition ${tab === t ? 'bg-hx-hover font-semibold text-hx-text' : 'text-hx-dim hover:bg-hx-hover/40'}`}>
             {t === 'territoire' ? 'Territoire' : 'Couches'}
           </button>
         ))}
+        <button type="button" onClick={onCollapse} aria-label="Replier le panneau" title="Replier le panneau" className="flex h-[30px] w-[30px] items-center justify-center rounded-md text-hx-faint transition hover:bg-hx-hover/40 hover:text-hx-text">
+          <PanelLeftClose size={15} />
+        </button>
       </div>
 
       {tab === 'territoire' ? (

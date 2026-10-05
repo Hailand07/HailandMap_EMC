@@ -88,10 +88,10 @@ import * as turf from '@turf/turf';
 import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, RegistrationSlot, TOOLS, type AtelierTool } from './shell/AtelierShell';
 import { getUiVersion, setUiVersion } from './shell/uiVersion';
 import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
-import { CandidateInspector, BuildingInspector, EmptyInspector } from './v2/atelier/Inspector';
+import { CandidateCard, BuildingCard } from './v2/atelier/FloatingCards';
+import { MapStyleControl, SatelliteOptions, ZoomCluster, ProgressChip, PanelHandle } from './shell/MapControls';
 import { CommandPalette } from './v2/atelier/CommandPalette';
 import { ActivityPanel, type ActivityEntry } from './v2/atelier/Activity';
-import { MapLegend } from './v2/atelier/MapLegend';
 import { RevueView } from './v2/views/RevueView';
 import { RegistreView } from './v2/views/RegistreView';
 import { PilotageView } from './v2/views/PilotageView';
@@ -1325,6 +1325,10 @@ export default function App() {
 
   // États de l'application
   const [zoomLevel, setZoomLevel] = useState(13.5);
+  // Atelier v2 : panneau gauche (repliable, onglet piloté par le bouton Couches de la carte) et centre de la carte (pastille de progression)
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [leftTab, setLeftTab] = useState<'territoire' | 'couches'>('territoire');
+  const [centerKey, setCenterKey] = useState('');
   const [isHdEnhanceForce, setIsHdEnhanceForce] = useState(true);
   const isHdEnhanceForceRef = useRef(true);
 
@@ -1641,6 +1645,7 @@ export default function App() {
         const currentZoom = map.getZoom();
         if (center && typeof center.lng === 'number' && typeof center.lat === 'number' && !isNaN(center.lng) && !isNaN(center.lat)) {
           currentCenterRef.current = [center.lng, center.lat];
+          setCenterKey(`${center.lng.toFixed(3)},${center.lat.toFixed(3)}`);
         }
         if (typeof currentZoom === 'number' && !isNaN(currentZoom)) {
           currentZoomRef.current = currentZoom;
@@ -6647,7 +6652,7 @@ export default function App() {
     if (!uiV2) return;
     const t = setTimeout(() => mapRef.current?.resize(), 60);
     return () => clearTimeout(t);
-  }, [uiV2, activeAdminView, clickedCoords, assistantStarted, selectedBuilding, selectedGridCell, isGridPanelOpen]);
+  }, [uiV2, activeAdminView, clickedCoords, assistantStarted, selectedBuilding, selectedGridCell, isGridPanelOpen, leftOpen]);
 
   // Coordonnées du curseur dans la barre d'état (Atelier v2).
   useEffect(() => {
@@ -6719,6 +6724,42 @@ export default function App() {
   const currentAdmin = profiles.find((p) => p.id === actorId()) || profiles.find((p) => p.role === 'admin') || profiles[0];
   const pendingCount = buildings.filter((b) => b.status === 'en_attente').length;
   const conflictCount = buildings.filter((b) => b.status === 'conteste').length;
+
+  // Menu d'édition 3D : bouton « Édit » en v1, outil « Volumes 3D » du dock en v2 (mêmes actions)
+  const edit3dMenu = (dock: boolean) => (
+    <Edit3DMenu
+      dock={dock}
+            buildings3D={all3DBuildings}
+            isDrawing3D={is3DDrawMode}
+            onStartDrawing3D={() => {
+              setIs3DDrawMode(true);
+              setIs3DModelPlacementActive(false);
+              setDrawPoints3D([]);
+              setIsSidebarOpen(false);
+              setSelectedBuilding(null);
+              setClickedCoords(null);
+              addApiLog('START_3D_DRAW', `/map/3d-draw/start`, null, { active: true });
+            }}
+            onSelectBuilding3D={(b) => handleFlyToAndHighlight3DBuilding(b)}
+            onDeleteBuilding3D={(bId) => {
+              handleDeleteCustom3DBuilding(bId);
+            }}
+            onToggle3DPitch={() => {
+              if (!mapRef.current) return;
+              const pitch = mapRef.current.getPitch();
+              const nextPitch = pitch > 15 ? 0 : 50;
+              mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
+              setCurrentPitch(nextPitch);
+            }}
+            currentPitch={currentPitch}
+            isPlacingModel3D={is3DModelPlacementActive}
+            onStartModel3DPlacement={handleStartModel3DPlacement}
+            placed3DModels={placed3DModels}
+            onSelectPlaced3DModel={handleSelectPlaced3DModel}
+            onDeletePlaced3DModel={handleDeletePlaced3DModel}
+            onUpdatePlaced3DModelScale={handleUpdatePlaced3DModelScale}
+    />
+  );
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
@@ -6855,14 +6896,14 @@ export default function App() {
               `}</style>
               
               {/* Overlay Backdrop de mise au point pour Mobile */}
-              {isSidebarOpen && (
+              {isSidebarOpen && !uiV2 && (
                 <div 
                   onClick={() => setIsSidebarOpen(false)}
                   className="absolute inset-0 bg-black/60 backdrop-blur-xs z-30 md:hidden transition-opacity duration-300"
                 />
               )}
 
-              {uiV2 && !(clickedCoords && assistantStarted) && (
+              {uiV2 && leftOpen && !(clickedCoords && assistantStarted) && (
                 <AtelierLeftPanel
                   buildings={buildings}
                   selectedId={selectedBuilding?.id ?? null}
@@ -6880,6 +6921,9 @@ export default function App() {
                   }}
                   mapStyle={currentStyle}
                   onMapStyle={handleStyleChange}
+                  tab={leftTab}
+                  onTab={setLeftTab}
+                  onCollapse={() => setLeftOpen(false)}
                   interactiveTree={
                     <InteractiveTerritoryTree
                       selectedTerritories={selectedTerritories}
@@ -7862,6 +7906,7 @@ export default function App() {
                 <AtelierToolbar
                   tool={activeTool}
                   onTool={selectAtelierTool}
+                  extra={edit3dMenu(true)}
                   is3D={currentPitch > 15}
                   onToggle3D={() => {
                     if (!mapRef.current) return;
@@ -7883,8 +7928,6 @@ export default function App() {
                 />
               )}
 
-              {uiV2 && <MapLegend />}
-
 
         {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
         <div className={`absolute left-4 z-20 flex items-center gap-2 ${uiV2 ? "top-16" : "top-4"}`}>
@@ -7900,37 +7943,7 @@ export default function App() {
           )}
 
           {/* BOUTON ET MENU D'ÉDITION 3D (Tracé manuel 3D & Gestion des volumes) */}
-          <Edit3DMenu
-            buildings3D={all3DBuildings}
-            isDrawing3D={is3DDrawMode}
-            onStartDrawing3D={() => {
-              setIs3DDrawMode(true);
-              setIs3DModelPlacementActive(false);
-              setDrawPoints3D([]);
-              setIsSidebarOpen(false);
-              setSelectedBuilding(null);
-              setClickedCoords(null);
-              addApiLog('START_3D_DRAW', `/map/3d-draw/start`, null, { active: true });
-            }}
-            onSelectBuilding3D={(b) => handleFlyToAndHighlight3DBuilding(b)}
-            onDeleteBuilding3D={(bId) => {
-              handleDeleteCustom3DBuilding(bId);
-            }}
-            onToggle3DPitch={() => {
-              if (!mapRef.current) return;
-              const pitch = mapRef.current.getPitch();
-              const nextPitch = pitch > 15 ? 0 : 50;
-              mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
-              setCurrentPitch(nextPitch);
-            }}
-            currentPitch={currentPitch}
-            isPlacingModel3D={is3DModelPlacementActive}
-            onStartModel3DPlacement={handleStartModel3DPlacement}
-            placed3DModels={placed3DModels}
-            onSelectPlaced3DModel={handleSelectPlaced3DModel}
-            onDeletePlaced3DModel={handleDeletePlaced3DModel}
-            onUpdatePlaced3DModelScale={handleUpdatePlaced3DModelScale}
-          />
+          {!uiV2 && edit3dMenu(false)}
         </div>
 
         {/* HUD FLOTTANT DE PLACEMENT D'OBJET 3D GLTF ACTIF */}
@@ -8161,7 +8174,23 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* SÉLECTEUR DE CALQUES (LAYER SWITCHER) COMPACT & DISCRET */}
+        {/* Atelier v2 : fond de carte et réglages du satellite en haut à droite */}
+        {uiV2 && activeAdminView === 'carte' && (
+          <div className="absolute right-3.5 top-3.5 z-20 flex flex-col items-end gap-2">
+            <MapStyleControl current={currentStyle} onChange={handleStyleChange} onOpenLayers={() => { setLeftTab('couches'); setLeftOpen(true); }} />
+            {currentStyle === 'satellite' && (
+              <SatelliteOptions
+                hd={isHdEnhanceForce}
+                onToggleHd={() => { setIsHdEnhanceForce(!isHdEnhanceForce); addApiLog('TOGGLE_CV_HD', `/map/satellite/hd-mode`, null, { active: !isHdEnhanceForce }); }}
+                grid={is200mGridActive}
+                onToggleGrid={() => { setIs200mGridActive(!is200mGridActive); addApiLog('TOGGLE_GRID_200M', `/map/satellite/grid-200m`, null, { active: !is200mGridActive }); }}
+                zoom={zoomLevel}
+              />
+            )}
+          </div>
+        )}
+
+        {!uiV2 && (
         <div className={`absolute right-4 z-20 flex flex-col items-end ${uiV2 ? "top-4 max-md:top-[68px]" : "top-4"}`}>
           <div className="relative">
             <button
@@ -8210,6 +8239,10 @@ export default function App() {
           </div>
         </div>
 
+        )}
+
+        {!uiV2 && (
+        <>
         {/* VOLET D'OPTIONS SATELLITE (SUPER-RÉSOLUTION & GRILLE 200M) EN BAS À GAUCHE */}
         {currentStyle === 'satellite' && isSatelliteOptionsCollapsed && (
           <button
@@ -8372,6 +8405,24 @@ export default function App() {
           </div>
         )}
 
+        </>
+        )}
+
+        {uiV2 && activeAdminView === 'carte' && (
+          <div className="absolute bottom-4 right-3.5 z-20 max-md:bottom-auto max-md:top-[64px]">
+            <ZoomCluster
+              onZoomIn={() => mapRef.current?.zoomIn()}
+              onZoomOut={() => mapRef.current?.zoomOut()}
+              onNorth={() => mapRef.current?.easeTo({ bearing: 0, pitch: 45, duration: 800 })}
+              onLocate={recenterMap}
+              locating={isRecentering || isLocating}
+              located={!!userLocation}
+            />
+          </div>
+        )}
+
+        {!uiV2 && (
+        <>
         {/* CONTROLEURS DE LA CARTE STYLE GOOGLE MAPS (Angle en bas à droite) */}
         <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-2 items-end">
           {/* BOUTON UNIQUE DE GÉOLOCALISATION STYLE GOOGLE MAPS (My Location / Recentrer) */}
@@ -8436,6 +8487,43 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        </>
+        )}
+
+        {/* Atelier v2 : fiche flottante près du bâtiment sélectionné (remplace l'ancien panneau de droite) */}
+        {uiV2 && activeAdminView === 'carte' && !assistantStarted && clickedCoords && (
+          <CandidateCard
+            map={mapRef.current}
+            coords={clickedCoords}
+            zone={detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+            commune={detectCommuneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+            buildings={buildings}
+            onCreate={() => startAssistant('single')}
+            onConcession={() => startAssistant('courtyard')}
+            onRedraw={() => { setClickedCoords(null); selectAtelierTool('trace'); }}
+            onClose={() => setClickedCoords(null)}
+          />
+        )}
+        {uiV2 && activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
+          <BuildingCard map={mapRef.current} building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
+        )}
+
+        {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
+        {uiV2 && activeAdminView === 'carte' && !(clickedCoords && assistantStarted) && (
+          <div className="absolute left-3.5 top-3.5 z-20 flex flex-col items-start gap-2 max-md:hidden">
+            {!leftOpen && <PanelHandle onOpen={() => setLeftOpen(true)} />}
+            {(() => {
+              const c = currentCenterRef.current;
+              const zone = c ? detect200mZoneFromCoords(c[0], c[1]) : '';
+              const commune = c ? detectCommuneFromCoords(c[0], c[1]) : '';
+              const certified = buildings.filter((b) => b.status === 'actif').length;
+              const pending = buildings.filter((b) => b.status === 'en_attente').length;
+              void centerKey;
+              return <ProgressChip title={commune || 'Conakry'} code={zone || '—'} total={buildings.length} certified={certified} pending={pending} />;
+            })()}
+          </div>
+        )}
 
         {/* RUSTINE DE BIENVENUE & CONSEIL GPS */}
         <div className={`absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm ${uiV2 ? "hidden" : "hidden lg:block"}`}>
@@ -8509,26 +8597,7 @@ export default function App() {
           </div>
         )}
 
-        {uiV2 && activeAdminView === 'carte' && (
-          clickedCoords && assistantStarted ? (
-            <AssistantAside hostRef={setAssistantHost} />
-          ) : clickedCoords ? (
-            <CandidateInspector
-              coords={clickedCoords}
-              zone={detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
-              commune={detectCommuneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
-              buildings={buildings}
-              onCreate={() => startAssistant('single')}
-              onConcession={() => startAssistant('courtyard')}
-              onRedraw={() => { setClickedCoords(null); selectAtelierTool('trace'); }}
-              onClose={() => setClickedCoords(null)}
-            />
-          ) : selectedBuilding ? (
-            <BuildingInspector building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
-          ) : selectedGridCell && isGridPanelOpen ? null : (
-            <EmptyInspector buildings={buildings} onTool={selectAtelierTool} />
-          )
-        )}
+        {uiV2 && activeAdminView === 'carte' && clickedCoords && assistantStarted && <AssistantAside hostRef={setAssistantHost} />}
 
         {/* Panneau latéral droit pour le carreau de grille 200m sélectionné */}
         {!selectedBuilding && selectedGridCell && isGridPanelOpen && (

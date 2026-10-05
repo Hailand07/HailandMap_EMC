@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Building2, Home, Layers, LineChart, Map as MapIcon, Search, Settings, Inbox } from 'lucide-react';
+import { Bell, Building2, Home, Layers, LineChart, LogOut, Map as MapIcon, Search, Settings, Inbox } from 'lucide-react';
+import { signOut } from '../lib/agentAuth';
 import type { View } from '../types';
 import { MODULES, moduleOfView, type ModuleId } from './modules';
 
@@ -24,6 +25,13 @@ interface TopBarProps {
 /** Barre du haut de l'Atelier v2 : logo, fil d'Ariane, recherche universelle (Ctrl K à venir), état, réglages, agent. */
 export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSettings, onSearch, onBell, unread }) => {
   const mod = moduleOfView(view);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [menuOpen]);
   const initials = adminName
     .split(' ')
     .map((n) => n[0])
@@ -57,9 +65,41 @@ export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSe
         <button type="button" onClick={onOpenSettings} aria-label="Réglages" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-800">
           <Settings size={17} />
         </button>
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[11.5px] font-semibold text-slate-100" title={adminName}>
-          {initials || 'AG'}
-        </span>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Mon compte"
+            title={adminName}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[11.5px] font-semibold text-slate-100 transition hover:bg-slate-600"
+          >
+            {initials || 'AG'}
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-[60]" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+              <div role="menu" className="absolute right-0 top-9 z-[61] w-60 rounded-xl border border-hx-line2 bg-hx-panel p-1.5 shadow-[0_18px_44px_rgba(0,0,0,0.5)]">
+                <div className="px-3 py-2.5">
+                  <div className="truncate text-[13.5px] font-semibold text-hx-text">{adminName}</div>
+                  <div className="text-[11.5px] text-hx-faint">Agent HailandMap</div>
+                </div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void signOut();
+                  }}
+                  className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13px] text-hx-text transition hover:bg-hx-hover"
+                >
+                  <LogOut size={15} /> Se déconnecter
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -123,12 +163,13 @@ export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesC
         {Math.abs(cursor.lat).toFixed(4)}° {cursor.lat >= 0 ? 'N' : 'S'} · {Math.abs(cursor.lng).toFixed(4)}° {cursor.lng >= 0 ? 'E' : 'O'}
       </span>
     )}
-    <span>{buildingsCount} bâtiments</span>
-    <span>{zonesCount} zones</span>
-    <span>Conakry, Guinée</span>
     {zoom !== undefined && <span>zoom {zoom.toFixed(1)}</span>}
+    <span>{buildingsCount} bâtiments · {zonesCount} zones</span>
     <span className="flex-1" />
     {message ? <span className="text-indigo-300">{message}</span> : toolHint && <span className="text-slate-400">{toolHint}</span>}
+    <span className="flex items-center gap-1.5 font-sans"><span className="h-2 w-2 rounded-sm bg-hx-ok" />Actif</span>
+    <span className="flex items-center gap-1.5 font-sans"><span className="h-2 w-2 rounded-sm bg-hx-warn" />En attente</span>
+    <span className="flex items-center gap-1.5 font-sans"><span className="h-2 w-2 rounded-sm border border-hx-line2 bg-hx-map" />OSM non relevé</span>
     <span className="text-slate-400">{adminName}</span>
   </footer>
 );
@@ -136,12 +177,12 @@ export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesC
 /** Outils de l'Atelier : chacun correspond à un réglage existant de la carte (voir `App.tsx`). */
 export type AtelierTool = 'selection' | 'batiment' | 'concession' | 'trace' | 'carreau';
 
-export const TOOLS: { id: AtelierTool; label: string; key: string; hint: string }[] = [
-  { id: 'selection', label: 'Sélection', key: 'V', hint: 'Cliquez un bâtiment pour l\u2019inspecter, puis choisissez quoi en faire' },
-  { id: 'batiment', label: 'Bâtiment', key: 'B', hint: 'Cliquez un bâtiment OSM pour créer sa fiche' },
-  { id: 'concession', label: 'Concession', key: 'C', hint: 'Cliquez le bâtiment d\u2019une concession ou tracez son enceinte' },
-  { id: 'trace', label: 'Tracé libre', key: 'P', hint: 'Posez les sommets, double-clic pour fermer' },
-  { id: 'carreau', label: 'Carreau 200 m', key: 'G', hint: 'Cliquez un carreau de la grille pour voir ou relever ses bâtiments' },
+export const TOOLS: { id: AtelierTool; label: string; dock: string; key: string; hint: string }[] = [
+  { id: 'selection', label: 'Sélection', dock: 'Sélection', key: 'V', hint: 'Cliquez un bâtiment pour l\u2019inspecter, puis choisissez quoi en faire' },
+  { id: 'batiment', label: 'Bâtiment', dock: 'Bâtiment', key: 'B', hint: 'Cliquez un bâtiment OSM pour créer sa fiche' },
+  { id: 'concession', label: 'Concession', dock: 'Concession', key: 'C', hint: 'Cliquez le bâtiment d\u2019une concession ou tracez son enceinte' },
+  { id: 'trace', label: 'Tracé libre', dock: 'Tracé libre', key: 'P', hint: 'Posez les sommets, double-clic pour fermer' },
+  { id: 'carreau', label: 'Carreau 200 m', dock: 'Carreau', key: 'G', hint: 'Cliquez un carreau de la grille pour voir ou relever ses bâtiments' },
 ];
 
 const TOOL_ICONS: Record<AtelierTool, React.ReactNode> = {
@@ -169,12 +210,36 @@ interface ToolbarProps {
   onToggle3D: () => void;
   /** Tracé libre en cours : sommets posés et actions. */
   drawing: { points: number; areaM2: number | null; onFinish: () => void; onUndo: () => void; onQuit: () => void } | null;
+  /** Éléments ajoutés en fin de dock (ex. : menu des volumes 3D). */
+  extra?: React.ReactNode;
 }
 
-/** Barre d'outils flottante en haut de la carte (Atelier v2) : outils, 2D/3D, et actions du tracé libre quand il est actif. */
-export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing }) => (
-  <div className="pointer-events-none absolute left-1/2 top-3.5 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:top-2">
-    <div role="toolbar" aria-label="Outils" className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+/** Dock d'outils en bas de la carte (Atelier v2) : outils avec nom et raccourci, vue à plat / en perspective, actions du tracé libre. Sur téléphone : colonne à gauche. */
+export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing, extra }) => (
+  <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:bottom-auto max-md:left-3 max-md:top-3 max-md:max-w-none max-md:translate-x-0 max-md:items-start">
+    {drawing && (
+      <div className="pointer-events-auto flex flex-wrap items-center gap-3 rounded-xl border border-hx-line2 bg-hx-panel px-3.5 py-2 text-[12.5px] text-hx-dim shadow-[0_8px_24px_rgba(0,0,0,0.35)] max-md:fixed max-md:inset-x-3 max-md:bottom-[68px]">
+        <span>
+          <b className="font-mono text-hx-text">{drawing.points}</b> sommet{drawing.points > 1 ? 's' : ''}
+          {drawing.areaM2 !== null && <span className="ml-2 font-mono text-hx-faint">{drawing.areaM2} m²</span>}
+        </span>
+        <button
+          type="button"
+          onClick={drawing.onFinish}
+          disabled={drawing.points < 3}
+          className="h-8 rounded-lg bg-hx-accent px-3 text-[12.5px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Valider le tracé
+        </button>
+        <button type="button" onClick={drawing.onUndo} disabled={drawing.points === 0} className="h-8 rounded-lg border border-hx-line2 px-3 transition hover:bg-hx-hover disabled:opacity-40">
+          Annuler le dernier
+        </button>
+        <button type="button" onClick={drawing.onQuit} className="h-8 rounded-lg px-2 text-hx-faint transition hover:text-hx-text">
+          Quitter
+        </button>
+      </div>
+    )}
+    <div role="toolbar" aria-label="Outils" className="pointer-events-auto flex items-stretch gap-1 rounded-[14px] border border-hx-line2 bg-hx-panel p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.4)] max-md:flex-col max-md:rounded-[14px] max-md:p-1">
       {TOOLS.map((t) => {
         const on = tool === t.id;
         return (
@@ -185,45 +250,26 @@ export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onT
             aria-label={`${t.label} (${t.key})`}
             aria-pressed={on}
             title={`${t.label} — ${t.key}`}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${on ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
+            className={`flex h-14 w-[72px] flex-col items-center justify-center gap-1 rounded-[9px] transition max-md:h-[46px] max-md:w-[46px] ${on ? 'bg-hx-accent text-white' : 'text-[#d0d0d0] hover:bg-hx-hover'}`}
           >
             {TOOL_ICONS[t.id]}
+            <span className={`text-[11px] max-md:hidden ${on ? 'font-semibold' : ''}`}>{t.dock}</span>
           </button>
         );
       })}
-      <span className="mx-1 h-[22px] w-px bg-slate-700" />
+      <span className="mx-1 my-2 w-px bg-hx-line2 max-md:hidden" />
       <button
         type="button"
         onClick={onToggle3D}
         aria-pressed={is3D}
-        className="h-9 rounded-lg px-2.5 text-[12.5px] font-semibold text-slate-200 transition hover:bg-slate-800"
         title="Basculer entre la vue à plat et la vue en perspective"
+        className="flex h-14 w-[60px] flex-col items-center justify-center gap-1 rounded-[9px] text-[#d0d0d0] transition hover:bg-hx-hover max-md:hidden"
       >
-        {is3D ? '3D' : '2D'}
+        <Layers size={17} />
+        <span className="text-[11px]">{is3D ? 'Vue 3D' : 'Vue 2D'}</span>
       </button>
+      {extra}
     </div>
-    {drawing && (
-      <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-[12.5px] text-slate-300 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-        <span>
-          <b className="font-mono text-slate-100">{drawing.points}</b> sommet{drawing.points > 1 ? 's' : ''}
-          {drawing.areaM2 !== null && <span className="ml-2 font-mono text-slate-400">{drawing.areaM2} m²</span>}
-        </span>
-        <button
-          type="button"
-          onClick={drawing.onFinish}
-          disabled={drawing.points < 3}
-          className="h-8 rounded-lg bg-indigo-600 px-3 text-[12.5px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Valider le tracé
-        </button>
-        <button type="button" onClick={drawing.onUndo} disabled={drawing.points === 0} className="h-8 rounded-lg border border-slate-600 px-3 transition hover:bg-slate-800 disabled:opacity-40">
-          Annuler le dernier
-        </button>
-        <button type="button" onClick={drawing.onQuit} className="h-8 rounded-lg px-2 text-slate-400 transition hover:text-slate-100">
-          Quitter
-        </button>
-      </div>
-    )}
   </div>
 );
 
