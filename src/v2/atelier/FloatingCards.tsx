@@ -182,10 +182,12 @@ interface BuildingProps {
   building: Building;
   onClose: () => void;
   onOpenRegistre: () => void;
+  /** Personnes rattachées officiellement (déclarations liées à ce bâtiment certifié). */
+  residents?: number;
 }
 
 /** Bâtiment déjà au registre : l'essentiel de sa fiche, et l'accès au registre pour le détail. */
-export const BuildingCard: React.FC<BuildingProps> = ({ map, building: b, onClose, onOpenRegistre }) => {
+export const BuildingCard: React.FC<BuildingProps> = ({ map, building: b, onClose, onOpenRegistre, residents = 0 }) => {
   const st = STATUS_LABEL[b.status] ?? STATUS_LABEL.inactif;
   const kind = b.has_courtyard ? 'Concession' : b.parent_building_id ? 'Bâtiment de concession' : 'Bâtiment';
   const place = [b.quartier, b.commune].filter(Boolean).join(', ');
@@ -197,13 +199,18 @@ export const BuildingCard: React.FC<BuildingProps> = ({ map, building: b, onClos
           <Close onClick={onClose} />
         </div>
         <div className="text-[17px] font-semibold">{b.landmark_note || `${kind} ${b.building_type}`}</div>
-        {b.hailand_code && <div className="font-mono text-xs text-hx-accent-text">{b.hailand_code}</div>}
+        {b.admin_code ? (
+          <div className="font-mono text-xs text-hx-accent-text" title="Code public Hailand">{b.admin_code}</div>
+        ) : (
+          <div className="text-[11.5px] text-hx-faint">Code public attribué à la certification</div>
+        )}
         <div className="mt-0.5 flex flex-wrap gap-x-3.5 gap-y-1">
           <Fact value={b.floor_count === 0 ? 'RDC' : `R+${b.floor_count}`} label="niveaux" />
-          <Fact value={b.unit_count} label={`logement${b.unit_count > 1 ? 's' : ''}`} />
+          <Fact value={b.unit_count} label={`unité${b.unit_count > 1 ? 's' : ''}`} />
+          <Fact value={residents} label={`personne${residents > 1 ? 's' : ''} rattachée${residents > 1 ? 's' : ''}`} />
           {place && <span className="text-[12.5px] text-hx-dim">{place}</span>}
         </div>
-        {b.admin_address_code && <div className="font-mono text-[11.5px] text-hx-faint">{b.admin_address_code}</div>}
+        {b.hailand_code && <div className="font-mono text-[11.5px] text-hx-faint" title="Code de grille, usage interne">interne · {b.hailand_code}</div>}
       </div>
       <div className="flex gap-2 px-4 pb-4">
         <button type="button" onClick={onOpenRegistre} className="h-[42px] flex-1 rounded-[9px] bg-hx-accent text-sm font-semibold text-white transition hover:brightness-110 max-md:h-[54px] max-md:text-base">

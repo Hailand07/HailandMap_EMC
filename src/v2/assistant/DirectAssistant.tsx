@@ -135,8 +135,8 @@ export const DirectAssistant: React.FC<DirectAssistantProps> = (props) => {
               value={f.isSubdivided ? 'multi' : 'single'}
               onChange={(v) => f.setIsSubdivided(v === 'multi')}
               options={[
-                { value: 'single', label: 'Une seule unité', hint: 'Monobloc' },
-                { value: 'multi', label: 'Plusieurs unités', hint: 'Appartements, lots, boutiques' },
+                { value: 'single', label: 'Maison familiale ou local unique', hint: 'Une seule unité : pas d’étage ni de porte à choisir' },
+                { value: 'multi', label: 'Plusieurs logements ou locaux', hint: 'Chaque porte devient une unité que les résidents choisiront' },
               ]}
             />
             {f.isSubdivided && (

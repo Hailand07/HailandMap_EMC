@@ -65,7 +65,10 @@ export type PhysicalPosition =
 // ===== BÂTIMENTS =====
 export interface Building {
   id: string;
+  /** Code de grille (GN-Z…-…) : usage interne HailandMap / logistique. */
   hailand_code: string | null;
+  /** Code public administratif (GN-CKY-PP-CC-QQQ-NNNN), attribué par le serveur à la certification ; partagé par les bâtiments d'une concession. */
+  admin_code?: string | null;
   parent_building_id: string | null;
   zone_id: string | null;
   zone_code: string | null;

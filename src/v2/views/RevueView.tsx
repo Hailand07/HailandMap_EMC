@@ -3,6 +3,8 @@ import type { Building, Profile } from '../../types';
 import { generateHailandCode } from '../../lib/supabase';
 import { MiniMap } from '../common/MiniMap';
 import { fmtDate, levelsOf, natureOf, StatusDot, typeLabel } from '../common/status';
+import { DemandesPanel } from './DemandesPanel';
+import type { Declaration } from '../../lib/attachment';
 
 interface Props {
   buildings: Building[];
@@ -11,9 +13,13 @@ interface Props {
   onApprove: (b: Building, code: string) => void | Promise<void>;
   onReject: (b: Building, comment: string) => void | Promise<void>;
   onRequestVisit: (b: Building, note: string) => void | Promise<void>;
+  declarations: Declaration[];
+  declarationsError: string | null;
+  onOpenPoint: (lng: number, lat: number) => void;
+  onLinkDeclaration: (declarationId: string, buildingId: string | null) => void | Promise<void>;
 }
 
-type Tab = 'todo' | 'contested' | 'done';
+type Tab = 'demandes' | 'todo' | 'contested' | 'done';
 
 const CHECKS = [
   'Le point GPS tombe dans le contour',
@@ -23,8 +29,8 @@ const CHECKS = [
 ];
 
 /** Module Revue (maquette) : file des demandes, plan du bâtiment, liste de contrôle et décision. */
-export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onApprove, onReject, onRequestVisit }) => {
-  const [tab, setTab] = useState<Tab>('todo');
+export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onApprove, onReject, onRequestVisit, declarations, declarationsError, onOpenPoint, onLinkDeclaration }) => {
+  const [tab, setTab] = useState<Tab>('demandes');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checks, setChecks] = useState<Record<string, boolean[]>>({});
   const [note, setNote] = useState('');
@@ -39,7 +45,8 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
       done: buildings.filter((b) => b.status === 'actif' || b.status === 'inactif').sort(sortRecent).slice(0, 60),
     };
   }, [buildings]);
-  const list = groups[tab];
+  const list = tab === 'demandes' ? [] : groups[tab];
+  const pendingDeclarations = declarations.filter((d) => !d.certified_building_id).length;
   const selected = list.find((b) => b.id === selectedId) ?? list[0] ?? null;
 
   useEffect(() => {
@@ -81,6 +88,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
     const h = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
+      if (tab === 'demandes') return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const i = selected ? list.findIndex((b) => b.id === selected.id) : -1;
       if (e.key === 'j') setSelectedId(list[Math.min(list.length - 1, i + 1)]?.id ?? null);
@@ -97,15 +105,28 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
       {label}{id !== 'done' ? ` · ${n}` : ''}
     </button>
   );
+  const tabs = (
+    <>
+      {tabBtn('demandes', 'Demandes', pendingDeclarations)}
+      {tabBtn('todo', 'À traiter', groups.todo.length)}
+      {tabBtn('contested', 'Contestés', groups.contested.length)}
+      {tabBtn('done', 'Traités', 0)}
+    </>
+  );
+
+  if (tab === 'demandes') {
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-hx-base text-hx-text">
+        <div className="flex gap-1 border-b border-hx-line bg-hx-panel p-3.5">{tabs}</div>
+        <DemandesPanel declarations={declarations} buildings={buildings} error={declarationsError} onOpenPoint={onOpenPoint} onLink={onLinkDeclaration} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 bg-hx-base text-hx-text max-md:flex-col max-md:overflow-y-auto">
       <section aria-label="File de revue" className="flex w-[340px] shrink-0 flex-col border-r border-hx-line bg-hx-panel max-md:max-h-[38%] max-md:w-full max-md:border-b max-md:border-r-0">
-        <div className="flex gap-1 border-b border-hx-line p-3.5">
-          {tabBtn('todo', 'À traiter', groups.todo.length)}
-          {tabBtn('contested', 'Contestés', groups.contested.length)}
-          {tabBtn('done', 'Traités', 0)}
-        </div>
+        <div className="flex flex-wrap gap-1 border-b border-hx-line p-3.5">{tabs}</div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {list.length === 0 && <div className="px-4 py-8 text-[13px] text-hx-faint">Rien à traiter dans cette liste.</div>}
           {list.map((b) => (

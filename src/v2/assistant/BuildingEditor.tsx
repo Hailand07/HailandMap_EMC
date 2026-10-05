@@ -77,8 +77,8 @@ export const BuildingEditor: React.FC<Props> = ({ child, zone, courtyardId, allC
           value={f.isSubdivided ? 'multi' : 'single'}
           onChange={(v) => f.setIsSubdivided(v === 'multi')}
           options={[
-            { value: 'single', label: 'Une seule unité' },
-            { value: 'multi', label: 'Plusieurs unités' },
+            { value: 'single', label: 'Maison familiale ou local unique' },
+            { value: 'multi', label: 'Plusieurs logements ou locaux' },
           ]}
         />
         {f.isSubdivided && (

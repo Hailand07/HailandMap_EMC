@@ -1,3 +1,4 @@
+import { buildUnits, levelIds } from './units';
 import type { RegistrationStage } from '../shell/registrationStage';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Building, EntrancePickerConfig } from '../types';
@@ -591,6 +592,15 @@ export function useCourtyardManager({
         osm_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      });
+      // Unités de ce bâtiment, préfixées de sa désignation (RA, RL1, C1…) : les bâtiments d'une concession partagent le code public de la cour.
+      const designation = (c.customDesignation || String(c.buildingCode || childCode).split('-').pop() || childLetter).toUpperCase();
+      (childBuilding as any).units = buildUnits({
+        levels: levelIds(c.floorsCount || 0, c.hasBasement, c.hasMezzanine),
+        isSubdivided: Boolean(c.isSubdivided),
+        unitsPerFloor: c.unitsPerFloor || {},
+        buildingType: c.buildingType || 'R',
+        prefix: designation,
       });
       generatedBuildings.push(childBuilding);
     });
