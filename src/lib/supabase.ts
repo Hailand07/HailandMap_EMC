@@ -228,7 +228,7 @@ function prepareBuildingPayloadForSupabase(raw: any): Record<string, any> {
     validation_count: typeof raw.validation_count === 'number' ? raw.validation_count : 1,
     validated_by: raw.validated_by || actorId(),
     validated_at: raw.validated_at || new Date().toISOString(),
-    submitted_by: raw.submitted_by || 'admin',
+    submitted_by: raw.submitted_by || actorId(),
     claimed_by: raw.claimed_by || null,
     rejection_reason: raw.rejection_reason || null,
     modification_request: raw.modification_request || null,

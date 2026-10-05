@@ -379,7 +379,7 @@ export function useDirectBuildingForm({
       validation_count: 1,
       validated_by: actorId(),
       validated_at: new Date().toISOString(),
-      submitted_by: 'admin',
+      submitted_by: actorId(),
       claimed_by: null,
       rejection_reason: null,
       modification_request: null,
