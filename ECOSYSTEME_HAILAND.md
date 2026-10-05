@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 40** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 41** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -437,8 +437,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-05 (révision 40).**
+**Dernière mise à jour de cette section : 2026-10-05 (révision 41).**
 
+- **Fait (2026-10-05)** : NavigationX affiche l'avis « votre bâtiment vient d'être certifié » et un style propre au niveau 3 sur la carte (vert, anneau, ✓). Reste côté rattachement : notification hors application (SMS/téléphone), test sur un vrai téléphone. **Prochaine étape : HailandX.**
 - **Fait (2026-10-05, étape 2 du §16.5)** : NavigationX lit le rattachement (niveau effectif, choix du bâtiment dans une concession, choix de l'unité). **Prochaine étape : HailandX** (application séparée, paiement à la livraison + Orange Money) — ou, avant, le test sur un vrai téléphone et la notification « votre bâtiment vient d'être certifié ».
 - **Fait (2026-10-05, étape 1 du §16.5)** : rattachement des personnes aux bâtiments en base et dans HailandMap (§16.7). **Prochaine étape : étape 2 = NavigationX** (lire le rattachement, choisir l'unité, afficher le niveau du bâtiment), puis HailandX.
 - **Décidé (2026-10-05)** : les 4 décisions du §16.6 sont tranchées (code public administratif, règle des niveaux et du rattachement officiel, HailandX séparé, paiement à la livraison + Orange Money). **Prochaine étape : étape 1 du §16.5** (rattachement dans HailandMap), qui demandera des changements en base (table des unités, colonne géométrique, fonctions de rattachement).
@@ -632,3 +633,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-05 | Révision 38 : décisions du fondateur sur le §16 (code public administratif, niveau = celui du bâtiment, rattachement officiel seulement en niveau 3, HailandX séparé, paiement à la livraison + Orange Money). |
 | 2026-10-05 | Révision 39 : étape 1 du §16.5 codée (rattachement en base et dans HailandMap, §16.7) ; consignes pour NavigationX (étape 2). |
 | 2026-10-05 | Révision 40 : étape 2 du §16.5 codée dans NavigationX (§16.7). |
+| 2026-10-05 | Révision 41 : avis de certification et style niveau 3 dans NavigationX. |
