@@ -8,7 +8,7 @@
  */
 
 import * as turf from '@turf/turf';
-import { supabase, MOCK_BUILDINGS, updateBuildingInSupabase } from './supabase';
+import { supabase, updateBuildingInSupabase } from './supabase';
 import { TERRITORY_COMMUNE_BOUNDARIES, getTerritoryRealGeometry } from './guineaBoundariesData';
 import { GUINEA_OFFLINE_DATA } from './guineaOfflineData';
 import type { Building } from '../types';
@@ -187,15 +187,11 @@ export async function reassignBuildingsToCommunes(
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.warn('[SpatialReassign] Erreur lecture Supabase, repli sur mock:', error.message);
-        buildings = MOCK_BUILDINGS;
-      } else {
-        buildings = data || [];
-      }
+      if (error) throw error;
+      buildings = data || [];
     } catch (err: any) {
-      console.warn('[SpatialReassign] Exception lecture Supabase:', err.message || err);
-      buildings = MOCK_BUILDINGS;
+      console.warn('[SpatialReassign] Lecture Supabase impossible, recalage annulé:', err.message || err);
+      buildings = [];
     }
   }
 
@@ -339,10 +335,6 @@ export async function reassignBuildingsToCommunes(
           report.reassignedCount++;
           // Mise à jour de l'instance locale
           b.commune = newCommuneName;
-          const mockIdx = MOCK_BUILDINGS.findIndex((m) => m.id === b.id);
-          if (mockIdx >= 0) {
-            MOCK_BUILDINGS[mockIdx].commune = newCommuneName;
-          }
         }
       } catch (err: any) {
         console.error(`[SpatialReassign] Exception mise à jour ${b.id}:`, err.message || err);
@@ -363,17 +355,4 @@ export async function reassignBuildingsToCommunes(
   );
 
   return report;
-}
-
-/**
- * Fonction demandée : verifyAndReassignBuildings
- * 
- * Parcourt tous les bâtiments, utilise turf.booleanPointInPolygon avec les géométries
- * officielles de communes pour vérifier si leur centroïde est dans la bonne commune,
- * et met à jour via updateBuildingInSupabase ceux qui sont mal assignés.
- */
-export async function verifyAndReassignBuildings(
-  options?: ReassignOptions
-): Promise<ReassignCommuneReport> {
-  return reassignBuildingsToCommunes(options);
 }

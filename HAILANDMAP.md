@@ -34,11 +34,11 @@ React 19 · Vite 6 · TypeScript 5.8 · Tailwind 4 · Mapbox GL 3 · Turf.js · 
 ```
 src/
   App.tsx (≈7 500 lignes)            # carte Mapbox, sélection, dessin, grille, état des modules (à découper)
-  main.tsx                           # point d'entrée : thème, protections globales (à retirer), AgentGate puis App
+  main.tsx                           # point d'entrée : thème, AgentGate puis App
   types.ts                           # Building, Zone, Profile, Validation, territoires…
   index.css                          # jetons de couleur `hx-*` (Tailwind 4) et surcharges du thème
   lib/
-    supabase.ts                      # client Supabase, mocks, génération/validation de Hailand-Code, CRUD buildings/zones/validations
+    supabase.ts                      # client Supabase, génération/validation de Hailand-Code, CRUD buildings/zones/validations
     administrativeAddressingService.ts  # point-dans-polygone → hiérarchie admin, trigrammes, codes, backfill
     spatialReassignment.ts           # recalage commune des bâtiments (Turf)
     interactiveMapService.ts / interactiveMapEngine.ts  # « Carte Interactive » (Région→Préfecture→Commune→Quartier) + couches Mapbox
@@ -113,7 +113,7 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 
 ## 6. Données et persistance ✅
 
-**Tables écrites** : `buildings` (upsert), `zones` (upsert à la volée), `validations` (approbation/rejet), `deliveries` / `facades` (fonctions présentes, peu utilisées). **Chargement** : `loadRealBuildings/Zones/Validations/Profiles` ; en cas d'erreur ou table vide → **mocks** (`MOCK_BUILDINGS`…).
+**Chargement** : `loadRealBuildings/Zones/Validations/Profiles` lisent la base et **échouent franchement** (plus aucune donnée de démonstration) ; une table vide donne une liste vide. **Plus aucune écriture automatique au démarrage** : le recalage des communes par `spatialReassignment` n'est lancé que par l'action « Maintenance » du Registre. **Tables écrites** : `buildings` (upsert), `zones` (upsert à la volée), `validations` (approbation/rejet), `deliveries` / `facades` (fonctions présentes, peu utilisées). **Chargement** : `loadRealBuildings/Zones/Validations/Profiles` ; en cas d'erreur ou table vide → **mocks** (`MOCK_BUILDINGS`…).
 
 **Enrichissement à la volée** (`computeDualAddressing`) : commune, quartier, région, préfecture, `admin_address_code`, `formatted_address` sont **calculés** à chaque chargement à partir des frontières **embarquées** (7,8 Mo) — pas lus en base — et **non enregistrés** (colonnes absentes de la table réelle).
 
@@ -144,12 +144,12 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 - 🔴 Séquences de codes calculées côté navigateur (doublons possibles) ; validation en masse aléatoire.
 - 🔴 Unicité du code administratif non garantie (lot par carreau ≠ unique par quartier ; collisions de trigrammes).
 - 🔴 Politiques RLS **ouvertes en écriture au rôle public** (constaté le 2026-10-02, y compris sur le référentiel territorial). **Authentification des agents codée (2026-10-04)** : connexion par code, auteur réel des écritures ; il reste à appliquer les règles de sécurité (`migrations/proposed/`, non appliquées) pour fermer l'écriture publique.
-- 🟠 `App.tsx` monolithique ; `main.tsx` surcharge `JSON.stringify` globalement.
+- 🟠 `App.tsx` monolithique (≈ 7 500 lignes). ✅ `main.tsx` ne surcharge plus `JSON.stringify` ni la console (retiré le 2026-10-05).
 - 🟠 Bâtiment OSM non enregistré créé avec `commune: 'Bamako'`, `quartier: 'Centre'` (reste d'un autre projet).
 - 🟠 Détection de commune par bandes de longitude ; frontières embarquées au lieu d'être lues en base ; `zones.commune` faux.
-- 🟠 État critique dans `localStorage` (masquage OSM, 3D manuelle).
+- 🟠 État critique dans `localStorage` : masquage OSM (clé `hailandmap_hidden_buildings_list`). ✅ Les tracés 3D manuels ne sont plus lus ni écrits.
 - 🟠 `buildings.quartier_id` / `commune_id` non enregistrés ; `osm_id` toujours vide ; `id` parfois = identifiant Mapbox.
-- 🟡 Fausses statistiques (`agentHelper`), guidage simulé, repli silencieux sur les mocks, `ZonesView` crée des polygones fixes.
+- ✅ Plus de fausses données : les repli sur des données de démonstration, les fausses statistiques et `ZonesView` ont été retirés (2026-10-05) ; si la base est injoignable, un bandeau « Impossible de charger le registre » avec « Réessayer » s'affiche. 🟡 Il reste un guidage simulé (GPS de démonstration) à retirer.
 - 🟡 Migration OSM (273 937 bâtiments, 394 quartiers) **jamais appliquée** ; plans et suivis la donnent pour faite.
 
 ---
@@ -279,3 +279,4 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 | 2026-10-05 | Retrait de l'import d'objets 3D (GLTF, `house.glb`) qui n'était qu'un essai : bouton « Importer Objet 3D », liste des objets placés, mode de placement, couche Mapbox `model`, type `Placed3DModel` et fichier `utils/houseModelData.ts` supprimés ; le tracé de volumes 3D reste. Retrait de la pastille de progression en haut à gauche de l'Atelier v3. Aucune base touchée. |
 | 2026-10-05 | Suppression du menu d'édition 3D (`components/Edit3DMenu.tsx`, bouton « Édit » en v1, outil « Volumes 3D » du dock en v2) à la demande du fondateur. Les volumes 3D existants restent affichés ; une fonction équivalente sera intégrée plus tard. Aucune base touchée. |
 | 2026-10-05 | Nettoyage sans changement de comportement : ancienne interface (v1) retirée (interrupteur `?ui=v1` et Réglages supprimés), code mort supprimé (Sidebar, Dashboard, ValidationsView, BuildingsView, ZonesView, BuildingPanel, AgentHistoryModal, agentHelper, anciens formulaires et leur moteur, HUD et modale de tracé 3D) ; la logique d'enregistrement est conservée dans `src/registration/` ; fichiers de référence de l'éditeur OSM iD retirés ; exports et types inutilisés supprimés. `App.tsx` passe de 8 570 à 7 500 lignes, 12 000 lignes retirées au total. Aucune base touchée. |
+| 2026-10-05 | Nettoyage (suite) : **fin d'une écriture automatique en production** — à chaque ouverture, l'application recalait la commune des fiches et les mettait à jour en base ; ce recalage n'est plus lancé que depuis « Maintenance » du Registre. Données de démonstration supprimées (plus de repli silencieux), bandeau d'erreur de chargement avec « Réessayer », protections globales de `main.tsx` retirées, tracés 3D manuels du navigateur effacés. Vérifié : aucune écriture au chargement, enregistrement d'un bâtiment (envoi intercepté, base non touchée), base injoignable. |

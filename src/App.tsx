@@ -37,10 +37,6 @@ import InteractiveBuildingForm from './components/InteractiveBuildingForm';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
 import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
 import {
-  MOCK_BUILDINGS,
-  MOCK_ZONES,
-  MOCK_PROFILES,
-  MOCK_VALIDATIONS,
   loadRealBuildings,
   loadRealZones,
   loadRealValidations,
@@ -50,8 +46,7 @@ import {
   saveValidationInSupabase,
   saveZoneInSupabase,
   generateHailandCode,
-  verifyAndReassignBuildings,
-} from './lib/supabase';
+  } from './lib/supabase';
 import { computeDualAddressing } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
@@ -489,10 +484,10 @@ export default function App() {
   const [activitySeen, setActivitySeen] = useState(0);
   const [cursorPos, setCursorPos] = useState<{ lng: number; lat: number } | null>(null);
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
-    const [buildings, setBuildings] = useState<Building[]>(MOCK_BUILDINGS);
-  const [zones, setZones] = useState<Zone[]>(MOCK_ZONES);
-  const [validations, setValidations] = useState<Validation[]>(MOCK_VALIDATIONS);
-  const [profiles, setProfiles] = useState<Profile[]>(MOCK_PROFILES);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [validations, setValidations] = useState<Validation[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedGridCell, setSelectedGridCell] = useState<any | null>(null);
   const [selectedGridBuildings, setSelectedGridBuildings] = useState<Building[]>([]);
@@ -746,7 +741,7 @@ export default function App() {
   const clickedCoordsRef = useRef<any>(null);
   const selectionTargetNatureRef = useRef<'single' | 'courtyard'>('single');
   const detectedOsmFeaturesRef = useRef<any[]>([]);
-  const buildingsRef = useRef<Building[]>(MOCK_BUILDINGS);
+  const buildingsRef = useRef<Building[]>([]);
 
   useEffect(() => {
     buildingsRef.current = buildings;
@@ -774,8 +769,8 @@ export default function App() {
   // ===== ÉTATS POUR LE MODE ÉDITION 3D — TRACÉ MANUEL, MASQUAGE OSM & COULEURS =====
   const [custom3DBuildings, setCustom3DBuildings] = useState<Custom3DBuilding[]>(() => {
     try {
-      const saved = localStorage.getItem('hailandmap_custom_3d_buildings');
-      if (saved) return JSON.parse(saved);
+      // Les anciens tracés 3D manuels gardés dans le navigateur ne sont plus lus (fonction retirée) ; on les efface.
+      localStorage.removeItem('hailandmap_custom_3d_buildings');
     } catch (e) {}
     return [];
   });
@@ -783,9 +778,8 @@ export default function App() {
   // Volumes 3D combinés : Bâtiments Supabase calculés automatiquement + tracés 3D manuels locaux
   const all3DBuildings = useMemo(() => {
     const db3DEntities = generate3DEntitiesFromBuildingList(buildings);
-    const manualOnly = custom3DBuildings.filter(item => !item.id.startsWith('3d-auto-') && !item.id.startsWith('3d-wall-'));
-    return [...manualOnly, ...db3DEntities];
-  }, [buildings, custom3DBuildings]);
+    return db3DEntities;
+  }, [buildings]);
 
   const custom3DBuildingsRef = useRef<Custom3DBuilding[]>([]);
   const [is3DDrawMode] = useState(false);
@@ -851,12 +845,6 @@ export default function App() {
   useEffect(() => {
     highlighted3DBuildingIdRef.current = highlighted3DBuildingId;
   }, [highlighted3DBuildingId]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('hailandmap_custom_3d_buildings', safeJsonStringify(custom3DBuildings, 0));
-    } catch (e) {}
-  }, [custom3DBuildings]);
 
   useEffect(() => {
     is3DDrawModeRef.current = is3DDrawMode;
@@ -1234,61 +1222,54 @@ export default function App() {
     setApiLogs(prev => [newLog, ...prev].slice(0, 5));
   };
 
-  // Synchronisation en ligne avec Supabase (avec replis offline-first)
-  useEffect(() => {
-    async function syncData() {
-      addApiLog('GET', '/supabase/init-sync', null, { message: "Connexion et synchronisation en cours..." });
-      try {
-        const [realB, realZ, realV, realP] = await Promise.all([
-          loadRealBuildings(),
-          loadRealZones(),
-          loadRealValidations(),
-          loadRealProfiles(),
-        ]);
+  // Chargement du registre depuis Supabase. En cas d'échec, l'agent le voit et peut réessayer (aucune donnée de démonstration).
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const syncData = useCallback(async () => {
+    setLoading(true);
+    addApiLog('GET', '/supabase/init-sync', null, { message: "Connexion et synchronisation en cours..." });
+    try {
+      const [realB, realZ, realV, realP] = await Promise.all([
+        loadRealBuildings(),
+        loadRealZones(),
+        loadRealValidations(),
+        loadRealProfiles(),
+      ]);
 
-        // Contrôle spatial automatique des bâtiments (Turf.js) au chargement des données
-        // afin de corriger les incohérences de Ratoma et des autres communes
-        try {
-          const reassignRep = await verifyAndReassignBuildings({ buildings: realB });
-          if (reassignRep && reassignRep.reassignedCount > 0) {
-            console.log(`[Init:Spatial] 🎯 ${reassignRep.reassignedCount} bâtiment(s) réassigné(s) à leur commune légitime au démarrage.`);
-          }
-        } catch (e: any) {
-          console.warn('[Init:Spatial] Contrôle spatial non-bloquant:', e?.message || e);
+      // Assurer l'unicité stricte de chaque ID de bâtiment pour React
+      const seenBuildingIds = new Set<string>();
+      const sanitizedBuildings = realB.map((b, idx) => {
+        let cleanId = b.id;
+        if (!cleanId || cleanId === "Tracé Personnalisé" || seenBuildingIds.has(cleanId)) {
+          cleanId = `b-${b.hailand_code || 'item'}-${idx}-${Date.now()}`;
         }
-        
-        // Assurer l'unicité stricte de chaque ID de bâtiment pour React
-        const seenBuildingIds = new Set<string>();
-        const sanitizedBuildings = realB.map((b, idx) => {
-          let cleanId = b.id;
-          if (!cleanId || cleanId === "Tracé Personnalisé" || seenBuildingIds.has(cleanId)) {
-            cleanId = `b-${b.hailand_code || 'item'}-${idx}-${Date.now()}`;
-          }
-          seenBuildingIds.add(cleanId);
-          return { ...b, id: cleanId };
-        });
+        seenBuildingIds.add(cleanId);
+        return { ...b, id: cleanId };
+      });
 
-        setBuildings(sanitizedBuildings);
-        setZones(realZ);
-        setValidations(realV);
-        setProfiles(realP);
-        
-        addApiLog('SYNC_SUCCESS', '/supabase/synced', null, {
-          buildings: realB.length,
-          zones: realZ.length,
-          validations: realV.length,
-          profiles: realP.length,
-          status: "Écosystème National Synchrone"
-        });
-      } catch (err: any) {
-        addApiLog('SYNC_ERROR', '/supabase/fallback', null, {
-          message: "Mode local activé pour Kipé / Ratoma",
-          details: err.message || err
-        });
-      }
+      setBuildings(sanitizedBuildings);
+      setZones(realZ);
+      setValidations(realV);
+      setProfiles(realP);
+      setLoadError(null);
+
+      addApiLog('SYNC_SUCCESS', '/supabase/synced', null, {
+        buildings: realB.length,
+        zones: realZ.length,
+        validations: realV.length,
+        profiles: realP.length,
+        status: "Écosystème National Synchrone"
+      });
+    } catch (err: any) {
+      setLoadError(err?.message || 'Le registre est injoignable.');
+      addApiLog('SYNC_ERROR', '/supabase/sync', null, { message: "Chargement impossible", details: err?.message || err });
+    } finally {
+      setLoading(false);
     }
-    syncData();
   }, []);
+  useEffect(() => {
+    syncData();
+  }, [syncData]);
 
   // Initialisation de la carte
   useEffect(() => {
@@ -6220,19 +6201,28 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
-      {<AtelierTopBar
+      <AtelierTopBar
           view={activeAdminView}
-          adminName={currentAdmin.full_name}
+          adminName={currentAdmin?.full_name ?? 'Agent'}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onSearch={() => setPaletteOpen(true)}
           onBell={() => { setActivityOpen((o) => !o); setActivitySeen(activity.length); }}
           unread={activity.length > activitySeen}
-        />}
+        />
+      {loadError && (
+        <div role="alert" className="flex shrink-0 items-center gap-3 border-b border-hx-bad/30 bg-hx-bad/10 px-4 py-2 text-[13px] text-hx-text">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-hx-bad" />
+          <span className="flex-1">Impossible de charger le registre ({loadError}). Les listes peuvent être vides ou incomplètes : rien n'a été modifié.</span>
+          <button type="button" onClick={() => void syncData()} disabled={loading} className="h-8 rounded-lg border border-hx-line2 bg-hx-hover px-3 font-semibold transition hover:bg-hx-card disabled:opacity-50">
+            {loading ? 'Chargement…' : 'Réessayer'}
+          </button>
+        </div>
+      )}
       
 
       {/* CONTAINER MAÎTRE DES VUES (rail des modules en v2) */}
       <div className="flex min-h-0 flex-1 max-md:pb-14">
-        {<ModuleRail
+        <ModuleRail
             view={activeAdminView}
             onViewChange={(v) => {
               setActiveAdminView(v);
@@ -6240,7 +6230,7 @@ export default function App() {
             }}
             pendingCount={pendingCount}
             conflictCount={conflictCount}
-          />}
+          />
       <div className="flex-1 relative overflow-hidden flex">
         
         {/* VUE DE LA CARTE COMPLÈTE (Préservation de l'arbre et du chargement Mapbox) */}
@@ -7100,7 +7090,7 @@ export default function App() {
         {/* LE CONTENEUR DE LA CARTE */}
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" id="mapbox-viewport" />
 
-              {<AtelierToolbar
+              <AtelierToolbar
                   tool={activeTool}
                   onTool={selectAtelierTool}
                   is3D={currentPitch > 15}
@@ -7121,7 +7111,7 @@ export default function App() {
                         }
                       : null
                   }
-                />}
+                />
 
 
         {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
@@ -7313,14 +7303,14 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {<RevueView
+              <RevueView
                   buildings={buildings}
                   profiles={profiles}
                   onOpenOnMap={handleSelectBuildingFromAdmin}
                   onApprove={handleApproveBuilding}
                   onReject={handleRejectBuilding}
                   onRequestVisit={handleRequestVisit}
-                />}
+                />
             </motion.div>
           )}
 
@@ -7332,7 +7322,7 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {<RegistreView
+              <RegistreView
                   buildings={buildings}
                   profiles={profiles}
                   onOpenOnMap={handleSelectBuildingFromAdmin}
@@ -7342,7 +7332,7 @@ export default function App() {
                     setBuildings(refreshed);
                   }}
                   onNotify={(title, message, tone) => setMapNotification({ type: (tone ?? 'info') as any, title, message })}
-                />}
+                />
             </motion.div>
           )}
 
@@ -7354,7 +7344,7 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {<TerritoireView zones={zones} buildings={buildings} />}
+              <TerritoireView zones={zones} buildings={buildings} />
             </motion.div>
           )}
 
@@ -7366,7 +7356,7 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               className={"absolute inset-0 overflow-hidden bg-hx-base"}
             >
-              {<PilotageView buildings={buildings} zones={zones} validations={validations} profiles={profiles} onGoRevue={() => setActiveAdminView('validations')} />}
+              <PilotageView buildings={buildings} zones={zones} validations={validations} profiles={profiles} onGoRevue={() => setActiveAdminView('validations')} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -7383,7 +7373,7 @@ export default function App() {
           onClose={() => setActivityOpen(false)}
         />
       )}
-      {<CommandPalette
+      <CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}
           buildings={buildings}
@@ -7396,7 +7386,7 @@ export default function App() {
             { id: 'go-territoire', label: 'Aller au Territoire', run: () => setActiveAdminView('zones') },
             { id: 'go-pilotage', label: 'Aller au Pilotage', run: () => setActiveAdminView('dashboard') },
           ]}
-        />}
+        />
 
       {/* MODAL DES PARAMÈTRES ET CLÉS DE L'ATELIER GEOGRAPHIQUE */}
       <AnimatePresence>
@@ -7488,15 +7478,15 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {<AtelierStatusBar
+      <AtelierStatusBar
           buildingsCount={buildings.length}
           zonesCount={zones.length}
-          adminName={currentAdmin.full_name}
+          adminName={currentAdmin?.full_name ?? 'Agent'}
           zoom={activeAdminView === 'carte' ? zoomLevel : undefined}
           cursor={activeAdminView === 'carte' ? cursorPos : null}
           toolHint={activeAdminView === 'carte' && activeTool ? TOOLS.find((t) => t.id === activeTool)?.hint : undefined}
           message={statusMsg}
-        />}
+        />
     </div>
   );
 }

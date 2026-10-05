@@ -20,265 +20,6 @@ const SUPABASE_ANON_KEY = 'sb_publishable_UMjp2ybTDYi9wYGsdc_UKg_F8LZP8vo';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ===== DONNÉES MOCKÉES POUR LE DÉVELOPPEMENT & FALLBACK DE SÉCURITÉ =====
-export const MOCK_BUILDINGS: Building[] = [
-  {
-    id: 'b1',
-    hailand_code: 'GN-Z014-M007-E1-101',
-    parent_building_id: null,
-    zone_id: 'z1',
-    zone_code: 'Z014',
-    building_type: 'M',
-    has_courtyard: false,
-    courtyard_geom: null,
-    floor_count: 3,
-    unit_count: 6,
-    floor_level: 'E1',
-    unit_code: '101',
-    physical_position: 'droite',
-    status: 'actif',
-    geom: { type: 'Polygon', coordinates: [[[-13.6215, 9.5890], [-13.6210, 9.5890], [-13.6210, 9.5885], [-13.6215, 9.5885], [-13.6215, 9.5890]]] },
-    centroid: { type: 'Point', coordinates: [-13.62125, 9.58875] },
-    altitude_m: 62,
-    commune: 'Ratoma',
-    quartier: 'Kipé',
-    entry_point_geom: { type: 'Point', coordinates: [-13.6215, 9.58875] },
-    entry_point_note: 'Portillon noir côté Ouest face à la ruelle',
-    internal_directions: 'Escalier B au fond de la cour, 1er étage porte droite',
-    door_color: 'Bois verni',
-    intercom_code: 'Sonnette Sow #1',
-    landmark_note: 'Près de la pharmacie Ratoma',
-    access_note: 'Barrière noire, entrée à droite',
-    is_validated: true,
-    validation_count: 2,
-    validated_by: 'livreur-1',
-    validated_at: '2026-06-14T09:30:00Z',
-    submitted_by: 'user-1',
-    claimed_by: 'user-1',
-    rejection_reason: null,
-    modification_request: null,
-    osm_id: null,
-    created_at: '2026-05-10T08:00:00Z',
-    updated_at: '2026-06-14T09:30:00Z',
-  },
-  {
-    id: 'b2',
-    hailand_code: null,
-    parent_building_id: null,
-    zone_id: 'z1',
-    zone_code: 'Z014',
-    building_type: 'R',
-    has_courtyard: true,
-    courtyard_geom: { type: 'Polygon', coordinates: [[[-13.6220, 9.5910], [-13.6210, 9.5910], [-13.6210, 9.5900], [-13.6220, 9.5900], [-13.6220, 9.5910]]] },
-    floor_count: 1,
-    unit_count: 2,
-    floor_level: null,
-    unit_code: null,
-    physical_position: null,
-    status: 'en_attente',
-    geom: { type: 'Polygon', coordinates: [[[-13.6218, 9.5908], [-13.6212, 9.5908], [-13.6212, 9.5902], [-13.6218, 9.5902], [-13.6218, 9.5908]]] },
-    centroid: { type: 'Point', coordinates: [-13.6215, 9.5905] },
-    altitude_m: 60,
-    commune: 'Ratoma',
-    quartier: 'Kipé',
-    entry_point_geom: { type: 'Point', coordinates: [-13.6220, 9.5905] },
-    entry_point_note: 'Grand portail métallique bleu',
-    internal_directions: null,
-    door_color: 'Bleue',
-    intercom_code: null,
-    landmark_note: 'Portail bleu, à côté du grand manguier',
-    access_note: null,
-    is_validated: false,
-    validation_count: 0,
-    validated_by: null,
-    validated_at: null,
-    submitted_by: 'user-2',
-    claimed_by: 'user-2',
-    rejection_reason: null,
-    modification_request: null,
-    osm_id: null,
-    created_at: '2026-06-11T10:30:00Z',
-    updated_at: '2026-06-11T10:30:00Z',
-  },
-  {
-    id: 'b3',
-    hailand_code: null,
-    parent_building_id: null,
-    zone_id: 'z2',
-    zone_code: 'Z015',
-    building_type: 'C',
-    has_courtyard: false,
-    courtyard_geom: null,
-    floor_count: 1,
-    unit_count: 1,
-    floor_level: null,
-    unit_code: null,
-    physical_position: null,
-    status: 'non_reclame',
-    geom: { type: 'Polygon', coordinates: [[[-13.6240, 9.5930], [-13.6230, 9.5930], [-13.6230, 9.5925], [-13.6240, 9.5925], [-13.6240, 9.5930]]] },
-    centroid: { type: 'Point', coordinates: [-13.6235, 9.59275] },
-    altitude_m: 58,
-    commune: 'Ratoma',
-    quartier: 'Kipé',
-    entry_point_geom: null,
-    entry_point_note: null,
-    internal_directions: null,
-    door_color: null,
-    intercom_code: null,
-    landmark_note: null,
-    access_note: null,
-    is_validated: false,
-    validation_count: 0,
-    validated_by: null,
-    validated_at: null,
-    submitted_by: null,
-    claimed_by: null,
-    rejection_reason: null,
-    modification_request: null,
-    osm_id: null,
-    created_at: '2026-06-01T12:00:00Z',
-    updated_at: '2026-06-01T12:00:00Z',
-  },
-  {
-    id: 'b4',
-    hailand_code: 'GN-Z014-R001',
-    parent_building_id: null,
-    zone_id: 'z1',
-    zone_code: 'Z014',
-    building_type: 'R',
-    has_courtyard: true,
-    courtyard_geom: { type: 'Polygon', coordinates: [[[-13.6200, 9.5950], [-13.6190, 9.5950], [-13.6190, 9.5940], [-13.6200, 9.5940], [-13.6200, 9.5950]]] },
-    floor_count: 1,
-    unit_count: 2,
-    floor_level: null,
-    unit_code: null,
-    physical_position: null,
-    status: 'conteste',
-    geom: { type: 'Polygon', coordinates: [[[-13.6198, 9.5948], [-13.6192, 9.5948], [-13.6192, 9.5942], [-13.6198, 9.5942], [-13.6198, 9.5948]]] },
-    centroid: { type: 'Point', coordinates: [-13.6195, 9.5945] },
-    altitude_m: 55,
-    commune: 'Ratoma',
-    quartier: 'Kipé',
-    entry_point_geom: { type: 'Point', coordinates: [-13.6200, 9.5945] },
-    entry_point_note: 'Entrée principale cour commune',
-    internal_directions: 'Première maisonnette sur la droite',
-    door_color: 'Verte',
-    intercom_code: null,
-    landmark_note: 'Concession familiale',
-    access_note: 'Deux maisons dans la cour',
-    is_validated: true,
-    validation_count: 1,
-    validated_by: 'livreur-2',
-    validated_at: '2025-05-20T11:00:00Z',
-    submitted_by: 'user-3',
-    claimed_by: 'user-4',
-    rejection_reason: 'Conflit de revendication',
-    modification_request: 'Un autre occupant revendique la maison B',
-    osm_id: null,
-    created_at: '2025-05-15T09:00:00Z',
-    updated_at: '2026-06-13T16:00:00Z',
-  },
-  {
-    id: 'b5',
-    hailand_code: 'GN-Z015-A001-E1-BUR1',
-    parent_building_id: null,
-    zone_id: 'z2',
-    zone_code: 'Z015',
-    building_type: 'A',
-    has_courtyard: false,
-    courtyard_geom: null,
-    floor_count: 2,
-    unit_count: 4,
-    floor_level: 'E1',
-    unit_code: 'BUR1',
-    physical_position: 'face_escalier',
-    status: 'actif',
-    geom: { type: 'Polygon', coordinates: [[[-13.6260, 9.5900], [-13.6250, 9.5900], [-13.6250, 9.5895], [-13.6260, 9.5895], [-13.6260, 9.5900]]] },
-    centroid: { type: 'Point', coordinates: [-13.6255, 9.58975] },
-    altitude_m: 63,
-    commune: 'Ratoma',
-    quartier: 'Kipé',
-    entry_point_geom: { type: 'Point', coordinates: [-13.6260, 9.58975] },
-    entry_point_note: 'Hall d\'entrée vitré avec vigile',
-    internal_directions: 'Prendre l\'escalier à gauche, bureau 1er étage en face',
-    door_color: 'Aluminium gris',
-    intercom_code: 'Accueil #101',
-    landmark_note: 'Bureau au 1er étage',
-    access_note: 'Prendre l\'escalier à gauche',
-    is_validated: true,
-    validation_count: 1,
-    validated_by: 'livreur-1',
-    validated_at: '2026-06-10T14:00:00Z',
-    submitted_by: 'user-5',
-    claimed_by: 'user-5',
-    rejection_reason: null,
-    modification_request: null,
-    osm_id: null,
-    created_at: '2026-06-05T08:00:00Z',
-    updated_at: '2026-06-10T14:00:00Z',
-  },
-];
-
-export const MOCK_ZONES: Zone[] = [
-  {
-    id: 'z1',
-    zone_code: 'Z014',
-    commune: 'Ratoma',
-    geom: { type: 'Polygon', coordinates: [[[-13.623, 9.592], [-13.619, 9.592], [-13.619, 9.588], [-13.623, 9.588], [-13.623, 9.592]]] },
-    centroid: { type: 'Point', coordinates: [-13.621, 9.590] },
-    created_at: '2026-05-01T00:00:00Z',
-  },
-  {
-    id: 'z2',
-    zone_code: 'Z015',
-    commune: 'Ratoma',
-    geom: { type: 'Polygon', coordinates: [[[-13.627, 9.594], [-13.623, 9.594], [-13.623, 9.590], [-13.627, 9.590], [-13.627, 9.594]]] },
-    centroid: { type: 'Point', coordinates: [-13.625, 9.592] },
-    created_at: '2026-05-01T00:00:00Z',
-  },
-];
-
-export const MOCK_PROFILES: Profile[] = [
-  { id: 'admin-1', full_name: 'Mamadou Diallo', phone: '+224 620 12 34 56', role: 'admin', agent_code: 'AGT-224-08', commune: 'Ratoma', quartier: 'Kipé', created_at: '2026-04-01T00:00:00Z', updated_at: '2026-06-01T00:00:00Z' },
-  { id: 'admin', full_name: 'Mamadou Diallo', phone: '+224 620 12 34 56', role: 'admin', agent_code: 'AGT-224-08', commune: 'Ratoma', quartier: 'Kipé', created_at: '2026-04-01T00:00:00Z', updated_at: '2026-06-01T00:00:00Z' },
-  { id: 'livreur-1', full_name: 'Mamadou Sow', phone: '+224 621 98 76 54', role: 'livreur', agent_code: 'AGT-224-01', commune: 'Matoto', quartier: 'Gbessia', created_at: '2026-05-01T00:00:00Z', updated_at: '2026-06-01T00:00:00Z' },
-  { id: 'livreur-2', full_name: 'Fatoumata Bah', phone: '+224 622 11 22 33', role: 'livreur', agent_code: 'AGT-224-02', commune: 'Kaloum', quartier: 'Almamya', created_at: '2026-05-02T00:00:00Z', updated_at: '2026-06-01T00:00:00Z' },
-  { id: 'user-1', full_name: 'Oumar Camara', phone: '+224 623 44 55 66', role: 'client', agent_code: 'AGT-224-03', commune: 'Ratoma', quartier: 'Taouyah', created_at: '2026-05-10T00:00:00Z', updated_at: '2026-05-10T00:00:00Z' },
-  { id: 'user-2', full_name: 'Aïssatou Bangoura', phone: '+224 624 77 88 99', role: 'client', agent_code: 'AGT-224-04', commune: 'Ratoma', quartier: 'Nongo', created_at: '2026-06-11T00:00:00Z', updated_at: '2026-06-11T00:00:00Z' },
-  { id: 'user-3', full_name: 'Ibrahima Keïta', phone: '+224 625 55 44 33', role: 'client', agent_code: 'AGT-224-05', commune: 'Ratoma', quartier: 'Lambanyi', created_at: '2026-05-15T00:00:00Z', updated_at: '2026-05-15T00:00:00Z' },
-  { id: 'user-4', full_name: 'Saran Traoré', phone: '+224 626 66 77 88', role: 'client', agent_code: 'AGT-224-06', commune: 'Ratoma', quartier: 'Sonfonia', created_at: '2026-06-13T00:00:00Z', updated_at: '2026-06-13T00:00:00Z' },
-  { id: 'user-5', full_name: 'Abdoulaye Barry', phone: '+224 627 88 99 00', role: 'client', agent_code: 'AGT-224-07', commune: 'Ratoma', quartier: 'Kaporo', created_at: '2026-06-05T00:00:00Z', updated_at: '2026-06-05T00:00:00Z' },
-];
-
-export const MOCK_VALIDATIONS: Validation[] = [
-  {
-    id: 'v1',
-    building_id: 'b1',
-    validator_id: 'livreur-1',
-    type: 'livreur_validation',
-    old_geom: null,
-    new_geom: null,
-    comment: 'Emplacement conforme, bien visible avec le portail noir.',
-    status: 'approved',
-    reviewed_by: 'admin-1',
-    created_at: '2026-06-14T09:30:00Z',
-  },
-  {
-    id: 'v2',
-    building_id: 'b4',
-    validator_id: 'user-4',
-    type: 'modification_request',
-    old_geom: null,
-    new_geom: null,
-    comment: 'La maison B m\'appartient, pas à M. Keïta.',
-    status: 'pending',
-    reviewed_by: null,
-    created_at: '2026-06-13T16:00:00Z',
-  },
-];
-
-
-
 // ===== UTILITAIRES HAILANDCODE =====
 
 /**
@@ -365,84 +106,56 @@ export function generateHailandCode(
 /**
  * Retourne les bâtiments qui nécessitent une attention (en_attente ou conteste).
  */
-// ===== CHARGEMENT EN LIGNE DES DONNÉES DEPUIS SUPABASE AVEC RETOURS DE SECOURS =====
+// ===== CHARGEMENT DES DONNÉES DEPUIS SUPABASE =====
+// Plus aucune donnée de démonstration : en cas d'échec, l'erreur remonte à l'application, qui l'affiche à l'agent.
+// Une table vide est un résultat normal (liste vide), pas un échec.
 
 export async function loadRealBuildings(): Promise<Building[]> {
-  try {
-    const { data, error } = await supabase
-      .from('buildings')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    const rawList = (error || !data || data.length === 0) ? MOCK_BUILDINGS : (data as Building[]);
-    
-    // Enrichissement dynamique du double adressage (Grille 200m + Hiérarchie Administrative)
-    return rawList.map((b) => {
-      try {
-        const dual = computeDualAddressing(b);
-        return {
-          ...b,
-          commune: dual.adminAddress.communeNom || b.commune,
-          commune_id: dual.adminAddress.communeId || b.commune_id,
-          quartier: b.quartier || dual.adminAddress.quartierNom,
-          quartier_id: b.quartier_id || dual.adminAddress.quartierId,
-          region: b.region || dual.adminAddress.regionNom,
-          region_id: b.region_id || dual.adminAddress.regionId,
-          prefecture: b.prefecture || dual.adminAddress.prefectureNom,
-          prefecture_id: b.prefecture_id || dual.adminAddress.prefectureId,
-          admin_address_code: b.admin_address_code || dual.adminAddress.adminAddressCode,
-          formatted_address: b.formatted_address || dual.adminAddress.formattedAddress,
-        };
-      } catch {
-        return b;
-      }
-    });
-  } catch (err) {
-    console.warn("Exception buildings fetch, falling back to mock:", err);
-    return MOCK_BUILDINGS;
-  }
+  const { data, error } = await supabase
+    .from('buildings')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  // Enrichissement dynamique du double adressage (Grille 200m + Hiérarchie Administrative)
+  return ((data ?? []) as Building[]).map((b) => {
+    try {
+      const dual = computeDualAddressing(b);
+      return {
+        ...b,
+        commune: dual.adminAddress.communeNom || b.commune,
+        commune_id: dual.adminAddress.communeId || b.commune_id,
+        quartier: b.quartier || dual.adminAddress.quartierNom,
+        quartier_id: b.quartier_id || dual.adminAddress.quartierId,
+        region: b.region || dual.adminAddress.regionNom,
+        region_id: b.region_id || dual.adminAddress.regionId,
+        prefecture: b.prefecture || dual.adminAddress.prefectureNom,
+        prefecture_id: b.prefecture_id || dual.adminAddress.prefectureId,
+        admin_address_code: b.admin_address_code || dual.adminAddress.adminAddressCode,
+        formatted_address: b.formatted_address || dual.adminAddress.formattedAddress,
+      };
+    } catch {
+      return b;
+    }
+  });
 }
 
 export async function loadRealZones(): Promise<Zone[]> {
-  try {
-    const { data, error } = await supabase
-      .from('zones')
-      .select('*')
-      .order('zone_code', { ascending: true });
-    
-    if (error) {
-      console.warn("Supabase fetch zones failed, falling back to mock:", error);
-      return MOCK_ZONES;
-    }
-    if (!data || data.length === 0) {
-      return MOCK_ZONES;
-    }
-    return data as any;
-  } catch (err) {
-    console.warn("Exception zones fetch, falling back to mock:", err);
-    return MOCK_ZONES;
-  }
+  const { data, error } = await supabase
+    .from('zones')
+    .select('*')
+    .order('zone_code', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any;
 }
 
 export async function loadRealValidations(): Promise<Validation[]> {
-  try {
-    const { data, error } = await supabase
-      .from('validations')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.warn("Supabase fetch validations failed, falling back to mock:", error);
-      return MOCK_VALIDATIONS;
-    }
-    if (!data || data.length === 0) {
-      return MOCK_VALIDATIONS;
-    }
-    return data as any;
-  } catch (err) {
-    console.warn("Exception validations fetch, falling back to mock:", err);
-    return MOCK_VALIDATIONS;
-  }
+  const { data, error } = await supabase
+    .from('validations')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any;
 }
 
 /** Profil en mémoire de l'agent connecté (aucune écriture en base) : permet d'afficher son nom dans l'historique des relevés. */
@@ -457,23 +170,9 @@ function withActorProfile(list: Profile[]): Profile[] {
 }
 
 export async function loadRealProfiles(): Promise<Profile[]> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*');
-    
-    if (error) {
-      console.warn("Supabase fetch profiles failed, falling back to mock:", error);
-      return withActorProfile(MOCK_PROFILES);
-    }
-    if (!data || data.length === 0) {
-      return withActorProfile(MOCK_PROFILES);
-    }
-    return withActorProfile(data as any);
-  } catch (err) {
-    console.warn("Exception profiles fetch, falling back to mock:", err);
-    return withActorProfile(MOCK_PROFILES);
-  }
+  const { data, error } = await supabase.from('profiles').select('*');
+  if (error) throw error;
+  return withActorProfile((data ?? []) as any);
 }
 
 // ===== ACTIONS D'ÉQUIPE ENREGISTRÉES DANS SUPABASE =====
@@ -563,15 +262,6 @@ export async function updateBuildingInSupabase(id: string, updates: Partial<Buil
     return { success: false, localOnly: true, error: e.message || String(e) };
   }
 }
-
-// Ré-export du module d'attribution spatiale automatisée
-export {
-  
-  verifyAndReassignBuildings,
-  
-  
-  
-} from './spatialReassignment';
 
 // Ré-export du module d'adressage administratif et hybride
 ;
