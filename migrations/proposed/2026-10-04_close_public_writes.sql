@@ -1,3 +1,4 @@
+-- ⚠️ REMPLACÉE par 2026-10-05_partie2_securite.sql (étape B corrigée) — ne pas appliquer ce fichier.
 -- PROPOSITION — NON APPLIQUÉE. Partie B : fermer l'écriture publique (la clé publique ne permet plus que la LECTURE).
 -- À appliquer EN DERNIER, dans cet ordre :
 --   1. sauvegarde de la base ; 2. partie A (2026-10-04_agents.sql) ; 3. ajout des agents dans `agents` ;

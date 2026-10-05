@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 34** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 35** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -436,8 +436,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-05 (révision 34).**
+**Dernière mise à jour de cette section : 2026-10-05 (révision 35).**
 
+- **Fait (2026-10-05, préparation partie 2, lecture seule)** : export de sécurité des 11 tables métier (hors référentiels territoriaux) + script de retour arrière des règles ; plan en 3 étapes A (alertes sans effet sur les apps) / B (fermeture de l'écriture publique, corrigée pour l'upsert de `zones`/`validations`) / C (lecture de `declarations` par les agents) + D optionnelle (téléphones de `profiles` lisibles par tous) — voir `HailandMap_EMC/migrations/proposed/PLAN_PARTIE2.md`. **Rien appliqué : attend l'accord explicite du fondateur, étape par étape.** Constat : NavigationX crée ses profils avec un identifiant `user-…` ≠ compte ; ils seront refusés après l'étape B (profil gardé sur l'appareil).
 - **Fait (2026-10-05, fin de la partie 1 « nettoyage sans base »)** : `App.tsx` 8 570 → ≈2 930 lignes (gestionnaires de la carte dans `src/map/handlers/`), restes du tracé 3D retirés. **Reste volontairement non fait** : le masquage OSM vit toujours dans `localStorage` (le déplacer en base demande une table : partie 3). **Prochaine étape = partie 2, qui touche la base de production : accord explicite + export préalable du fondateur requis** (fermer les écritures publiques, corriger les alertes Supabase, lecture de `declarations` pour les agents).
 - **Fait (2026-10-05, tests)** : tests automatiques HailandMap (35 unitaires + 21 de bout en bout). Le test a révélé que les fiches créées par l'assistant étaient signées `admin` au lieu de l'agent : corrigé ; les fiches existantes restent signées `admin` (à rattacher plus tard). Défaut connu : un point hors de Guinée reçoit l'adresse du quartier le plus proche. Prochaine étape : fermer l'écriture publique en base (accord requis).
 - **Fait (2026-10-05, découpage)** : `App.tsx` 8 570 → 4 400 lignes ; modules `src/map/`, hook `useRegistry` ; guidage simulé, journal d'appels et validation en masse aléatoire supprimés. Prochaine étape : tests automatiques.
