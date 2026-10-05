@@ -33,7 +33,7 @@ React 19 · Vite 6 · TypeScript 5.8 · Tailwind 4 · Mapbox GL 3 · Turf.js · 
 
 ```
 src/
-  App.tsx (≈7 500 lignes)            # carte Mapbox, sélection, dessin, grille, état des modules (à découper)
+  App.tsx (≈4 400 lignes)            # carte Mapbox, sélection, dessin, grille, état des modules (reste à découper : l'initialisation de la carte et les gestionnaires de clic)
   main.tsx                           # point d'entrée : thème, AgentGate puis App
   types.ts                           # Building, Zone, Profile, Validation, territoires…
   index.css                          # jetons de couleur `hx-*` (Tailwind 4) et surcharges du thème
@@ -46,7 +46,9 @@ src/
     registryExports.ts               # exports CSV / GeoJSON et attestation du registre
     guineaBoundariesData.ts (6,4 Mo) / guineaOfflineData.ts (1,4 Mo)  # frontières et référentiel embarqués dans le bundle
   registration/                      # logique de l'enregistrement (sans interface) : useDirectBuildingForm, useChildBuildingForm, useCourtyardManager, floorDoors, levels
-  shell/                             # coque de l'Atelier : barre du haut, rail des modules, dock d'outils, contrôles de la carte, barre d'état
+  map/                               # code de carte sans état : constantes, géométrie, grille 200 m, volumes 3D, couches Mapbox (`layers.ts`)
+  hooks/useRegistry.ts               # le registre : chargement Supabase (sans données de démonstration), décisions de la Revue
+  shell/                             # coque de l'Atelier (+ SettingsModal) : barre du haut, rail des modules, dock d'outils, contrôles de la carte, barre d'état
   components/
     AgentGate.tsx + auth/            # ouverture, connexion par code (téléphone / e-mail), compte non autorisé
     InteractiveBuildingForm.tsx      # enveloppe de l'assistant de création
@@ -141,7 +143,7 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 ---
 
 ## 7. Problèmes spécifiques à HailandMap (voir `ECOSYSTEME_HAILAND.md` §7)
-- 🔴 Séquences de codes calculées côté navigateur (doublons possibles) ; validation en masse aléatoire.
+- 🔴 Séquences de codes calculées côté navigateur (doublons possibles). ✅ La validation en masse aléatoire (« Tout valider » du panneau d'un carreau) est supprimée (2026-10-05).
 - 🔴 Unicité du code administratif non garantie (lot par carreau ≠ unique par quartier ; collisions de trigrammes).
 - 🔴 Politiques RLS **ouvertes en écriture au rôle public** (constaté le 2026-10-02, y compris sur le référentiel territorial). **Authentification des agents codée (2026-10-04)** : connexion par code, auteur réel des écritures ; il reste à appliquer les règles de sécurité (`migrations/proposed/`, non appliquées) pour fermer l'écriture publique.
 - 🟠 `App.tsx` monolithique (≈ 7 500 lignes). ✅ `main.tsx` ne surcharge plus `JSON.stringify` ni la console (retiré le 2026-10-05).
@@ -149,7 +151,7 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 - 🟠 Détection de commune par bandes de longitude ; frontières embarquées au lieu d'être lues en base ; `zones.commune` faux.
 - 🟠 État critique dans `localStorage` : masquage OSM (clé `hailandmap_hidden_buildings_list`). ✅ Les tracés 3D manuels ne sont plus lus ni écrits.
 - 🟠 `buildings.quartier_id` / `commune_id` non enregistrés ; `osm_id` toujours vide ; `id` parfois = identifiant Mapbox.
-- ✅ Plus de fausses données : les repli sur des données de démonstration, les fausses statistiques et `ZonesView` ont été retirés (2026-10-05) ; si la base est injoignable, un bandeau « Impossible de charger le registre » avec « Réessayer » s'affiche. 🟡 Il reste un guidage simulé (GPS de démonstration) à retirer.
+- ✅ Plus de fausses données : les repli sur des données de démonstration, les fausses statistiques et `ZonesView` ont été retirés (2026-10-05) ; si la base est injoignable, un bandeau « Impossible de charger le registre » avec « Réessayer » s'affiche. ✅ Le guidage GPS simulé, l'itinéraire de démonstration et le journal d'appels ont aussi été retirés (2026-10-05).
 - 🟡 Migration OSM (273 937 bâtiments, 394 quartiers) **jamais appliquée** ; plans et suivis la donnent pour faite.
 
 ---
@@ -280,3 +282,4 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 | 2026-10-05 | Suppression du menu d'édition 3D (`components/Edit3DMenu.tsx`, bouton « Édit » en v1, outil « Volumes 3D » du dock en v2) à la demande du fondateur. Les volumes 3D existants restent affichés ; une fonction équivalente sera intégrée plus tard. Aucune base touchée. |
 | 2026-10-05 | Nettoyage sans changement de comportement : ancienne interface (v1) retirée (interrupteur `?ui=v1` et Réglages supprimés), code mort supprimé (Sidebar, Dashboard, ValidationsView, BuildingsView, ZonesView, BuildingPanel, AgentHistoryModal, agentHelper, anciens formulaires et leur moteur, HUD et modale de tracé 3D) ; la logique d'enregistrement est conservée dans `src/registration/` ; fichiers de référence de l'éditeur OSM iD retirés ; exports et types inutilisés supprimés. `App.tsx` passe de 8 570 à 7 500 lignes, 12 000 lignes retirées au total. Aucune base touchée. |
 | 2026-10-05 | Nettoyage (suite) : **fin d'une écriture automatique en production** — à chaque ouverture, l'application recalait la commune des fiches et les mettait à jour en base ; ce recalage n'est plus lancé que depuis « Maintenance » du Registre. Données de démonstration supprimées (plus de repli silencieux), bandeau d'erreur de chargement avec « Réessayer », protections globales de `main.tsx` retirées, tracés 3D manuels du navigateur effacés. Vérifié : aucune écriture au chargement, enregistrement d'un bâtiment (envoi intercepté, base non touchée), base injoignable. |
+| 2026-10-05 | Découpage d'`App.tsx` (8 570 → 4 400 lignes depuis le début du nettoyage) : modules `src/map/` (constantes, géométrie, grille 200 m, volumes 3D, couches Mapbox), hook `useRegistry`, fenêtre des réglages à part ; ancienne barre latérale cachée (780 lignes) supprimée. **Retraits** : guidage GPS simulé et itinéraire de démonstration, journal d'appels (42 appels), bouton « Tout valider » du panneau d'un carreau (attribuait des codes **aléatoires** et activait les fiches en base). Les erreurs des décisions de la Revue sont maintenant affichées au lieu d'être ignorées. Vérifié : aucune erreur de page, aucune écriture au chargement, enregistrement (envoi intercepté), bandeau d'erreur si la base est injoignable, fenêtre des réglages. Aucune base touchée. |

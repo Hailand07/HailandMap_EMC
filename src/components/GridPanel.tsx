@@ -8,7 +8,6 @@ import {
   Download,
   Building as BuildingIcon,
   User,
-  CheckCircle2,
   ChevronRight,
 } from 'lucide-react';
 import type { Building, Profile } from '../types';
@@ -21,7 +20,6 @@ interface GridPanelProps {
   isDark: boolean;
   onClose: () => void;
   onSelectBuilding: (building: Building) => void;
-  onApproveAll: (buildingsToApprove: Building[]) => void;
 }
 
 export default function GridPanel({
@@ -31,7 +29,6 @@ export default function GridPanel({
   isDark,
   onClose,
   onSelectBuilding,
-  onApproveAll,
 }: GridPanelProps) {
   const [exporting, setExporting] = useState(false);
 
@@ -142,15 +139,6 @@ export default function GridPanel({
 
         {/* Bulk Action Controls */}
         <div className="flex gap-2">
-          {pendingBuildings.length > 0 && (
-            <button
-              onClick={() => onApproveAll(pendingBuildings)}
-              className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[10.5px] font-bold font-display transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/10"
-            >
-              <CheckCircle2 size={14} />
-              Tout valider ({pendingBuildings.length})
-            </button>
-          )}
           <button
             onClick={handleExportData}
             disabled={exporting}

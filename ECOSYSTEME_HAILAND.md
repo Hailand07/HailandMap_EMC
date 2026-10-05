@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 31** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 32** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -339,7 +339,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 - 🟠 **Valeurs héritées d'un autre projet** : bâtiment OSM non encore enregistré créé avec `commune: 'Bamako'`, `quartier: 'Centre'`.
 - 🟠 **Détection de commune par bandes de longitude** (avant correction par `computeDualAddressing`) ; données de frontières embarquées (≈ 7,8 Mo) au lieu d'être lues en base.
 - 🟠 **État critique dans `localStorage`** : bâtiments OSM masqués. ✅ Tracés 3D manuels et modèles `.glb` supprimés (2026-10-05).
-- 🟡 **Fausses statistiques** (`agentHelper` impose « au moins 14 soumissions ») ; guidage simulé (« tronçon modélisé ») ; validateur codé en dur `admin-1` ; `ZonesView` crée des zones à polygone fixe.
+- ✅ *Retiré le 2026-10-05* : fausses statistiques (`agentHelper`), guidage simulé, validation en masse aléatoire, `ZonesView` (zones à polygone fixe). Reste : validateur codé en dur `admin-1` (à vérifier).
 - 🟡 Repli silencieux sur `MOCK_BUILDINGS` si la base est vide/injoignable (même chose côté NavigationX avec `FALLBACK_ROWS`).
 
 ---
@@ -436,8 +436,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-04 (révision 31).**
+**Dernière mise à jour de cette section : 2026-10-04 (révision 32).**
 
+- **Fait (2026-10-05, découpage)** : `App.tsx` 8 570 → 4 400 lignes ; modules `src/map/`, hook `useRegistry` ; guidage simulé, journal d'appels et validation en masse aléatoire supprimés. Prochaine étape : tests automatiques.
 - **Fait (2026-10-05, nettoyage)** : ancienne interface et ~12 000 lignes de code mort retirées de HailandMap ; **fin d'une écriture automatique en production** (recalage des communes lancé à chaque ouverture) ; fausses données de démonstration supprimées. Prochaine étape : découper `App.tsx`, tests, puis (avec accord) fermeture de l'écriture publique en base.
 - **Fait (2026-10-05)** : HailandMap v3 codée (écran d'ouverture, connexion par téléphone d'abord, Atelier sans panneau de droite avec fiche flottante, dock d'outils) — voir `HAILANDMAP.md` § « Version 3 ». Prochaine étape : brouillon de création (« Reprendre »), puis lecture des déclarations NavigationX dans la Revue (règle RLS, accord requis).
 - **Fait (2026-10-04)** : deux comptes `admin` (e-mail, téléphone) ajoutés dans `agents` (accord explicite) ; projet Vercel `hailand-map-emc` vérifié : relié à HailandMap_EMC et sert bien HailandMap (⚠️ le fondateur a vu l'interface NavigationX : adresse visitée à confirmer ; jeton Mapbox absent des variables Vercel). **Prochaine étape** : la Revue ne montre pas encore les déclarations NavigationX (nécessite une règle de lecture sur `declarations` pour les agents : accord requis).

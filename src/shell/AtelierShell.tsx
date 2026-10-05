@@ -1,5 +1,4 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { Bell, Building2, Home, Layers, LineChart, LogOut, Map as MapIcon, Search, Settings, Inbox } from 'lucide-react';
 import { signOut } from '../lib/agentAuth';
 import type { View } from '../types';
@@ -270,19 +269,13 @@ export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onT
   </div>
 );
 
-/** Emplacement du formulaire d'enregistrement : en v1 il reste dans le panneau gauche ; en v2 il est projeté dans l'inspecteur de droite (même arbre React : état et réglages inchangés). */
-export const RegistrationSlot: React.FC<{ v2: boolean; host: HTMLElement | null; children: React.ReactNode }> = ({ v2, host, children }) => {
-  if (!v2) return <>{children}</>;
-  return host ? createPortal(children, host) : null;
-};
-
 interface AssistantProps {
-  hostRef: (el: HTMLDivElement | null) => void;
+  children: React.ReactNode;
 }
 
-/** Inspecteur de droite de l'Atelier v2 pendant une création : reçoit l'assistant (étapes, codes, actions) par un portail React. */
-export const AssistantAside: React.FC<AssistantProps> = ({ hostRef }) => (
+/** Tiroir de droite de l'Atelier pendant une création : contient l'assistant (étapes, codes, actions). */
+export const AssistantAside: React.FC<AssistantProps> = ({ children }) => (
   <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
-    <div ref={hostRef} className="min-h-0 flex-1" />
+    <div className="min-h-0 flex-1">{children}</div>
   </aside>
 );
