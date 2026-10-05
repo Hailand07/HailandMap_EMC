@@ -6,51 +6,24 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { 
-  Navigation, 
-  Search, 
-  Compass, 
-  Check, 
-  Clock, 
-  X, 
-  ChevronRight, 
-  Truck, 
-  Map as MapIcon, 
-  RefreshCw,
   Info,
-  Sparkles,
-  ChevronLeft,
-  Play,
-  Pause,
-  RotateCcw,
-  Camera,
   EyeOff,
-  Gauge,
-  Settings,
-  Loader2,
-  LocateFixed,
-  
-} from 'lucide-react';
+  } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { actorId } from './lib/actor';
 import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
-import type { RouteInfo, View, Building, Zone, Validation, Profile, BuildingType, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
+import type { View, Building, Zone, BuildingType, Custom3DBuilding, HiddenBuildingData, EntrancePickerConfig } from './types';
 import {
   loadRealBuildings,
-  loadRealZones,
-  loadRealValidations,
-  loadRealProfiles,
-  updateBuildingInSupabase,
   insertBuildingInSupabase,
-  saveValidationInSupabase,
   saveZoneInSupabase,
-  generateHailandCode,
   } from './lib/supabase';
 import { computeDualAddressing } from './lib/administrativeAddressingService';
-import { sanitizeGeometry, sanitizeObject, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
+import { sanitizeGeometry, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
-import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, RegistrationSlot, TOOLS, type AtelierTool } from './shell/AtelierShell';
+import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, TOOLS, type AtelierTool } from './shell/AtelierShell';
 import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
 import { CandidateCard, BuildingCard } from './v2/atelier/FloatingCards';
 import { MapStyleControl, SatelliteOptions, ZoomCluster, PanelHandle } from './shell/MapControls';
@@ -68,404 +41,16 @@ import {
   zoomToTerritories,
   setLOD3DForLevel,
   clearTerritoryHighlight,
-  TERRITORY_LEVEL_COLORS
+  
 } from './lib/interactiveMapEngine';
-
-// Valeur par défaut pour le jeton Mapbox (masquée via variable d'environnement)
-const DEFAULT_MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN || '';
-const CUSTOM_STYLE_URL = 'mapbox://styles/hailand/cmqbiiccq000b01qr7ckjeut1';
-
-// Point par défaut à Conakry pour la simulation de départ
-
-// Palette volumétrique 3D par type d'usage de bâtiment (Étape 3)
-const BUILDING_TYPE_3D_COLORS: Record<string, string> = {
-  R: '#f0eee9', // Résidentiel (Natif Mapbox 3D élégant)
-  C: '#f59e0b', // Commercial (Ambre doré)
-  M: '#a855f7', // Mixte (Violet)
-  A: '#38bdf8', // Administratif (Cyan / Bleu ciel)
-  H: '#ec4899', // Hôtel (Rose)
-  P: '#10b981', // Public (Émeraude)
-  T: '#64748b', // Transport / Logistique (Ardoise)
-};
-
-// ===== GÉNÉRATION DU MUR D'ENCEINTE 3D (CLÔTURE CONCESSION) =====
-const createCourtyardWall3DEntities = (
-  courtyardBuilding: Building,
-  courtyardPolygon: GeoJSON.Polygon | GeoJSON.MultiPolygon
-): Custom3DBuilding[] => {
-  const wallEntities: Custom3DBuilding[] = [];
-  try {
-    const polyFeature = turf.feature(courtyardPolygon);
-    const line: any = turf.polygonToLine(polyFeature as any);
-    if (!line) return [];
-
-    // 0.10 m de rayon = 0.20 m (20 cm) d'épaisseur totale de mur
-    const buffered: any = turf.buffer(line, 0.00010, { units: 'kilometers' });
-    if (!buffered || !buffered.geometry) return [];
-
-    const wallName = `Mur d'enceinte (${courtyardBuilding.landmark_note || courtyardBuilding.hailand_code || 'Concession'})`;
-    const wallColor = '#94a3b8'; // Gris ardoise du mur
-
-    let centroidCoords: [number, number] = [0, 0];
-    if (courtyardBuilding.centroid?.coordinates && Array.isArray(courtyardBuilding.centroid.coordinates)) {
-      centroidCoords = [courtyardBuilding.centroid.coordinates[0], courtyardBuilding.centroid.coordinates[1]];
-    } else {
-      try {
-        const c = turf.centroid(polyFeature as any);
-        centroidCoords = [c.geometry.coordinates[0], c.geometry.coordinates[1]];
-      } catch (e) {
-        centroidCoords = [-13.6, 9.6];
-      }
-    }
-
-    if (buffered.geometry.type === 'Polygon') {
-      wallEntities.push({
-        id: `3d-wall-${courtyardBuilding.id || Date.now()}`,
-        name: wallName,
-        floors: 1,
-        height: 2.2, // 2.2 mètres standard
-        base_height: 0,
-        color: wallColor,
-        opacity: 1.0,
-        coordinates: buffered.geometry.coordinates as [number, number][][],
-        centroid: centroidCoords,
-        area_m2: safeCalculateArea(buffered.geometry, 30),
-        created_at: new Date().toISOString()
-      });
-    } else if (buffered.geometry.type === 'MultiPolygon') {
-      buffered.geometry.coordinates.forEach((polyCoords: any, idx: number) => {
-        wallEntities.push({
-          id: `3d-wall-${courtyardBuilding.id || Date.now()}-${idx}`,
-          name: `${wallName} [Tronçon ${idx + 1}]`,
-          floors: 1,
-          height: 2.2,
-          base_height: 0,
-          color: wallColor,
-          opacity: 1.0,
-          coordinates: polyCoords as [number, number][][],
-          centroid: centroidCoords,
-          area_m2: safeCalculateArea({ type: 'Polygon', coordinates: polyCoords }, 30),
-          created_at: new Date().toISOString()
-        });
-      });
-    }
-  } catch (err) {
-    console.warn("Erreur génération mur d'enceinte 3D:", err);
-  }
-  return wallEntities;
-};
-
-// ===== GÉNÉRATION AUTOMATIQUE DES VOLUMES 3D DEPUIS LA LISTE DES BÂTIMENTS =====
-const generate3DEntitiesFromBuildingList = (buildingsList: Building[]): Custom3DBuilding[] => {
-  if (!buildingsList || buildingsList.length === 0) return [];
-
-  const buildingsToExtrude = buildingsList.filter(b => {
-    // Si c'est une concession/cour avec des bâtiments enfants, on extrude les toitures physiques des enfants
-    // Sinon si c'est un bâtiment direct, on extrude son polygone direct
-    const hasChildrenInList = buildingsList.some(other => other.parent_building_id === b.id);
-    if (hasChildrenInList && b.has_courtyard) return false;
-    return Boolean(b.geom && b.geom.coordinates && b.geom.coordinates.length > 0);
-  });
-
-  const generated3D: Custom3DBuilding[] = [];
-
-  // 1. Extrusion des toitures et volumes des bâtiments selon leurs informations saisies
-  buildingsToExtrude.forEach(b => {
-    const rawFloors = typeof b.floor_count === 'number' ? b.floor_count : 0;
-    // RDC (rawFloors === 0) = 1 niveau physique = 3.2m
-    // R+1 = 2 niveaux = 6.4m, R+2 = 3 niveaux = 9.6m, etc.
-    const physicalFloors = rawFloors === 0 ? 1 : rawFloors + 1;
-    const heightMeters = parseFloat((physicalFloors * 3.2).toFixed(1));
-    const typeColor = BUILDING_TYPE_3D_COLORS[b.building_type] || '#f0eee9';
-    const floorLabel = rawFloors === 0 ? 'RDC' : `R+${rawFloors}`;
-
-    let centroidCoords: [number, number] = [0, 0];
-    if (b.centroid?.coordinates && Array.isArray(b.centroid.coordinates)) {
-      centroidCoords = [b.centroid.coordinates[0], b.centroid.coordinates[1]];
-    } else {
-      try {
-        const c = turf.centroid(b.geom as any);
-        centroidCoords = [c.geometry.coordinates[0], c.geometry.coordinates[1]];
-      } catch (e) {
-        centroidCoords = (b.geom.coordinates[0]?.[0] as [number, number]) || [-13.6, 9.6];
-      }
-    }
-
-    // Extraction propre et validation du polygone
-    let polyCoords: [number, number][][] = [];
-    let rawGeom: any = b.geom;
-    if (typeof rawGeom === 'string') {
-      try { rawGeom = JSON.parse(rawGeom); } catch(e) {}
-    }
-    if (rawGeom?.type === 'MultiPolygon' && Array.isArray(rawGeom.coordinates?.[0])) {
-      polyCoords = rawGeom.coordinates[0] as [number, number][][];
-    } else if (Array.isArray(rawGeom?.coordinates)) {
-      polyCoords = rawGeom.coordinates as [number, number][][];
-    }
-
-    if (!polyCoords || polyCoords.length === 0 || !polyCoords[0] || polyCoords[0].length < 3) {
-      return;
-    }
-
-    try {
-      // Assurer le bon sens des aiguilles d'une montre (Right Hand Rule) pour Mapbox GL JS 3D extrusion
-      const poly = turf.polygon(polyCoords);
-      const rewinded = turf.rewind(poly);
-      polyCoords = (rewinded as any).geometry.coordinates as [number, number][][];
-    } catch (e) {}
-
-    const custom3DEntity: Custom3DBuilding = {
-      id: `3d-auto-${b.id}`,
-      name: b.hailand_code || b.landmark_note || `Bâtiment ${b.building_type} (${floorLabel})`,
-      floors: physicalFloors,
-      height: heightMeters,
-      base_height: 0,
-      color: typeColor,
-      opacity: 1.0,
-      coordinates: polyCoords,
-      centroid: centroidCoords,
-      area_m2: safeCalculateArea(b.geom, 120),
-      created_at: b.created_at || new Date().toISOString()
-    };
-
-    generated3D.push(custom3DEntity);
-  });
-
-  // 2. Génération automatique du mur d'enceinte 3D (clôture 2.2m) pour les cours / concessions
-  const courtyardsToEnclose = buildingsList.filter(b => {
-    return b.has_courtyard && (b.courtyard_geom || (b.parent_building_id === null && b.geom));
-  });
-
-  const handledCourtyardGeoms = new Set<string>();
-  courtyardsToEnclose.forEach(courtyardBldg => {
-    const geomToUse = courtyardBldg.courtyard_geom || courtyardBldg.geom;
-    if (!geomToUse || !geomToUse.coordinates || geomToUse.coordinates.length === 0) return;
-
-    const firstPt = geomToUse.coordinates?.[0]?.[0];
-    const geomKey = Array.isArray(firstPt) ? `${firstPt[0]}_${firstPt[1]}_${geomToUse.coordinates.length}` : String(courtyardBldg.id);
-    if (handledCourtyardGeoms.has(geomKey)) return;
-    handledCourtyardGeoms.add(geomKey);
-
-    const walls = createCourtyardWall3DEntities(courtyardBldg, geomToUse);
-    if (walls.length > 0) {
-      generated3D.push(...walls);
-    }
-  });
-
-  return generated3D;
-};
-
-/**
- * Génère un quadrillage de 200m x 200m sous forme de polygones GeoJSON couvrant l'ensemble du territoire guinéen.
- * Implémente le SYSTÈME HAILANDCODE v3.0 — ADRESSAGE GÉOMÉTRIQUE CENTRALISÉ (ID de carreau géométrique unique -[ZONE]-).
- * Supporte le calcul à la volée basé sur le viewport actuel de la carte pour des performances optimales.
- */
-const generate200mGridGeoJSON = (bounds?: { minLng: number; maxLng: number; minLat: number; maxLat: number }) => {
-  const features: any[] = [];
-  
-  // Bornes par défaut (Conakry) si aucune borne n'est spécifiée
-  let minLng = bounds ? bounds.minLng : -13.75;
-  let maxLng = bounds ? bounds.maxLng : -13.50;
-  let minLat = bounds ? bounds.minLat : 9.45;
-  let maxLat = bounds ? bounds.maxLat : 9.65;
-
-  // Si l'aire du viewport est trop grande, on centre la génération de la grille
-  // autour de la vue pour éviter les ralentissements ou les crashs du navigateur.
-  const spanLng = maxLng - minLng;
-  const spanLat = maxLat - minLat;
-  const maxSpan = 0.08; // Environ 8.8 km, idéal pour une grille dense, fluide et complète localement
-  if (spanLng > maxSpan || spanLat > maxSpan) {
-    const centerLng = (minLng + maxLng) / 2;
-    const centerLat = (minLat + maxLat) / 2;
-    minLng = centerLng - maxSpan / 2;
-    maxLng = centerLng + maxSpan / 2;
-    minLat = centerLat - maxSpan / 2;
-    maxLat = centerLat + maxSpan / 2;
-  }
-
-  // Équivalences géométriques : 1 degré lat = 111111m -> 200m = 0.0018° lat
-  // 1 degré lng = 111111 * cos(9.5°) = 109587m -> 200m = 0.001825° lng
-  const stepLng = 0.001825;
-  const stepLat = 0.0018;
-
-  // Origine globale immuable pour le quadrillage national (Conakry initial)
-  const globalMinLng = -13.75;
-  const globalMinLat = 9.45;
-  
-  // Aligner parfaitement les indices de colonnes/rangées sur la grille globale déterministe
-  const startCol = Math.floor((minLng - globalMinLng) / stepLng);
-  const endCol = Math.ceil((maxLng - globalMinLng) / stepLng);
-  const startRow = Math.floor((minLat - globalMinLat) / stepLat);
-  const endRow = Math.ceil((maxLat - globalMinLat) / stepLat);
-
-  for (let col = startCol; col <= endCol; col++) {
-    const w = globalMinLng + col * stepLng;
-    const e = w + stepLng;
-    for (let row = startRow; row <= endRow; row++) {
-      const s = globalMinLat + row * stepLat;
-      const n = s + stepLat;
-      
-      // Assurer la cohérence stricte avec les maquettes d'origine
-      let label = '';
-      if (w <= -13.621 && -13.621 <= e && s <= 9.590 && 9.590 <= n) {
-        label = 'Z014';
-      } else if (w <= -13.625 && -13.625 <= e && s <= 9.592 && 9.592 <= n) {
-        label = 'Z015';
-      } else {
-        // Formule déterministe globale pour un ID de carreau unique Zxxxx ou Z_Xcol_Yrow
-        const cellNum = col * 115 + row + 1;
-        let finalNum = cellNum;
-        if (finalNum === 14 || finalNum === 15) {
-          finalNum += 10000;
-        }
-        if (finalNum < 0) {
-          label = `Z_X${Math.abs(col)}_Y${Math.abs(row)}`;
-        } else {
-          label = `Z${String(finalNum).padStart(3, '0')}`;
-        }
-      }
-      
-      features.push({
-        type: 'Feature',
-        properties: {
-          id: label,
-          col: col,
-          row: row
-        },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [w, s],
-            [e, s],
-            [e, n],
-            [w, n],
-            [w, s]
-          ]]
-        }
-      });
-    }
-  }
-  
-  return {
-    type: 'FeatureCollection' as const,
-    features: features
-  };
-};
-
-/**
- * Génère un UUID v4 standard pour garantir la compatibilité de type UUID dans Supabase.
- */
-
-/**
- * Détecte de manière déterministe le carreau de 200m x 200m (l'ID unique de la ZONE)
- * à partir de coordonnées géographiques (longitude, latitude) sur tout le territoire.
- */
-const detect200mZoneFromCoords = (lng: number, lat: number): string => {
-  const minLng = -13.75;
-  const minLat = 9.45;
-  const stepLng = 0.001825;
-  const stepLat = 0.0018;
-
-  const colIdx = Math.floor((lng - minLng) / stepLng);
-  const rowIdx = Math.floor((lat - minLat) / stepLat);
-
-  const w = minLng + colIdx * stepLng;
-  const e = w + stepLng;
-  const s = minLat + rowIdx * stepLat;
-  const n = s + stepLat;
-
-  if (w <= -13.621 && -13.621 <= e && s <= 9.590 && 9.590 <= n) {
-    return 'Z014';
-  }
-  if (w <= -13.625 && -13.625 <= e && s <= 9.592 && 9.592 <= n) {
-    return 'Z015';
-  }
-
-  const cellNum = colIdx * 115 + rowIdx + 1;
-  let finalNum = cellNum;
-  if (finalNum === 14 || finalNum === 15) {
-    finalNum += 10000;
-  }
-  if (finalNum < 0) {
-    return `Z_X${Math.abs(colIdx)}_Y${Math.abs(rowIdx)}`;
-  }
-  return `Z${String(finalNum).padStart(3, '0')}`;
-};
-
-/**
- * Calcule la distance entre deux coordonnées géographiques en mètres (formule de Haversine).
- */
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // Rayon de la Terre en mètres
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-/**
- * Calcule l'aire d'un polygone de coordonnées en mètres carrés (m²) de façon plane locale.
- */
-function calculatePolygonArea(coordinates: [number, number][][]): number {
-  if (!coordinates || coordinates.length === 0 || coordinates[0].length < 3) return 0;
-  const ring = coordinates[0];
-  const n = ring.length;
-  if (n < 3) return 0;
-  
-  // Barycentre pour la projection locale plane
-  let sumLng = 0;
-  let sumLat = 0;
-  ring.forEach(pt => {
-    sumLng += pt[0];
-    sumLat += pt[1];
-  });
-  const refLng = sumLng / n;
-  const refLat = sumLat / n;
-  
-  const radLat = (refLat * Math.PI) / 180;
-  const kx = 111320 * Math.cos(radLat); // mètres par degré de long
-  const ky = 110540; // mètres par degré de lat
-  
-  // Formule de Shoelace
-  let area = 0;
-  for (let i = 0; i < n; i++) {
-    const pt1 = ring[i];
-    const pt2 = ring[(i + 1) % n];
-    
-    const x1 = (pt1[0] - refLng) * kx;
-    const y1 = (pt1[1] - refLat) * ky;
-    const x2 = (pt2[0] - refLng) * kx;
-    const y2 = (pt2[1] - refLat) * ky;
-    
-    area += (x1 * y2) - (x2 * y1);
-  }
-  
-  return Math.round(Math.abs(area / 2));
-}
-
-/**
- * Génère un polygone carré de dimension donnée autour de coordonnées géographiques (pour simulation de zone).
- */
-function generateSquarePolygon(lng: number, lat: number, halfSideMeters: number = 8): { type: "Polygon"; coordinates: [number, number][][] } {
-  const radLat = (lat * Math.PI) / 180;
-  const deltaLat = halfSideMeters / 110540;
-  const deltaLng = halfSideMeters / (111320 * Math.cos(radLat));
-  
-  const p1: [number, number] = [lng - deltaLng, lat - deltaLat];
-  const p2: [number, number] = [lng + deltaLng, lat - deltaLat];
-  const p3: [number, number] = [lng + deltaLng, lat + deltaLat];
-  const p4: [number, number] = [lng - deltaLng, lat + deltaLat];
-  const p5: [number, number] = [lng - deltaLng, lat - deltaLat]; // Refermer
-  
-  return {
-    type: 'Polygon',
-    coordinates: [[p1, p2, p3, p4, p5]]
-  };
-}
+import { calculateDistance, calculatePolygonArea, generateSquarePolygon } from './map/geometry';
+import { generate200mGridGeoJSON, detect200mZoneFromCoords } from './map/grid';
+import { BUILDING_TYPE_3D_COLORS, createCourtyardWall3DEntities, generate3DEntitiesFromBuildingList } from './map/buildings3d';
+import { DEFAULT_MAPBOX_TOKEN, CUSTOM_STYLE_URL,  } from './map/constants';
+import { applyHiddenBuildingsFilter, enforceBuildingsAboveCourtyardsOrder, syncCourtyardsLayer, syncEntryPointsLayer, syncCustom3DBuildingsLayer, syncFixedGpsCentroidsLayer } from './map/layers';
+import type { LayerEnv } from './map/layers';
+import { useRegistry } from './hooks/useRegistry';
+import { SettingsModal } from './shell/SettingsModal';
 
 /**
  * Récupère dynamiquement tous les calques polygonaux de la carte actifs
@@ -476,7 +61,23 @@ function generateSquarePolygon(lng: number, lat: number, halfSideMeters: number 
  * Réduit le bruit de crénelage de pixels pour donner un rendu géométrique propre (droites de toitures).
  */
 export default function App() {
-  const [assistantHost, setAssistantHost] = useState<HTMLDivElement | null>(null);
+  // Notifications algorithmiques de détourage ou de superposition
+  const [mapNotification, setMapNotification] = useState<{
+    type: 'success' | 'info' | 'warning';
+    title: string;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (mapNotification) {
+      const timer = setTimeout(() => {
+        setMapNotification(null);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [mapNotification]);
+
+  const { buildings, setBuildings, zones, setZones, validations, profiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit } = useRegistry(setMapNotification);
   const [assistantStarted, setAssistantStarted] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -484,10 +85,6 @@ export default function App() {
   const [activitySeen, setActivitySeen] = useState(0);
   const [cursorPos, setCursorPos] = useState<{ lng: number; lat: number } | null>(null);
   const [activeAdminView, setActiveAdminView] = useState<View>('carte');
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [validations, setValidations] = useState<Validation[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedGridCell, setSelectedGridCell] = useState<any | null>(null);
   const [selectedGridBuildings, setSelectedGridBuildings] = useState<Building[]>([]);
@@ -526,206 +123,9 @@ export default function App() {
   };
 
   
-  const handleApproveBuilding = async (building: Building, newCode: string) => {
-    addApiLog('POST', `/api/building/approve/${building.id}`, { newCode }, { status: 'Processing' });
-    try {
-      await updateBuildingInSupabase(building.id, {
-        status: 'actif',
-        hailand_code: newCode,
-        is_validated: true,
-        validation_count: (building.validation_count || 0) + 1,
-        validated_at: new Date().toISOString()
-      });
-      
-      const newV: Validation = {
-        id: 'val-' + Math.random().toString(36).substring(2, 11),
-        building_id: building.id,
-        validator_id: actorId(),
-        type: 'livreur_validation',
-        old_geom: null,
-        new_geom: null,
-        comment: `Génération officielle HailandCode : ${newCode}`,
-        status: 'approved',
-        reviewed_by: actorId(),
-        created_at: new Date().toISOString()
-      };
-      
-      await saveValidationInSupabase({
-        building_id: building.id,
-        validator_id: actorId(),
-        type: 'livreur_validation',
-        comment: `Génération officielle HailandCode : ${newCode}`,
-        status: 'approved',
-        reviewed_by: actorId()
-      });
-      
-      setBuildings(prev => prev.map(b => b.id === building.id ? {
-        ...b,
-        status: 'actif',
-        hailand_code: newCode,
-        is_validated: true,
-        validation_count: (b.validation_count || 0) + 1,
-        validated_at: new Date().toISOString()
-      } : b));
-      
-      setValidations(prev => [newV, ...prev]);
-      
-      addApiLog('POST_SUCCESS', `/api/building/approve/${building.id}`, null, {
-        hailand_code: newCode,
-        status: 'actif',
-        message: 'Bâtiment validé, code national actif.'
-      });
-    } catch (err: any) {
-      addApiLog('POST_ERROR', `/api/building/approve/${building.id}`, null, { message: err.message || err });
-    }
-  };
-
-  const handleRejectBuilding = async (building: Building, comment: string) => {
-    addApiLog('POST', `/api/building/reject/${building.id}`, { comment }, { status: 'Processing' });
-    try {
-      await updateBuildingInSupabase(building.id, {
-        status: 'inactif',
-        rejection_reason: comment,
-        is_validated: false
-      });
-      
-      const newV: Validation = {
-        id: 'val-' + Math.random().toString(36).substring(2, 11),
-        building_id: building.id,
-        validator_id: actorId(),
-        type: 'correct_polygon',
-        old_geom: null,
-        new_geom: null,
-        comment: `Rejet : ${comment}`,
-        status: 'rejected',
-        reviewed_by: actorId(),
-        created_at: new Date().toISOString()
-      };
-      
-      await saveValidationInSupabase({
-        building_id: building.id,
-        validator_id: actorId(),
-        type: 'correct_polygon',
-        comment: `Rejet : ${comment}`,
-        status: 'rejected',
-        reviewed_by: actorId()
-      });
-      
-      setBuildings(prev => prev.map(b => b.id === building.id ? {
-        ...b,
-        status: 'inactif',
-        rejection_reason: comment,
-        is_validated: false
-      } : b));
-      
-      setValidations(prev => [newV, ...prev]);
-      
-      addApiLog('POST_SUCCESS', `/api/building/reject/${building.id}`, null, {
-        rejection_reason: comment,
-        status: 'rejected'
-      });
-    } catch (err: any) {
-      addApiLog('POST_ERROR', `/api/building/reject/${building.id}`, null, { message: err.message || err });
-    }
-  };
-
-  // Demande de visite terrain : note enregistrée sur la fiche (colonne modification_request), statut inchangé.
-  const handleRequestVisit = async (building: Building, note: string) => {
-    addApiLog('POST', `/api/building/request-visit/${building.id}`, { note }, { status: 'Processing' });
-    try {
-      await updateBuildingInSupabase(building.id, { modification_request: note });
-      setBuildings((prev) => prev.map((b) => (b.id === building.id ? { ...b, modification_request: note } : b)));
-      setMapNotification({ type: 'info', title: 'Visite demandée', message: `${building.hailand_code ?? 'Fiche'} : ${note}` });
-    } catch (err: any) {
-      addApiLog('POST_ERROR', `/api/building/request-visit/${building.id}`, null, { message: err.message || err });
-    }
-  };
-
-  const handleApproveAllGridBuildings = async (buildingsToApprove: Building[]) => {
-    addApiLog('POST_BULK', `/api/building/approve-bulk`, { count: buildingsToApprove.length }, { status: 'Processing' });
-    try {
-      const approvedCodes: Record<string, string> = {};
-
-      for (const b of buildingsToApprove) {
-        const sequence = Math.floor(Math.random() * 800) + 100;
-        const code = generateHailandCode(
-          'CKY',
-          b.commune || 'Kaloum',
-          b.zone_code || 'Z014',
-          b.building_type || 'M',
-          sequence,
-          b.floor_level || undefined,
-          b.unit_code || undefined
-        );
-        approvedCodes[b.id] = code;
-
-        await updateBuildingInSupabase(b.id, {
-          status: 'actif',
-          hailand_code: code,
-          is_validated: true,
-          validation_count: (b.validation_count || 0) + 1,
-          validated_at: new Date().toISOString()
-        });
-
-        await saveValidationInSupabase({
-          building_id: b.id,
-          validator_id: actorId(),
-          type: 'livreur_validation',
-          comment: `Génération bulk officielle HailandCode : ${code}`,
-          status: 'approved',
-          reviewed_by: actorId()
-        });
-      }
-
-      const approvedIds = buildingsToApprove.map(b => b.id);
-      setBuildings(prev => prev.map(b => {
-        if (approvedIds.includes(b.id)) {
-          const code = approvedCodes[b.id];
-          return {
-            ...b,
-            status: 'actif',
-            hailand_code: code,
-            is_validated: true,
-            validation_count: (b.validation_count || 0) + 1,
-            validated_at: new Date().toISOString()
-          };
-        }
-        return b;
-      }));
-
-      setSelectedGridBuildings(prev => prev.map(b => {
-        if (approvedIds.includes(b.id)) {
-          const code = approvedCodes[b.id];
-          return {
-            ...b,
-            status: 'actif',
-            hailand_code: code,
-            is_validated: true,
-            validation_count: (b.validation_count || 0) + 1,
-            validated_at: new Date().toISOString()
-          };
-        }
-        return b;
-      }));
-
-      setMapNotification({
-        type: 'success',
-        title: 'Validation de Masse Réussie !',
-        message: `${buildingsToApprove.length} bâtiments du carreau de 200m ont été approuvés avec succès.`
-      });
-
-      addApiLog('POST_BULK_SUCCESS', `/api/building/approve-bulk`, null, {
-        approved_count: buildingsToApprove.length,
-        message: 'Tout le quadrillage a été validé en masse.'
-      });
-    } catch (err: any) {
-      addApiLog('POST_BULK_ERROR', `/api/building/approve-bulk`, null, { message: err.message || err });
-    }
-  };
 
   
-  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
-  
+    
   
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -748,17 +148,11 @@ export default function App() {
   }, [buildings]);
 
   // Refs de suivi de livraison professionnel et cinématographie réelle
-  const courierMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const entranceMarkerRef = useRef<mapboxgl.Marker | null>(null);
+    const entranceMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const entrancePickerConfigRef = useRef<EntrancePickerConfig | null>(null);
   const previewEntranceMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const snappedCoordsRef = useRef<{ lng: number; lat: number } | null>(null);
   const wallLineCacheRef = useRef<any>(null);
-  const orbitAngleRef = useRef<number>(0);
-  const gpsWatchIdRef = useRef<number | null>(null);
-  const isGpsTrackingActiveRef = useRef<boolean>(false);
-  const isVirtualGpsActiveRef = useRef<boolean>(true);
-  const handleRealUserLocationChangeRef = useRef<any>(null);
 
   // États pour le dessin personnalisé de zone libre
   const [isDrawMode, setIsDrawMode] = useState(false);
@@ -875,7 +269,6 @@ export default function App() {
     setIsInteractiveMapActive((prev) => {
       const nextState = !prev;
       console.log(`[InteractiveMap:App] Mode Carte Interactive ${nextState ? 'activé' : 'désactivé'}`);
-      addApiLog('INTERACTIVE_MAP_TOGGLE', `/map/interactive-mode/${nextState}`, null, { active: nextState });
 
       if (!nextState) {
         setSelectedTerritories([]);
@@ -906,13 +299,6 @@ export default function App() {
         console.log(`[InteractiveMap:App] Territoire ajouté : level=${payload.level}, nom="${payload.nom}" (total: ${updated.length})`);
       }
 
-      addApiLog('INTERACTIVE_MAP_TOGGLE_TERRITORY', `/map/territory/${payload.level}/${payload.id}`, {
-        nom: payload.nom,
-        code: payload.code,
-        level: payload.level,
-        action: exists ? 'removed' : 'added',
-        totalActive: updated.length
-      }, { status: 'Success' });
 
       if (mapRef.current) {
         if (updated.length === 0) {
@@ -944,10 +330,6 @@ export default function App() {
       }
 
       console.log(`[InteractiveMap:App] Action groupée ${action} (${payloads.length} éléments) -> Total actifs: ${updated.length}`);
-      addApiLog('INTERACTIVE_MAP_BATCH_TOGGLE', `/map/territories/batch/${action}`, {
-        count: payloads.length,
-        totalActive: updated.length
-      }, { status: 'Success' });
 
       if (mapRef.current) {
         if (updated.length === 0) {
@@ -976,20 +358,7 @@ export default function App() {
     }
   }, []);
 
-  const handleRemoveSingleTerritory = useCallback((id: string) => {
-    setSelectedTerritories((prev) => {
-      const updated = prev.filter((t) => t.id !== id);
-      if (mapRef.current) {
-        if (updated.length === 0) {
-          clearTerritoryHighlight(mapRef.current);
-        } else {
-          applyTerritoriesHighlight(mapRef.current, updated);
-        }
-      }
-      return updated;
-    });
-  }, []);
-
+  
   useEffect(() => {
     const handleMapMathError = (event: ErrorEvent) => {
       const msg = [
@@ -1133,9 +502,7 @@ export default function App() {
     clickSelectionTargetRef.current = clickSelectionTarget;
   }, [clickSelectionTarget]);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchSuggestions, setSearchSuggestions] = useState<Building[]>([]);
-
+    
   // Position utilisateur (Réelle)
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isLocating] = useState(false);
@@ -1170,106 +537,21 @@ export default function App() {
   const [, setNewUnitCode] = useState<string>('');
 
   // Itinéraire
-  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [routeLoading, setRouteLoading] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
-  
+        
   // Système de suivi d'itinéraire professionnel réel (Live GPS ou Clics d'Émulation)
-  const [isGpsTrackingActive, setIsGpsTrackingActive] = useState(false);
-  const [trackingCameraMode, setTrackingCameraMode] = useState<'chase' | 'orbit' | 'overhead' | 'free'>('chase');
-  const [trackingStatus, setTrackingStatus] = useState<'idle' | 'running' | 'arrived'>('idle');
-  const [isVirtualGpsActive, setIsVirtualGpsActive] = useState(true); // Aide au test par clics de souris sur carte sur PC
+        // Aide au test par clics de souris sur carte sur PC
   
   // Télémétrie en temps réel
-  const [telemetrySpeed, setTelemetrySpeed] = useState(0); 
-  const [telemetryDistanceLeft, setTelemetryDistanceLeft] = useState(0); 
-  const [telemetryTimeLeft, setTelemetryTimeLeft] = useState(0); 
-  const [activeGuidanceText, setActiveGuidanceText] = useState("Prêt à démarrer le guidage professionnel.");
-  const [guidanceList, setGuidanceList] = useState<string[]>([]);
-
+          
   // Logs API pour l'aspect de développeur expert Full-Stack
-  const [, setApiLogs] = useState<{ timestamp: string; method: string; url: string; body?: any; response?: any }[]>([]);
-
-  // Notifications algorithmiques de détourage ou de superposition
-  const [mapNotification, setMapNotification] = useState<{
-    type: 'success' | 'info' | 'warning';
-    title: string;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (mapNotification) {
-      const timer = setTimeout(() => {
-        setMapNotification(null);
-      }, 8000);
-      return () => clearTimeout(timer);
-    }
-  }, [mapNotification]);
+  
 
   useEffect(() => {
     localStorage.setItem('hailandmap_token', accessToken);
   }, [accessToken]);
 
   // Ajouter un log API
-  const addApiLog = (method: string, url: string, body?: any, response?: any) => {
-    const newLog = {
-      timestamp: new Date().toLocaleTimeString(),
-      method,
-      url,
-      body: body ? sanitizeObject(body) : undefined,
-      response: response ? sanitizeObject(response) : undefined
-    };
-    setApiLogs(prev => [newLog, ...prev].slice(0, 5));
-  };
-
-  // Chargement du registre depuis Supabase. En cas d'échec, l'agent le voit et peut réessayer (aucune donnée de démonstration).
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const syncData = useCallback(async () => {
-    setLoading(true);
-    addApiLog('GET', '/supabase/init-sync', null, { message: "Connexion et synchronisation en cours..." });
-    try {
-      const [realB, realZ, realV, realP] = await Promise.all([
-        loadRealBuildings(),
-        loadRealZones(),
-        loadRealValidations(),
-        loadRealProfiles(),
-      ]);
-
-      // Assurer l'unicité stricte de chaque ID de bâtiment pour React
-      const seenBuildingIds = new Set<string>();
-      const sanitizedBuildings = realB.map((b, idx) => {
-        let cleanId = b.id;
-        if (!cleanId || cleanId === "Tracé Personnalisé" || seenBuildingIds.has(cleanId)) {
-          cleanId = `b-${b.hailand_code || 'item'}-${idx}-${Date.now()}`;
-        }
-        seenBuildingIds.add(cleanId);
-        return { ...b, id: cleanId };
-      });
-
-      setBuildings(sanitizedBuildings);
-      setZones(realZ);
-      setValidations(realV);
-      setProfiles(realP);
-      setLoadError(null);
-
-      addApiLog('SYNC_SUCCESS', '/supabase/synced', null, {
-        buildings: realB.length,
-        zones: realZ.length,
-        validations: realV.length,
-        profiles: realP.length,
-        status: "Écosystème National Synchrone"
-      });
-    } catch (err: any) {
-      setLoadError(err?.message || 'Le registre est injoignable.');
-      addApiLog('SYNC_ERROR', '/supabase/sync', null, { message: "Chargement impossible", details: err?.message || err });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  useEffect(() => {
-    syncData();
-  }, [syncData]);
+  
 
   // Initialisation de la carte
   useEffect(() => {
@@ -2085,21 +1367,10 @@ export default function App() {
         }
 
         // Log de démarrage
-        addApiLog('GET', `/api/v1/buildings`, null, { count: buildings.length, status: "Ready" });
       });
 
       // Événement clic sur la carte
       map.on('click', (e) => {
-        // SI MODE GPS RÉEL ACTIF & EMULATION ACTIVE : Le clic sur la carte déplace la position GPS de l'utilisateur !
-        if (isGpsTrackingActiveRef.current && isVirtualGpsActiveRef.current) {
-          const { lng, lat } = e.lngLat;
-          addApiLog('GPS_VIRTUAL_UPDATE_CLICK', `/api/v1/tracking/gps-virtual-move`, { lat, lng }, { status: 'Success' });
-          if (handleRealUserLocationChangeRef.current) {
-            handleRealUserLocationChangeRef.current(lat, lng, null, null);
-          }
-          return;
-        }
-
         const { lng, lat } = e.lngLat;
 
         // MODE SÉLECTION D'ENTRÉE / PORTAIL DE COUR (AVEC AIMANTATION STRICTE AU MUR) :
@@ -2154,7 +1425,6 @@ export default function App() {
           }
           setDrawPoints3D(prev => {
             const next = [...prev, [lng, lat]];
-            addApiLog('DRAW_3D_POINT_ADD', `/map/draw-3d`, { lng, lat }, { total_points: next.length });
             return next;
           });
           return;
@@ -2179,7 +1449,6 @@ export default function App() {
           }
           setDrawPoints(prev => {
             const next = [...prev, [lng, lat]];
-            addApiLog('DRAW_POINT_ADD', `/map/draw`, { lng, lat }, { total_points: next.length });
             return next;
           });
           return;
@@ -2188,7 +1457,6 @@ export default function App() {
         // Lire la valeur temps réel de la ref pour éviter le stale closure pattern
         const isSelMode = isSelectionModeRef.current;
         if (!isSelMode) {
-          addApiLog('EVENT_CLICK', `/map/ignored`, { lat: e.lngLat.lat, lng: e.lngLat.lng }, { message: "Clic ignoré car le mode sélection n'est pas actif." });
           return;
         }
 
@@ -2242,10 +1510,6 @@ export default function App() {
 
           childMapClickHandlerRef.current(lng, lat, detectedGeom, detectedArea);
 
-          addApiLog('COURTYARD_CHILD_MAP_CLICK', `/map/courtyard/child-click`, { lng, lat }, { 
-            detectedArea, 
-            status: 'Captured' 
-          });
           return;
         }
         
@@ -2415,10 +1679,6 @@ export default function App() {
             });
 
             // Logger l'événement pour notre console
-            addApiLog('GRID_CELL_SELECT', `/map/satellite/grid-200m/select`, { cellId, lat, lng }, { 
-              buildingsCount: buildingsInCell.length,
-              totalPolygonsHighlighted: allGeometries.length
-            });
 
             return;
           }
@@ -2774,12 +2034,6 @@ export default function App() {
 
           // Affichage du log demandé
           console.log("Bâtiment sélectionné :", matchedBuildingObj.id, matchedBuildingObj.landmark_note || matchedBuildingObj.hailand_code || matchedBuildingObj.osm_id);
-          addApiLog('EVENT_CLICK_BUILDING_SELECT', `/map/building/${matchedBuildingObj.id}`, { 
-            id: matchedBuildingObj.id, 
-            name: matchedBuildingObj.landmark_note,
-            lat: matchedCentroid[1],
-            lng: matchedCentroid[0]
-          }, { status: 'Selected', type: matchedBuildingObj.osm_id ? 'OSM_OR_CUSTOM' : 'REGISTERED' });
 
           return;
         }
@@ -2805,10 +2059,6 @@ export default function App() {
         }
 
         // Log de clic terrain libre
-        addApiLog('EVENT_CLICK', `/map/coordinates`, { lat, lng }, { 
-          buildingMatched: false,
-          message: "Clic en terrain libre - Sélection réinitialisée."
-        });
       });
 
       // Événement déplacement de souris (curseur interactif sur toutes les structures 3D OSM, perso et custom)
@@ -3020,168 +2270,7 @@ export default function App() {
   }, [isSidebarOpen, activeAdminView]);
 
   
-  // ===== FILTRE ET MASQUAGE DYNAMIQUE DES BÂTIMENTS/POLYGONES =====
-  const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList: HiddenBuildingData[], retryCount = 0) => {
-    if (!mapInstance) return;
-    
-    try {
-      const layers = mapInstance.getStyle()?.layers || [];
-
-      // 1. Appliquer le feature-state pour masquer instantanément sur le GPU WebGL si la source existe
-      hiddenList.forEach(b => {
-        if (b.rawFeatureId !== undefined && b.rawFeatureId !== null) {
-          try {
-            const targetSource = b.source || 'composite';
-            if (mapInstance.getSource(targetSource)) {
-              mapInstance.setFeatureState(
-                { source: targetSource, sourceLayer: b.sourceLayer || 'building', id: b.rawFeatureId },
-                { hidden: true, is_hidden: true }
-              );
-            }
-          } catch (e) {}
-        }
-      });
-
-      // 2. Extraire tous les IDs (numériques et textuels)
-      const numericIds: number[] = [];
-      const stringIds: string[] = [];
-
-      hiddenList.forEach(b => {
-        if (b.rawFeatureId !== undefined && b.rawFeatureId !== null) {
-          const num = Number(b.rawFeatureId);
-          if (!isNaN(num)) numericIds.push(num);
-          stringIds.push(String(b.rawFeatureId));
-        }
-        if (b.id !== undefined && b.id !== null) {
-          const num = Number(b.id);
-          if (!isNaN(num)) numericIds.push(num);
-          stringIds.push(String(b.id));
-        }
-        if (b.osmId !== undefined && b.osmId !== null) {
-          const num = Number(b.osmId);
-          if (!isNaN(num)) numericIds.push(num);
-          stringIds.push(String(b.osmId));
-        }
-      });
-
-      const uniqueNumericIds = Array.from(new Set(numericIds));
-      const uniqueStringIds = Array.from(new Set(stringIds));
-
-      // 3. Appliquer le filtre à TOUTES les couches de bâtiments de la carte (3D et 2D)
-      layers.forEach(layer => {
-        const isBuildingLayer =
-          layer.id === '3d-buildings' ||
-          layer.id === '3d-buildings-invisible' ||
-          (layer['source-layer'] === 'building' && !layer.id.includes('custom-3d') && !layer.id.includes('selected-') && !layer.id.includes('hovered-')) ||
-          (layer.id.toLowerCase().includes('building') && !layer.id.includes('custom-3d') && !layer.id.includes('selected-') && !layer.id.includes('hovered-'));
-
-        if (!isBuildingLayer) return;
-
-        try {
-          // Si couche d'extrusion 3D, assurer le support feature-state
-          if (layer.type === 'fill-extrusion') {
-            try {
-              mapInstance.setPaintProperty(layer.id, 'fill-extrusion-opacity', [
-                'case',
-                ['boolean', ['feature-state', 'hidden'], false],
-                0,
-                ['boolean', ['feature-state', 'is_hidden'], false],
-                0,
-                1.0
-              ]);
-            } catch (e) {}
-          } else if (layer.type === 'fill') {
-            try {
-              mapInstance.setPaintProperty(layer.id, 'fill-opacity', [
-                'case',
-                ['boolean', ['feature-state', 'hidden'], false],
-                0,
-                ['boolean', ['feature-state', 'is_hidden'], false],
-                0,
-                layer.id === '3d-buildings-invisible' ? 0.001 : 1.0
-              ]);
-            } catch (e) {}
-          }
-
-          if (uniqueNumericIds.length === 0 && uniqueStringIds.length === 0) {
-            // Aucun polygone masqué
-            if (layer.id === '3d-buildings') {
-              mapInstance.setFilter('3d-buildings', ['==', 'extrude', 'true']);
-            } else if (layer.id === '3d-buildings-invisible') {
-              mapInstance.setFilter('3d-buildings-invisible', null);
-            }
-          } else {
-            // Construire les conditions d'exclusion pour le calque 3D fill-extrusion
-            const excludeConditions: any[] = [];
-            if (uniqueNumericIds.length > 0) {
-              excludeConditions.push(['!', ['in', ['coalesce', ['id'], -1], ['literal', uniqueNumericIds]]]);
-            }
-            if (uniqueStringIds.length > 0) {
-              excludeConditions.push(['!', ['in', ['coalesce', ['get', 'id'], ''], ['literal', uniqueStringIds]]]);
-              excludeConditions.push(['!', ['in', ['coalesce', ['get', 'mapbox_id'], ''], ['literal', uniqueStringIds]]]);
-              excludeConditions.push(['!', ['in', ['coalesce', ['get', 'osm_id'], ''], ['literal', uniqueStringIds]]]);
-              excludeConditions.push(['!', ['in', ['to-string', ['coalesce', ['id'], '']], ['literal', uniqueStringIds]]]);
-            }
-
-            if (layer.id === '3d-buildings') {
-              mapInstance.setFilter('3d-buildings', [
-                'all',
-                ['==', 'extrude', 'true'],
-                ...excludeConditions
-              ]);
-            } else {
-              const currentFilter = (layer as any).filter;
-              if (currentFilter && Array.isArray(currentFilter) && currentFilter.length > 0) {
-                mapInstance.setFilter(layer.id, [
-                  'all',
-                  currentFilter,
-                  ...excludeConditions
-                ]);
-              } else {
-                mapInstance.setFilter(layer.id, [
-                  'all',
-                  ...excludeConditions
-                ]);
-              }
-            }
-          }
-        } catch (layerErr) {
-          console.warn(`Avertissement filtre couche ${layer.id}:`, layerErr);
-        }
-      });
-
-      // 4. Mettre à jour la source GeoJSON de masquage visuel direct
-      const maskSource = mapInstance.getSource('hidden-polygons-mask') as mapboxgl.GeoJSONSource;
-      if (maskSource) {
-        const maskFeatures = hiddenList
-          .filter(b => b.geometry && (b.geometry.coordinates || (b.geometry as any).geometries))
-          .map(b => ({
-            type: 'Feature' as const,
-            properties: { id: b.id },
-            geometry: b.geometry
-          }));
-        maskSource.setData({
-          type: 'FeatureCollection',
-          features: maskFeatures as any
-        });
-      }
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      if (msg.includes('Style is not done loading') || msg.includes('not done loading')) {
-        if (retryCount < 20) {
-          setTimeout(() => {
-          applyHiddenBuildingsFilter(mapInstance, hiddenList, retryCount + 1);
-        }, 150);
-        } else {
-          console.warn("Abandon synchronisation applyHiddenBuildingsFilter après 20 tentatives");
-        }
-        return;
-      }
-      console.warn("Erreur application filtre masquage:", err);
-    }
-  };
-
-  // ===== CAS 2 : SUPPRESSION GÉOJSON IMMÉDIATE (Bâtiments CRÉÉS HailandMap) =====
+    // ===== CAS 2 : SUPPRESSION GÉOJSON IMMÉDIATE (Bâtiments CRÉÉS HailandMap) =====
   const handleDeleteCustom3DBuilding = (targetId: string) => {
     const updatedFeatures = custom3DBuildings.filter(f => f.id !== targetId);
     setCustom3DBuildings(updatedFeatures);
@@ -3215,7 +2304,6 @@ export default function App() {
       } catch (e) {}
     }
 
-    addApiLog('DELETE_3D_BUILDING', `/map/3d-buildings/${targetId}`, null, { deleted: true });
   };
 
   const handleHideSelectedPolygon = () => {
@@ -3246,7 +2334,6 @@ export default function App() {
         return updated;
       });
 
-      addApiLog('HIDE_POLYGON', `/map/polygon/hide`, { id: itemToHide.id }, { status: 'Hidden' });
     }
 
     // Effacer la surbrillance orange de sélection
@@ -3488,11 +2575,6 @@ export default function App() {
         message: `${detectedBuildingIds.length} bâtiment(s) OSM détecté(s) et masqué(s) automatiquement dans la zone.`
       });
 
-      addApiLog('DETECT_AND_MASK_OSM_IN_ZONE', `/map/spatial/detect-mask-osm`, { zoneArea: safeCalculateArea(cleanGeom) }, {
-        detectedCount: detectedBuildingIds.length,
-        buildingIds: detectedBuildingIds,
-        masked: true
-      });
 
       return detectedBuildingIds;
     } catch (err) {
@@ -3560,803 +2642,20 @@ export default function App() {
       message: `${itemsToHide.length} ancien(s) bâtiment(s) OSM masqué(s) dans la zone pour faire place nette.`
     });
 
-    addApiLog('BULK_HIDE_OSM_ZONE', `/map/osm/bulk-hide`, {
-      count: itemsToHide.length,
-      zoneArea: zoneGeometry ? safeCalculateArea(zoneGeometry) : undefined
-    }, {
-      status: 'Masked',
-      maskedIds
-    });
 
     return itemsToHide.length;
   }, [detectOsmBuildingsInZone]);
 
   // ===== LOGIQUE DE CHARGEMENT PAR VIEWPORT & SEUIL D'ALTITUDE 200M =====
-  // Seuil d'apparition correspondant à l'altitude ~200m (zoom Mapbox 15.0)
-  const CONCESSION_VIEW_MIN_ZOOM = 15.0;
-
-  // Calcul du bounding box [minLng, minLat, maxLng, maxLat] à partir de coordonnées GeoJSON quelconques
-  const getCoordsBbox = (coords: any): [number, number, number, number] | null => {
-    if (!coords) return null;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const walk = (c: any) => {
-      if (Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number') {
-        const x = c[0];
-        const y = c[1];
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      } else if (Array.isArray(c)) {
-        for (let i = 0; i < c.length; i++) walk(c[i]);
-      }
-    };
-    walk(coords);
-    if (!isFinite(minX)) return null;
-    return [minX, minY, maxX, maxY];
-  };
-
-  // Test d'intersection entre la géométrie et le rectangle de vision de l'écran (viewport)
-  const isBboxInViewport = (
-    featureBbox: [number, number, number, number] | null,
-    viewBbox: [number, number, number, number]
-  ): boolean => {
-    if (!featureBbox) return true;
-    return !(
-      featureBbox[2] < viewBbox[0] ||
-      featureBbox[0] > viewBbox[2] ||
-      featureBbox[3] < viewBbox[1] ||
-      featureBbox[1] > viewBbox[3]
-    );
-  };
-
-  // Récupère l'emprise géographique visible à l'écran avec une marge de confort de 20%
-  const getExtendedViewportBounds = (mapInstance: mapboxgl.Map, marginRatio = 0.2): [number, number, number, number] | null => {
-    try {
-      const bounds = mapInstance.getBounds();
-      if (!bounds) return null;
-      const west = bounds.getWest();
-      const east = bounds.getEast();
-      const south = bounds.getSouth();
-      const north = bounds.getNorth();
-      const lngSpan = Math.max(0.0001, Math.abs(east - west));
-      const latSpan = Math.max(0.0001, Math.abs(north - south));
-      return [
-        west - lngSpan * marginRatio,
-        south - latSpan * marginRatio,
-        east + lngSpan * marginRatio,
-        north + latSpan * marginRatio
-      ];
-    } catch (e) {
-      return null;
-    }
-  };
-
-  // ===== GESTION DE L'ORDRE STRICT DES COUCHES (BÂTIMENTS AU-DESSUS DU FOND DES COURS) =====
-  const enforceBuildingsAboveCourtyardsOrder = (mapInstance: mapboxgl.Map) => {
-    try {
-      // Déterminer la première couche de bâtiments 3D :
-      // Les couches 2D de sol (fond et contour des cours, concessions) doivent TOUJOURS être positionnées SOUS les bâtiments 3D
-      const first3DLayer = mapInstance.getLayer('3d-buildings') 
-        ? '3d-buildings' 
-        : (mapInstance.getLayer('custom-3d-buildings-extrusion') 
-            ? 'custom-3d-buildings-extrusion' 
-            : (mapInstance.getLayer('3d-buildings-invisible') ? '3d-buildings-invisible' : undefined));
-
-      if (!first3DLayer) return;
-
-      const groundLayers = [
-        'courtyards-fill-layer',
-        'courtyards-outline-layer',
-        'courtyard-mother-fill',
-        'courtyard-mother-outline-casing',
-        'courtyard-mother-outline',
-        'courtyard-children-fill',
-        'courtyard-children-outline',
-        'courtyard-active-child-fill',
-        'courtyard-active-child-outline',
-        'selected-building-fill',
-        'selected-courtyard-outline-casing',
-        'selected-courtyard-outline',
-        'selected-building-outline',
-        'osm-detected-in-zone-fill',
-        'osm-detected-in-zone-outline',
-        'hovered-building-fill',
-        'hovered-building-outline'
-      ];
-
-      groundLayers.forEach(layerId => {
-        if (mapInstance.getLayer(layerId) && mapInstance.getLayer(first3DLayer)) {
-          try {
-            mapInstance.moveLayer(layerId, first3DLayer);
-          } catch (e) {
-            // Déjà en place ou style en cours de transition
-          }
-        }
-      });
-
-      // S'assurer que si custom-3d-buildings-extrusion existe, il est bien au-dessus de courtyards-outline-layer
-      if (mapInstance.getLayer('courtyards-outline-layer') && mapInstance.getLayer('custom-3d-buildings-extrusion')) {
-        try {
-          mapInstance.moveLayer('courtyards-outline-layer', 'custom-3d-buildings-extrusion');
-        } catch (e) {}
-      }
-      if (mapInstance.getLayer('courtyards-fill-layer') && mapInstance.getLayer('courtyards-outline-layer')) {
-        try {
-          mapInstance.moveLayer('courtyards-fill-layer', 'courtyards-outline-layer');
-        } catch (e) {}
-      }
-    } catch (err) {
-      // Silencieux
-    }
-  };
-
-  // ===== GESTION DES COURS / CONCESSIONS (FILL + OUTLINE) =====
-  const syncCourtyardsLayer = (mapInstance: mapboxgl.Map, buildingsList: Building[], retryCount = 0) => {
-    if (!mapInstance) return;
-    try {
-      const currentZoom = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 0;
-      const existingSource = mapInstance.getSource('courtyards-source') as mapboxgl.GeoJSONSource;
-
-      // Seuil 200m : en deçà, les concessions ne sont pas chargées
-      if (currentZoom < CONCESSION_VIEW_MIN_ZOOM) {
-        if (existingSource) {
-          existingSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        return;
-      }
-
-      const viewBbox = getExtendedViewportBounds(mapInstance, 0.2);
-      const courtyards = buildingsList.filter(b => b.has_courtyard && (b.courtyard_geom || (b.parent_building_id === null && b.geom)));
-      
-      const features = courtyards
-        .filter(b => {
-          if (selectedBuildingRef.current?.id === b.id) return true;
-          if (!viewBbox) return true;
-          let rawGeom: any = b.courtyard_geom || b.geom;
-          if (typeof rawGeom === 'string') {
-            try { rawGeom = JSON.parse(rawGeom); } catch(e) {}
-          }
-          const bbox = getCoordsBbox(rawGeom?.coordinates);
-          return isBboxInViewport(bbox, viewBbox);
-        })
-        .map(b => {
-          let rawGeom: any = b.courtyard_geom || b.geom;
-          if (typeof rawGeom === 'string') {
-            try { rawGeom = JSON.parse(rawGeom); } catch(e) {}
-          }
-          return {
-            type: 'Feature' as const,
-            id: b.id,
-            properties: {
-              id: b.id,
-              name: b.hailand_code
-            },
-            geometry: rawGeom
-          };
-        }).filter(f => f.geometry && f.geometry.coordinates);
-
-      if (existingSource) {
-        existingSource.setData({
-          type: 'FeatureCollection',
-          features
-        });
-      } else {
-        mapInstance.addSource('courtyards-source', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features
-          }
-        });
-      }
-
-      if (!mapInstance.getLayer('courtyards-fill-layer')) {
-        const layers = mapInstance.getStyle()?.layers;
-        const firstSymbolId = layers?.find(l => l.type === 'symbol' && l.layout?.['text-field'])?.id;
-        
-        // Déterminer la couche 3D avant laquelle insérer pour que le bâtiment soit AU-DESSUS du fond de cour
-        const groundBeforeId = mapInstance.getLayer('custom-3d-buildings-extrusion')
-          ? 'custom-3d-buildings-extrusion'
-          : (mapInstance.getLayer('3d-buildings')
-              ? '3d-buildings'
-              : (mapInstance.getLayer('3d-buildings-invisible')
-                  ? '3d-buildings-invisible'
-                  : firstSymbolId));
-
-        mapInstance.addLayer(
-          {
-            id: 'courtyards-fill-layer',
-            type: 'fill',
-            source: 'courtyards-source',
-            minzoom: CONCESSION_VIEW_MIN_ZOOM,
-            paint: {
-              'fill-color': '#f59e0b',
-              'fill-opacity': 0.12,
-            }
-          },
-          groundBeforeId
-        );
-
-        mapInstance.addLayer(
-          {
-            id: 'courtyards-outline-layer',
-            type: 'line',
-            source: 'courtyards-source',
-            minzoom: CONCESSION_VIEW_MIN_ZOOM,
-            paint: {
-              'line-color': '#fbbf24',
-              'line-width': 1.8,
-              'line-dasharray': [2, 1],
-              'line-opacity': 0.85,
-            }
-          },
-          groundBeforeId
-        );
-      } else {
-        // Restauration garantie des couleurs de fond des cours une fois générées
-        mapInstance.setPaintProperty('courtyards-fill-layer', 'fill-color', '#f59e0b');
-        mapInstance.setPaintProperty('courtyards-fill-layer', 'fill-opacity', 0.12);
-        mapInstance.setPaintProperty('courtyards-outline-layer', 'line-color', '#fbbf24');
-        mapInstance.setPaintProperty('courtyards-outline-layer', 'line-width', 1.8);
-        mapInstance.setPaintProperty('courtyards-outline-layer', 'line-dasharray', [2, 1]);
-        mapInstance.setPaintProperty('courtyards-outline-layer', 'line-opacity', 0.85);
-      }
-
-      // Appliquer l'ordonnancement strict pour que les bâtiments restent au-dessus du sol de la cour
-      enforceBuildingsAboveCourtyardsOrder(mapInstance);
-    } catch (err) {
-      if (retryCount < 20) {
-        setTimeout(() => {
-          if (mapRef.current) syncCourtyardsLayer(mapRef.current, buildingsList, retryCount + 1);
-        }, 150);
-      }
-    }
-  };
-
-  // ===== GESTION DES POINTS D'ACCÈS (PORTAILS) =====
-  const syncEntryPointsLayer = (mapInstance: mapboxgl.Map, buildingsList: Building[], retryCount = 0) => {
-    if (!mapInstance) return;
-    try {
-      const currentZoom = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 0;
-      const existingSource = mapInstance.getSource('entry-points-source') as mapboxgl.GeoJSONSource;
-
-      // Seuil 200m
-      if (currentZoom < CONCESSION_VIEW_MIN_ZOOM) {
-        if (existingSource) {
-          existingSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        return;
-      }
-
-      const viewBbox = getExtendedViewportBounds(mapInstance, 0.2);
-      const buildingsWithEntry = buildingsList.filter(b => b.entry_point_geom);
-      
-      const features = buildingsWithEntry
-        .filter(b => {
-          if (!viewBbox) return true;
-          let rawGeom: any = b.entry_point_geom;
-          if (typeof rawGeom === 'string') {
-            try { rawGeom = JSON.parse(rawGeom); } catch(e) {}
-          }
-          if (rawGeom?.coordinates && Array.isArray(rawGeom.coordinates) && rawGeom.coordinates.length >= 2) {
-            const lng = rawGeom.coordinates[0];
-            const lat = rawGeom.coordinates[1];
-            return lng >= viewBbox[0] && lng <= viewBbox[2] && lat >= viewBbox[1] && lat <= viewBbox[3];
-          }
-          return true;
-        })
-        .map(b => {
-          let rawGeom: any = b.entry_point_geom;
-          if (typeof rawGeom === 'string') {
-            try { rawGeom = JSON.parse(rawGeom); } catch(e) {}
-          }
-          return {
-            type: 'Feature' as const,
-            id: b.id,
-            properties: {
-              id: b.id,
-              name: b.entry_point_note || 'Portail'
-            },
-            geometry: rawGeom
-          };
-        }).filter(f => f.geometry && f.geometry.coordinates);
-
-      if (existingSource) {
-        existingSource.setData({
-          type: 'FeatureCollection',
-          features
-        });
-      } else {
-        mapInstance.addSource('entry-points-source', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features
-          }
-        });
-      }
-
-      if (!mapInstance.getLayer('entry-points-circle-layer')) {
-        mapInstance.addLayer({
-          id: 'entry-points-circle-layer',
-          type: 'circle',
-          source: 'entry-points-source',
-          minzoom: CONCESSION_VIEW_MIN_ZOOM,
-          paint: {
-            'circle-radius': 5,
-            'circle-color': '#10b981',         // Vert émeraude
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',  // Bordure blanche
-          },
-        });
-      }
-    } catch (err) {
-      if (retryCount < 20) {
-        setTimeout(() => {
-          if (mapRef.current) syncEntryPointsLayer(mapRef.current, buildingsList, retryCount + 1);
-        }, 150);
-      }
-    }
-  };
-
-  // ===== GESTION DES BÂTIMENTS 3D PERSONNALISÉS (FILL-EXTRUSION) =====
-  const syncCustom3DBuildingsLayer = (mapInstance: mapboxgl.Map, list: Custom3DBuilding[], highlightId?: string | null, retryCount = 0) => {
-    if (!mapInstance) return;
-    
-    try {
-      const currentZoom = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 0;
-      const existingSource = mapInstance.getSource('custom-3d-buildings') as mapboxgl.GeoJSONSource;
-      const altSource = mapInstance.getSource('custom-buildings-source') as mapboxgl.GeoJSONSource;
-
-      // Seuil 200m : en deçà, les bâtiments 3D générés ne sont pas chargés
-      if (currentZoom < CONCESSION_VIEW_MIN_ZOOM) {
-        if (existingSource) {
-          existingSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        if (altSource) {
-          altSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        return;
-      }
-
-      // Filtrer uniquement les bâtiments 3D visibles dans le viewport
-      const viewBbox = getExtendedViewportBounds(mapInstance, 0.2);
-
-      const features = list
-        .filter(b => b.coordinates && Array.isArray(b.coordinates) && b.coordinates.length > 0 && b.coordinates[0]?.length >= 3)
-        .filter(b => {
-          if (highlightId && (highlightId === b.id || highlightId.endsWith(String(b.id)))) return true;
-          if (!viewBbox) return true;
-          const bbox = getCoordsBbox(b.coordinates);
-          return isBboxInViewport(bbox, viewBbox);
-        })
-        .map(b => {
-          // Anneau extérieur fermé obligatoire pour le fill-extrusion Mapbox
-          const outerRing = [...b.coordinates[0]];
-          const firstPt = outerRing[0];
-          const lastPt = outerRing[outerRing.length - 1];
-          if (firstPt && lastPt && (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1])) {
-            outerRing.push([firstPt[0], firstPt[1]]);
-          }
-          const closedCoords: [number, number][][] = [outerRing as [number, number][]];
-          for (let i = 1; i < b.coordinates.length; i++) {
-            const hole = [...b.coordinates[i]];
-            const f = hole[0];
-            const l = hole[hole.length - 1];
-            if (f && l && (f[0] !== l[0] || f[1] !== l[1])) {
-              hole.push([f[0], f[1]]);
-            }
-            closedCoords.push(hole as [number, number][]);
-          }
-
-          return {
-            type: 'Feature' as const,
-            id: b.id,
-            properties: {
-              id: b.id,
-              name: b.name,
-              floors: b.floors,
-              height: b.height,
-              base_height: b.base_height || 0,
-              color: b.color || '#f0eee9',
-              opacity: b.opacity || 1.0,
-              area_m2: b.area_m2,
-              is_highlighted: highlightId === b.id || (highlightId ? highlightId.endsWith(String(b.id)) : false)
-            },
-            geometry: {
-              type: 'Polygon' as const,
-              coordinates: closedCoords
-            }
-          };
-        });
-
-      if (existingSource) {
-        existingSource.setData({
-          type: 'FeatureCollection',
-          features
-        });
-      } else {
-        mapInstance.addSource('custom-3d-buildings', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features
-          }
-        });
-      }
-
-      // Maintenir également la source custom-buildings-source en synchronisation si présente
-      if (altSource) {
-        altSource.setData({
-          type: 'FeatureCollection',
-          features
-        });
-      }
-
-      if (!mapInstance.getLayer('custom-3d-buildings-extrusion')) {
-        const layers = mapInstance.getStyle()?.layers;
-        const firstSymbolId = layers?.find(l => l.type === 'symbol' && l.layout?.['text-field'])?.id;
-
-        mapInstance.addLayer(
-          {
-            id: 'custom-3d-buildings-extrusion',
-            type: 'fill-extrusion',
-            source: 'custom-3d-buildings',
-            minzoom: CONCESSION_VIEW_MIN_ZOOM,
-            paint: {
-              'fill-extrusion-color': [
-                'case',
-                ['boolean', ['get', 'is_highlighted'], false],
-                '#38bdf8',
-                ['coalesce', ['get', 'color'], '#f0eee9']
-              ],
-              'fill-extrusion-height': ['get', 'height'],
-              'fill-extrusion-base': ['coalesce', ['get', 'base_height'], 0],
-              'fill-extrusion-opacity': 0.95,
-              'fill-extrusion-vertical-gradient': true,
-              'fill-extrusion-ambient-occlusion-intensity': 0.45
-            }
-          },
-          firstSymbolId
-        );
-
-        // Hover cursor
-        mapInstance.on('mouseenter', 'custom-3d-buildings-extrusion', () => {
-          mapInstance.getCanvas().style.cursor = 'pointer';
-        });
-        mapInstance.on('mouseleave', 'custom-3d-buildings-extrusion', () => {
-          mapInstance.getCanvas().style.cursor = '';
-        });
-
-        // Clic sur bâtiment 3D (pas d'ouverture automatique de panneau)
-        mapInstance.on('click', 'custom-3d-buildings-extrusion', () => {
-          if (is3DDrawModeRef.current || isDrawModeRef.current) return;
-        });
-      } else {
-        // Mettre à jour les propriétés de peinture pour un rendu 100% solide et dynamique
-        mapInstance.setPaintProperty('custom-3d-buildings-extrusion', 'fill-extrusion-opacity', 1.0);
-        mapInstance.setPaintProperty('custom-3d-buildings-extrusion', 'fill-extrusion-vertical-gradient', true);
-        mapInstance.setPaintProperty('custom-3d-buildings-extrusion', 'fill-extrusion-color', [
-          'case',
-          ['boolean', ['get', 'is_highlighted'], false],
-          '#38bdf8',
-          ['coalesce', ['get', 'color'], '#f0eee9']
-        ]);
-      }
-
-      // Appliquer l'ordonnancement strict : les bâtiments 3D sont AU-DESSUS du fond de la cour
-      enforceBuildingsAboveCourtyardsOrder(mapInstance);
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      if (msg.includes('Style is not done loading') || msg.includes('not done loading')) {
-        if (retryCount < 20) {
-          setTimeout(() => {
-          syncCustom3DBuildingsLayer(mapInstance, list, highlightId, retryCount + 1);
-        }, 150);
-        } else {
-          console.warn("Abandon synchronisation syncCustom3DBuildingsLayer après 20 tentatives");
-        }
-        return;
-      }
-      console.warn("Erreur synchronisation layer custom 3d buildings:", err);
-    }
-  };
-
-  // ===== GESTION DES POINTS GPS FIXES CENTROÏDES DE CHACUN DES POLYGONES =====
-  const syncFixedGpsCentroidsLayer = (
-    mapInstance: mapboxgl.Map,
-    buildingsList: Building[],
-    custom3DList: Custom3DBuilding[],
-    selectedId?: string | null,
-    retryCount = 0
-  ) => {
-    if (!mapInstance) return;
-    if (typeof mapInstance.isStyleLoaded === 'function' && !mapInstance.isStyleLoaded()) {
-      if (retryCount < 20) {
-        setTimeout(() => {
-          if (mapRef.current) syncFixedGpsCentroidsLayer(mapRef.current, buildingsList, custom3DList, selectedId, retryCount + 1);
-        }, 150);
-      }
-      return;
-    }
-
-    try {
-      const currentZoom = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 0;
-      const existingSource = mapInstance.getSource('fixed-gps-centroids-source') as mapboxgl.GeoJSONSource;
-
-      // Seuil 200m : en deçà, les marqueurs de centroïdes ne sont pas chargés
-      if (currentZoom < CONCESSION_VIEW_MIN_ZOOM) {
-        if (existingSource) {
-          existingSource.setData({ type: 'FeatureCollection', features: [] });
-        }
-        return;
-      }
-
-      const viewBbox = getExtendedViewportBounds(mapInstance, 0.2);
-      const isPointInView = (lng: number, lat: number) => {
-        if (!viewBbox) return true;
-        return lng >= viewBbox[0] && lng <= viewBbox[2] && lat >= viewBbox[1] && lat <= viewBbox[3];
-      };
-
-      const features: any[] = [];
-      const seenCoords = new Set<string>();
-
-      // 1. Centroïdes des bâtiments enregistrés (concessions et logements enfants inclus)
-      buildingsList.forEach(b => {
-        let lngLat: [number, number] | null = null;
-        if (b.centroid?.coordinates && Array.isArray(b.centroid.coordinates) && b.centroid.coordinates.length >= 2) {
-          lngLat = [b.centroid.coordinates[0], b.centroid.coordinates[1]];
-        } else if (b.geom?.coordinates) {
-          try {
-            const c = turf.centroid(b.geom as any);
-            if (c?.geometry?.coordinates) {
-              lngLat = [c.geometry.coordinates[0], c.geometry.coordinates[1]];
-            }
-          } catch (e) {}
-        }
-
-        if (!lngLat || isNaN(lngLat[0]) || isNaN(lngLat[1])) return;
-        const isSel = selectedId === b.id;
-        if (!isSel && !isPointInView(lngLat[0], lngLat[1])) return;
-
-        const key = `${lngLat[0].toFixed(6)}_${lngLat[1].toFixed(6)}`;
-        if (seenCoords.has(key)) return;
-        seenCoords.add(key);
-
-        features.push({
-          type: 'Feature',
-          id: `centroid-${b.id}`,
-          properties: {
-            id: b.id,
-            name: b.hailand_code || b.landmark_note || `Bâtiment ${b.building_type}`,
-            short_coords: `${lngLat[1].toFixed(5)}, ${lngLat[0].toFixed(5)}`,
-            is_selected: isSel,
-            is_courtyard: b.has_courtyard,
-            is_child: Boolean(b.parent_building_id),
-            source_type: 'building'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: lngLat
-          }
-        });
-      });
-
-      // 2. Centroïdes des polygones 3D générés / personnalisés
-      custom3DList.forEach(c3d => {
-        if (c3d.id.startsWith('3d-wall-')) return; // Ne pas afficher pour les murs de clôture
-        let lngLat: [number, number] | null = null;
-        if (c3d.centroid && Array.isArray(c3d.centroid) && c3d.centroid.length >= 2) {
-          lngLat = [c3d.centroid[0], c3d.centroid[1]];
-        } else if (c3d.coordinates && c3d.coordinates.length > 0) {
-          try {
-            const poly = { type: 'Polygon', coordinates: c3d.coordinates };
-            const c = turf.centroid(poly as any);
-            if (c?.geometry?.coordinates) {
-              lngLat = [c.geometry.coordinates[0], c.geometry.coordinates[1]];
-            }
-          } catch (e) {}
-        }
-
-        if (!lngLat || isNaN(lngLat[0]) || isNaN(lngLat[1])) return;
-        const isSel = selectedId === c3d.id || (selectedId ? selectedId.endsWith(c3d.id) : false);
-        if (!isSel && !isPointInView(lngLat[0], lngLat[1])) return;
-
-        const key = `${lngLat[0].toFixed(6)}_${lngLat[1].toFixed(6)}`;
-        if (seenCoords.has(key)) return;
-        seenCoords.add(key);
-
-        features.push({
-          type: 'Feature',
-          id: `centroid-${c3d.id}`,
-          properties: {
-            id: c3d.id,
-            name: c3d.name || 'Polygone 3D généré',
-            short_coords: `${lngLat[1].toFixed(5)}, ${lngLat[0].toFixed(5)}`,
-            is_selected: isSel,
-            is_courtyard: false,
-            is_child: false,
-            source_type: 'custom_3d'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: lngLat
-          }
-        });
-      });
-
-      // 3. Centroïdes des polygones détectés dans la zone (détection spatiale OSM)
-      if (detectedOsmFeaturesRef.current && detectedOsmFeaturesRef.current.length > 0) {
-        detectedOsmFeaturesRef.current.forEach(f => {
-          let lngLat: [number, number] | null = null;
-          if (f.properties?.centroid && Array.isArray(f.properties.centroid)) {
-            lngLat = [f.properties.centroid[0], f.properties.centroid[1]];
-          } else if (f.geometry) {
-            try {
-              const c = turf.centroid(f as any);
-              if (c?.geometry?.coordinates) {
-                lngLat = [c.geometry.coordinates[0], c.geometry.coordinates[1]];
-              }
-            } catch (e) {}
-          }
-
-          if (!lngLat || isNaN(lngLat[0]) || isNaN(lngLat[1])) return;
-          const featId = String(f.id || f.properties?.id);
-          const isSel = selectedId === featId;
-          if (!isSel && !isPointInView(lngLat[0], lngLat[1])) return;
-
-          const key = `${lngLat[0].toFixed(6)}_${lngLat[1].toFixed(6)}`;
-          if (seenCoords.has(key)) return;
-          seenCoords.add(key);
-
-          features.push({
-            type: 'Feature',
-            id: `centroid-osm-${featId}`,
-            properties: {
-              id: featId,
-              name: f.properties?.osm_id ? `OSM #${f.properties.osm_id}` : 'Polygone Détecté',
-              short_coords: `${lngLat[1].toFixed(5)}, ${lngLat[0].toFixed(5)}`,
-              is_selected: isSel,
-              is_courtyard: false,
-              is_child: false,
-              source_type: 'osm_detected'
-            },
-            geometry: {
-              type: 'Point',
-              coordinates: lngLat
-            }
-          });
-        });
-      }
-
-      const sourceData = {
-        type: 'FeatureCollection' as const,
-        features
-      };
-
-      if (existingSource) {
-        existingSource.setData(sourceData);
-      } else {
-        mapInstance.addSource('fixed-gps-centroids-source', {
-          type: 'geojson',
-          data: sourceData
-        });
-      }
-
-      // Halo externe pulsant
-      if (!mapInstance.getLayer('fixed-gps-centroids-halo')) {
-        mapInstance.addLayer({
-          id: 'fixed-gps-centroids-halo',
-          type: 'circle',
-          source: 'fixed-gps-centroids-source',
-          minzoom: CONCESSION_VIEW_MIN_ZOOM,
-          paint: {
-            'circle-radius': [
-              'case',
-              ['boolean', ['get', 'is_selected'], false],
-              14,
-              8
-            ],
-            'circle-color': [
-              'case',
-              ['boolean', ['get', 'is_selected'], false],
-              '#f97316',
-              '#06b6d4'
-            ],
-            'circle-opacity': 0.3,
-            'circle-blur': 0.7
-          }
-        });
-      }
-
-      // Anneau du GPS fixe (géodésique)
-      if (!mapInstance.getLayer('fixed-gps-centroids-circle')) {
-        mapInstance.addLayer({
-          id: 'fixed-gps-centroids-circle',
-          type: 'circle',
-          source: 'fixed-gps-centroids-source',
-          minzoom: CONCESSION_VIEW_MIN_ZOOM,
-          paint: {
-            'circle-radius': [
-              'case',
-              ['boolean', ['get', 'is_selected'], false],
-              6.5,
-              4.5
-            ],
-            'circle-color': [
-              'case',
-              ['boolean', ['get', 'is_selected'], false],
-              '#ea580c',
-              '#0284c7'
-            ],
-            'circle-stroke-width': 2.0,
-            'circle-stroke-color': '#ffffff'
-          }
-        });
-      }
-
-      // Point central (croisée géodésique GPS)
-      if (!mapInstance.getLayer('fixed-gps-centroids-dot')) {
-        mapInstance.addLayer({
-          id: 'fixed-gps-centroids-dot',
-          type: 'circle',
-          source: 'fixed-gps-centroids-source',
-          minzoom: CONCESSION_VIEW_MIN_ZOOM,
-          paint: {
-            'circle-radius': 1.8,
-            'circle-color': '#ffffff'
-          }
-        });
-      }
-
-      // Label des coordonnées GPS précises au zoom suffisant
-      if (!mapInstance.getLayer('fixed-gps-centroids-label')) {
-        mapInstance.addLayer({
-          id: 'fixed-gps-centroids-label',
-          type: 'symbol',
-          source: 'fixed-gps-centroids-source',
-          minzoom: 16.5,
-          layout: {
-            'text-field': ['get', 'short_coords'],
-            'text-size': 9,
-            'text-offset': [0, 1.4],
-            'text-anchor': 'top',
-            'text-allow-overlap': false
-          },
-          paint: {
-            'text-color': '#ffffff',
-            'text-halo-color': '#0f172a',
-            'text-halo-width': 2.0
-          }
-        });
-
-        // Curseur interactif
-        mapInstance.on('mouseenter', 'fixed-gps-centroids-circle', () => {
-          mapInstance.getCanvas().style.cursor = 'pointer';
-        });
-        mapInstance.on('mouseleave', 'fixed-gps-centroids-circle', () => {
-          mapInstance.getCanvas().style.cursor = '';
-        });
-      }
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      if (msg.includes('Style is not done loading') || msg.includes('not done loading')) {
-        if (retryCount < 20) {
-          setTimeout(() => {
-            syncFixedGpsCentroidsLayer(mapInstance, buildingsList, custom3DList, selectedId, retryCount + 1);
-          }, 150);
-        }
-      } else {
-        console.warn("Erreur synchronisation layer fixed-gps-centroids:", err);
-      }
-    }
+                  const layerEnv: LayerEnv = {
+    selectedBuildingId: () => selectedBuildingRef.current?.id,
+    detectedOsmFeatures: () => detectedOsmFeaturesRef.current,
   };
 
   // Rafraîchisseur unifié de toutes les couches de concessions et volumes dans le viewport
   const refreshViewportConcessionsAndBuildings = useCallback((mapInstance: mapboxgl.Map) => {
     if (!mapInstance) return;
-    syncCourtyardsLayer(mapInstance, buildingsRef.current);
+    syncCourtyardsLayer(mapInstance, buildingsRef.current, layerEnv);
     syncCustom3DBuildingsLayer(mapInstance, custom3DBuildingsRef.current, highlighted3DBuildingIdRef.current);
     enforceBuildingsAboveCourtyardsOrder(mapInstance);
     syncEntryPointsLayer(mapInstance, buildingsRef.current);
@@ -4364,7 +2663,8 @@ export default function App() {
       mapInstance,
       buildingsRef.current,
       custom3DBuildingsRef.current,
-      selectedBuildingRef.current?.id || clickedCoordsRef.current?.buildingId
+      selectedBuildingRef.current?.id || clickedCoordsRef.current?.buildingId,
+      layerEnv
     );
   }, []);
 
@@ -4731,11 +3031,6 @@ export default function App() {
       message: `Votre contour personnalisé (${areaVal.toFixed(0)} m²) a été sélectionné pour l'enregistrement.`
     });
 
-    addApiLog('DRAW_COMPLETE_DIRECT', `/map/draw/validate`, null, { 
-      area: areaVal,
-      buildingId: customDrawUniqueId,
-      message: "Contour validé directement."
-    });
 
     setIsDrawMode(false);
     setDrawPoints([]);
@@ -4772,7 +3067,6 @@ export default function App() {
     }
     hasAttemptedStyleFallbackRef.current = false;
     setCurrentStyle(styleId);
-    addApiLog('SET_STYLE', `/map/style/${styleId}`, null, { success: true });
   };
 
   // Gérer le filtre satellite HD super-résolution en temps réel sur le canvas Mapbox
@@ -4945,121 +3239,9 @@ export default function App() {
   // Événement Ma Position GPS
   
   // Recherche dynamique des adresses nationales HailandCode
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-
-    if (val.trim() === '') {
-      setSearchSuggestions([]);
-      return;
-    }
-
-    const query = val.toLowerCase();
-    const filtered = buildings.filter(b => {
-      const hCode = b.hailand_code ? b.hailand_code.toLowerCase() : '';
-      const adminCode = b.admin_address_code ? b.admin_address_code.toLowerCase() : '';
-      const formattedAddr = b.formatted_address ? b.formatted_address.toLowerCase() : '';
-      const bId = b.id.toLowerCase();
-      const landmark = b.landmark_note ? b.landmark_note.toLowerCase() : '';
-      const access = b.access_note ? b.access_note.toLowerCase() : '';
-      const commune = b.commune ? b.commune.toLowerCase() : '';
-      const quartier = b.quartier ? b.quartier.toLowerCase() : '';
-      
-      const occupantName = profiles.find(p => p.id === b.claimed_by || p.id === b.submitted_by)?.full_name?.toLowerCase() || '';
-
-      return hCode.includes(query) || 
-             adminCode.includes(query) ||
-             formattedAddr.includes(query) ||
-             bId.includes(query) || 
-             landmark.includes(query) || 
-             access.includes(query) || 
-             commune.includes(query) || 
-             quartier.includes(query) ||
-             occupantName.includes(query);
-    });
-    setSearchSuggestions(filtered);
-  };
-
+  
   // Sélectionner un bâtiment depuis les suggestions de recherche
-  const selectBuildingFromSearch = (b: Building) => {
-    if (!b || !b.centroid || !b.centroid.coordinates) {
-      console.warn("Bâtiment sélectionné avec coordonnées invalides:", b);
-      return;
-    }
-    const bLng = b.centroid.coordinates[0];
-    const bLat = b.centroid.coordinates[1];
-
-    setSelectedBuilding(b);
-    setSearchQuery(b.hailand_code || b.id);
-    setSearchSuggestions([]);
-    setClickedCoords(null);
-
-    const isCourtyard = Boolean(b.has_courtyard) || selectionTargetNatureRef.current === 'courtyard';
-
-    // Mettre en surbrillance le polygone 3D d'habitation ou en dessiner un par défaut
-    if (mapRef.current) {
-      const selectionSource = mapRef.current.getSource('selected-building') as mapboxgl.GeoJSONSource;
-      if (selectionSource && b.geom) {
-        selectionSource.setData({
-          type: 'Feature',
-          properties: {
-            is_courtyard: isCourtyard
-          },
-          geometry: b.geom
-        });
-      }
-    }
-
-    // Repositionner le marqueur de maison orange uniquement pour les bâtiments uniques (pas pour les cours)
-    if (mapRef.current) {
-      if (isCourtyard) {
-        if (markerRef.current) {
-          markerRef.current.remove();
-          markerRef.current = null;
-        }
-      } else {
-        if (markerRef.current) {
-          markerRef.current.setLngLat([bLng, bLat]);
-        } else {
-          const el = document.createElement('div');
-          el.className = 'custom-house-marker';
-          el.innerHTML = `
-            <div class="flex items-center justify-center w-10 h-10 bg-orange-500 rounded-full border-2 border-slate-900 shadow-xl shadow-orange-500/30 transform transition-transform duration-200 hover:scale-110 cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5 text-slate-950">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-            </div>
-            <div class="w-2.5 h-2.5 bg-orange-500 border border-slate-900 rounded-full mx-auto -mt-1 shadow-md animate-ping"></div>
-          `;
-          const marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([bLng, bLat])
-            .addTo(mapRef.current);
-          markerRef.current = marker;
-        }
-      }
-
-      try {
-        mapRef.current.flyTo({
-          center: [bLng, bLat],
-          zoom: 17.5,
-          pitch: currentStyle === 'satellite' ? 0 : 62,
-          bearing: currentStyle === 'satellite' ? 0 : 45,
-          duration: 1500
-        });
-      } catch (e) {
-        console.warn("flyTo failed:", e);
-      }
-    }
-
-    addApiLog('GET_BUILDING', `/api/v1/buildings/${b.id}`, null, b);
-
-    // Calculer automatiquement l'itinéraire si nous avons une position utilisateur
-    if (userLocation) {
-      calculateRoute(userLocation, bLat, bLng, b.id);
-    }
-  };
-
+  
   const detectCommuneFromCoords = (lng: number, lat: number): string => {
     // Si on est dans la région élargie de Conakry / Grand Conakry
     if (lng >= -14.0 && lng <= -13.4) {
@@ -5139,35 +3321,7 @@ export default function App() {
 
     for (const newBuilding of listToInsert) {
       // Payload de l'API POST v3.0 pour nos logs
-      const payload = {
-        id: newBuilding.id,
-        hailand_code: newBuilding.hailand_code,
-        admin_address_code: newBuilding.admin_address_code,
-        formatted_address: newBuilding.formatted_address,
-        zone_code: newBuilding.zone_code,
-        building_type: newBuilding.building_type,
-        floor_level: newBuilding.floor_level,
-        unit_code: newBuilding.unit_code,
-        centroid: newBuilding.centroid,
-        date_creation: newBuilding.created_at,
-        statut: newBuilding.status,
-        nom_occupant: newBuilding.landmark_note,
-        remarques: newBuilding.access_note,
-        polygon_geometry: newBuilding.geom,
-        commune: newBuilding.commune,
-        quartier: newBuilding.quartier,
-        prefecture: newBuilding.prefecture,
-        region: newBuilding.region,
-      };
-
-      addApiLog('POST', `/api/v3/buildings`, payload, {
-        message: "Concession/Bâtiment enregistré et adressé (Double Système : Grille 200m + Hiérarchie Administrative État).",
-        id: newBuilding.id,
-        hailand_code: newBuilding.hailand_code,
-        admin_address_code: newBuilding.admin_address_code,
-        database_insert: "PENDING",
-        rows_affected: 0
-      });
+      
 
       // Éviter l'erreur d'intégrité de clé étrangère (FK) zone_id : pré-création sécurisée de la zone
       const zoneId = newBuilding.zone_id;
@@ -5218,26 +3372,9 @@ export default function App() {
         // Insertion séquentielle du bâtiment
         const res = await insertBuildingInSupabase(newBuilding);
         if (res.success && !res.localOnly) {
-          addApiLog('POST_SUCCESS', `/api/v3/buildings/success`, null, {
-            message: "Enregistrement persistant confirmé dans la base de données réelle Supabase !",
-            id: newBuilding.id,
-            hailand_code: newBuilding.hailand_code,
-            database_insert: "CONFIRMED",
-            rows_affected: 1
-          });
         } else {
-          addApiLog('POST_LOCAL_FALLBACK', `/api/v3/buildings/local`, null, {
-            message: "Enregistrement sauvegardé localement (mode hors-ligne ou table non initialisée).",
-            id: newBuilding.id,
-            hailand_code: newBuilding.hailand_code,
-            error: res.error || "Offline fallback"
-          });
         }
       } catch (err: any) {
-        addApiLog('POST_ERROR', `/api/v3/buildings/error`, null, {
-          message: "Erreur d'enregistrement réseau, conservé localement.",
-          error: err.message || err
-        });
       }
     }
 
@@ -5386,552 +3523,16 @@ export default function App() {
     setNewFloorLevel('');
     setNewUnitCode('');
 
-    // Si on a déjà notre position, on calcule direct ou on propose
-    const primary = listToInsert[0];
-    if (userLocation && primary?.centroid?.coordinates) {
-      calculateRoute(userLocation, primary.centroid.coordinates[1], primary.centroid.coordinates[0], primary.id);
-    }
   };
 
-  // Calcul d'itinéraire avec l'API Directions de Mapbox (Module 2)
-  const calculateRoute = async (start: { latitude: number; longitude: number }, endLat: number, endLng: number, endId: string) => {
-    setRouteLoading(true);
-    setRouteError(null);
-    addApiLog('DIRECTIONS_REQUEST', `/client/route`, { start, end: { lat: endLat, lng: endLng } });
-
-    try {
-      const profile = 'driving'; // driving, walking, cycling
-      const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start.longitude},${start.latitude};${endLng},${endLat}?geometries=geojson&overview=full&access_token=${accessToken}`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error("Impossible de joindre le service d'itinéraire de Mapbox");
-      }
-
-      const data = await response.json();
-      
-      if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-        throw new Error("Aucun itinéraire routier trouvé par Mapbox pour ces points");
-      }
-
-      const route = data.routes[0];
-      const distance = route.distance; // en mètres
-      const duration = route.duration; // en secondes
-      const routeCoords = route.geometry.coordinates as [number, number][];
-
-      setRouteInfo({
-        distance,
-        duration,
-        coordinates: routeCoords
-      });
-
-      // Mettre à jour la couche d'itinéraire sur la carte
-      if (mapRef.current) {
-        const routeGeoJSON = {
-          type: 'Feature' as const,
-          properties: {},
-          geometry: {
-            type: 'LineString' as const,
-            coordinates: routeCoords
-          }
-        };
-
-        const source = mapRef.current.getSource('route') as mapboxgl.GeoJSONSource;
-        if (source) {
-          source.setData(routeGeoJSON);
-        }
-
-        // Ajuster la caméra pour englober tout l'itinéraire
-        if (routeCoords && routeCoords.length >= 2) {
-          const bounds = new mapboxgl.LngLatBounds();
-          let hasValidCoords = false;
-          routeCoords.forEach(coord => {
-            if (coord && typeof coord[0] === 'number' && typeof coord[1] === 'number' && !isNaN(coord[0]) && !isNaN(coord[1])) {
-              bounds.extend(coord);
-              hasValidCoords = true;
-            }
-          });
-          
-          if (hasValidCoords && !bounds.isEmpty()) {
-            const sw = bounds.getSouthWest();
-            const ne = bounds.getNorthEast();
-            if (sw && ne && typeof sw.lng === 'number' && typeof sw.lat === 'number' && !isNaN(sw.lng) && !isNaN(sw.lat) && !isNaN(ne.lng) && !isNaN(ne.lat)) {
-              try {
-                mapRef.current.fitBounds(bounds, {
-                  padding: { top: 80, bottom: 80, left: 80, right: 80 },
-                  duration: 1200
-                });
-              } catch (e) {
-                console.warn("fitBounds failed:", e);
-              }
-            }
-          }
-        }
-      }
-
-      addApiLog('DIRECTIONS_RESPONSE', `/api/v1/routes`, null, {
-        distance_km: (distance / 1000).toFixed(2),
-        duration_min: Math.round(duration / 60),
-        points_count: routeCoords.length
-      });
-
-    } catch (err: any) {
-      console.warn("Calcul itinéraire échoué:", err.message);
-      setRouteError(err.message || "Erreur lors du calcul d'itinéraire");
-      
-      // Tracer une ligne directe simulée (ligne droite élégante en pointillé) en guise de repli
-      // pour que l'app soit résiliente et interactive
-      drawFallbackDirectLine(start, endLat, endLng);
-    } finally {
-      setRouteLoading(false);
-    }
-  };
-
-  // Ligne directe de repli en cas de problème de réseau Mapbox ou point hors-réseau routier
-  const drawFallbackDirectLine = (start: { latitude: number; longitude: number }, endLat: number, endLng: number) => {
-    if (!mapRef.current) return;
-
-    // Calculer distance d'un point A à un point B de façon simplifiée
-    const R = 6371e3; // Rayon de la terre en mètres
-    const phi1 = start.latitude * Math.PI/180;
-    const phi2 = endLat * Math.PI/180;
-    const deltaPhi = (endLat-start.latitude) * Math.PI/180;
-    const deltaLambda = (endLng-start.longitude) * Math.PI/180;
-    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-              Math.cos(phi1) * Math.cos(phi2) *
-              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c; // en mètres
-    const duration = distance / 11; // Vitesse de livraison moyenne 40km/h (11 m/s)
-
-    const routeCoords: [number, number][] = [
-      [start.longitude, start.latitude],
-      [endLng, endLat]
-    ];
-
-    setRouteInfo({
-      distance,
-      duration,
-      coordinates: routeCoords
-    });
-
-    const routeGeoJSON = {
-      type: 'Feature' as const,
-      properties: {},
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: routeCoords
-      }
-    };
-
-    const source = mapRef.current.getSource('route') as mapboxgl.GeoJSONSource;
-    if (source) {
-      source.setData(routeGeoJSON);
-    }
-
-    addApiLog('ROUTE_FALLBACK', `/api/v1/routes/fallback`, { method: "DirectLine" }, {
-      distance_km: (distance / 1000).toFixed(2),
-      status: "Calcul d'itinéraire direct cartographié car points isolés."
-    });
-  };
-
-  // Calcul de relèvement angulaire (bearing) entre deux coordonnées
-  const getBearingBetweenPoints = (pt1: [number, number], pt2: [number, number]): number => {
-    const lon1 = pt1[0] * Math.PI / 180;
-    const lat1 = pt1[1] * Math.PI / 180;
-    const lon2 = pt2[0] * Math.PI / 180;
-    const lat2 = pt2[1] * Math.PI / 180;
-    const dLon = lon2 - lon1;
-    const y = Math.sin(dLon) * Math.cos(lat2);
-    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-    const brng = Math.atan2(y, x) * 180 / Math.PI;
-    return (brng + 360) % 360;
-  };
-
-  // Calcul de distance Harversine
-  const getDistanceBetweenPoints = (pt1: [number, number], pt2: [number, number]): number => {
-    const R = 6371000; // Rayon de la Terre en mètres
-    const phi1 = pt1[1] * Math.PI / 180;
-    const phi2 = pt2[1] * Math.PI / 180;
-    const deltaPhi = (pt2[1] - pt1[1]) * Math.PI / 180;
-    const dLambda = (pt2[0] - pt1[0]) * Math.PI / 180;
-    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-              Math.cos(phi1) * Math.cos(phi2) *
-              Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Générateur intelligent de feuille de route professionnelle (Turn-by-turn)
-  const generateGuidanceList = (coords: [number, number][]): string[] => {
-    if (coords.length < 2) return ["Démarrer l'itinéraire de livraison."];
-    
-    const steps: string[] = [];
-    steps.push("📦 Chargement du colis et initialisation sécurisée du traceur HailandMap.");
-
-    const totalPoints = coords.length;
-    const segmentCount = 6;
-    const stepSize = Math.max(1, Math.floor(totalPoints / segmentCount));
-
-    for (let i = 1; i < segmentCount; i++) {
-      const idx = i * stepSize;
-      if (idx >= totalPoints - 1) break;
-      
-      const pPrev = coords[idx - 1];
-      const pCurr = coords[idx];
-      const pNext = coords[idx + 1];
-      
-      const bearing1 = getBearingBetweenPoints(pPrev, pCurr);
-      const bearing2 = getBearingBetweenPoints(pCurr, pNext);
-      const diff = ((bearing2 - bearing1 + 540) % 360) - 180;
-
-      if (diff > 25) {
-        steps.push(`↪️ Tourner à droite sur le prochain tronçon modélisé`);
-      } else if (diff < -25) {
-        steps.push(`↩️ Prendre à gauche à l'intersection`);
-      } else {
-        const choices = [
-          "🛣️ Poursuivre tout droit sur la voie optimisée",
-          "📡 Synchronisation de l'altitude du signal GPS professionnel",
-          "⚡ Vitesse de croisière optimale de livraison",
-          "📍 Entrée imminente dans la zone d'adressage"
-        ];
-        steps.push(choices[i % choices.length]);
-      }
-    }
-
-    steps.push("🎯 Destination finale identifiée par triangulation cadastrale");
-    steps.push("🏠 Approche de la toiture : Scellage géospatial HailandMap en cours");
-    return steps;
-  };
-
-  // Synchronisation dynamique du marqueur en fonction des mouvements réels du GPS de l'utilisateur ou clic sur carte
-  const handleRealUserLocationChange = (latitude: number, longitude: number, speed?: number | null, heading?: number | null) => {
-    if (!selectedBuilding) return;
-
-    setUserLocation({ latitude, longitude });
-    const userCoords: [number, number] = [longitude, latitude];
-
-    // 1. Déplacer ou créer le marqueur du livreur réel
-    const bearingVal = heading !== null && heading !== undefined ? heading : 0;
-    createOrUpdateCourierMarker(userCoords, bearingVal);
-
-    // 2. Si un itinéraire est tracé, calculer les métriques de télémétrie réelles par projection sur la géométrie
-    if (routeInfo && routeInfo.coordinates.length >= 2) {
-      const coords = routeInfo.coordinates;
-      const nearestIdx = findNearestRouteIndex(coords, userCoords);
-
-      // Calculer la distance restante le long du chemin à partir de cet index le plus proche
-      let remDist = 0;
-      for (let i = nearestIdx; i < coords.length - 1; i++) {
-        remDist += getDistanceBetweenPoints(coords[i], coords[i + 1]);
-      }
-      setTelemetryDistanceLeft(remDist);
-
-      // Temps estimé restant (sur la base d'une vitesse de croisière classique ou du reste de la route)
-      const ratio = nearestIdx / (coords.length - 1 || 1);
-      const remTime = Math.max(0, routeInfo.duration * (1 - ratio));
-      setTelemetryTimeLeft(remTime);
-
-      // Définir la vitesse instantanée moyenne ou celle du GPS
-      const speedKmh = speed ? Math.round(speed * 3.6) : (remDist < 10 ? 0 : 38);
-      setTelemetrySpeed(speedKmh);
-
-      // Mise à jour de la feuille de route Turn-By-Turn dynamique
-      const generatedG = guidanceList.length > 0 ? guidanceList : generateGuidanceList(coords);
-      if (guidanceList.length === 0) setGuidanceList(generatedG);
-
-      const stepIdx = Math.min(generatedG.length - 1, Math.floor(ratio * generatedG.length));
-      if (generatedG[stepIdx]) {
-        setActiveGuidanceText(generatedG[stepIdx]);
-      }
-
-      // 3. Détecter si l'utilisateur est arrivé (distance < 15 mètres de l'adresse ciblée)
-      const flightDistanceToDestination = calculateDistance(latitude, longitude, selectedBuilding.centroid.coordinates[1], selectedBuilding.centroid.coordinates[0]);
-      if (flightDistanceToDestination < 15 && trackingStatus !== 'arrived') {
-        setTrackingStatus('arrived');
-        setTelemetrySpeed(0);
-        setTelemetryDistanceLeft(0);
-        setTelemetryTimeLeft(0);
-        setActiveGuidanceText("🏆 Vous êtes arrivé à destination ! Triangulation cadastrale HailandMap confirmée.");
-        
-        addApiLog('TRACKING_COMPLETE_GPS_REAL', `/api/v1/tracking/success`, {
-          gpsArrival: true,
-          destinationCoords: [selectedBuilding.centroid.coordinates[0], selectedBuilding.centroid.coordinates[1]]
-        });
-
-        // Lancer la magnifique rotation d'orbite à l'arrivée
-        if (mapRef.current) {
-          let orbitAngle = mapRef.current.getBearing();
-          let frame = 0;
-          const targetCoords = [selectedBuilding.centroid.coordinates[0], selectedBuilding.centroid.coordinates[1]] as [number, number];
-
-          const startOrbit = () => {
-            if (!mapRef.current) return;
-            orbitAngle = (orbitAngle + 1.2) % 360;
-            mapRef.current.setBearing(orbitAngle);
-            mapRef.current.setCenter(targetCoords);
-            mapRef.current.setZoom(19.3);
-            mapRef.current.setPitch(65);
-            frame++;
-            if (frame < 180) {
-              requestAnimationFrame(startOrbit);
-            }
-          };
-          requestAnimationFrame(startOrbit);
-        }
-      } else if (trackingStatus === 'idle' || trackingStatus === 'arrived') {
-        setTrackingStatus('running');
-      }
-
-      // 4. Mettre à jour la caméra 3D selon les préférences choisies
-      if (mapRef.current) {
-        let finalBearing = bearingVal;
-        if (bearingVal === 0 && nearestIdx < coords.length - 1) {
-          finalBearing = getBearingBetweenPoints(coords[nearestIdx], coords[nearestIdx + 1]);
-        }
-
-        if (trackingCameraMode === 'chase') {
-          mapRef.current.easeTo({
-            center: userCoords,
-            zoom: 18.5,
-            pitch: 62,
-            bearing: finalBearing,
-            duration: 350,
-            essential: true
-          });
-        } else if (trackingCameraMode === 'orbit') {
-          orbitAngleRef.current = (orbitAngleRef.current + 2) % 360;
-          mapRef.current.easeTo({
-            center: userCoords,
-            zoom: 18.0,
-            pitch: 54,
-            bearing: orbitAngleRef.current,
-            duration: 350,
-            essential: true
-          });
-        } else if (trackingCameraMode === 'overhead') {
-          mapRef.current.easeTo({
-            center: userCoords,
-            zoom: 17.0,
-            pitch: 5,
-            bearing: 0,
-            duration: 350,
-            essential: true
-          });
-        } else {
-          // Free mode, center on user without locking camera orientation
-          mapRef.current.easeTo({
-            center: userCoords,
-            duration: 350,
-            essential: true
-          });
-        }
-      }
-    }
-  };
-
-  // Trouver l'index de coordonnées d'itinéraire le plus proche de la position GPS
-  const findNearestRouteIndex = (coords: [number, number][], userCoords: [number, number]): number => {
-    let minDistance = Infinity;
-    let nearestIndex = 0;
-    for (let i = 0; i < coords.length; i++) {
-      const dist = getDistanceBetweenPoints(coords[i], userCoords);
-      if (dist < minDistance) {
-        minDistance = dist;
-        nearestIndex = i;
-      }
-    }
-    return nearestIndex;
-  };
-
-  useEffect(() => {
-    isGpsTrackingActiveRef.current = isGpsTrackingActive;
-  }, [isGpsTrackingActive]);
-
-  useEffect(() => {
-    isVirtualGpsActiveRef.current = isVirtualGpsActive;
-  }, [isVirtualGpsActive]);
-
-  useEffect(() => {
-    handleRealUserLocationChangeRef.current = handleRealUserLocationChange;
-  });
-
-  // Création / Déplacement du marqueur dynamique de suivi (Point bleu style Google Maps avec faisceau)
-  const createOrUpdateCourierMarker = (lngLat: [number, number], angle: number = 0) => {
-    if (!mapRef.current) return;
-
-    if (courierMarkerRef.current) {
-      courierMarkerRef.current.setLngLat(lngLat);
-      const headingElement = document.getElementById('gmaps-heading-beam');
-      if (headingElement) {
-        headingElement.style.transform = `rotate(${angle}deg)`;
-        headingElement.style.display = angle ? 'flex' : 'none';
-      }
-    } else {
-      const el = document.createElement('div');
-      el.className = 'google-maps-tracking-marker';
-      el.innerHTML = `
-        <div class="relative flex items-center justify-center pointer-events-none select-none" style="width: 36px; height: 36px;">
-          <!-- Faisceau directionnel Google Maps si cap disponible -->
-          <div id="gmaps-heading-beam" class="absolute inset-0 flex items-center justify-center transition-transform duration-200 pointer-events-none" style="transform: rotate(${angle}deg); ${angle ? 'display: flex;' : 'display: none;'}">
-            <svg viewBox="0 0 40 40" class="w-9 h-9 -translate-y-2 opacity-50">
-              <defs>
-                <linearGradient id="gmaps-beam-grad" x1="50%" y1="100%" x2="50%" y2="0%">
-                  <stop offset="0%" stop-color="#1a73e8" stop-opacity="0.7"/>
-                  <stop offset="100%" stop-color="#1a73e8" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <polygon points="20,20 6,0 34,0" fill="url(#gmaps-beam-grad)"/>
-            </svg>
-          </div>
-
-          <!-- Halo de pulsation radar Google Maps -->
-          <div class="absolute w-8 h-8 rounded-full bg-blue-500/25 animate-ping pointer-events-none"></div>
-
-          <!-- Point bleu officiel Google Maps -->
-          <div class="relative w-[16px] h-[16px] bg-[#1a73e8] rounded-full border-[2.5px] border-white shadow-[0_1px_4px_rgba(0,0,0,0.35),0_0_8px_rgba(26,115,232,0.5)] z-10 flex items-center justify-center">
-            <div class="w-1.5 h-1.5 bg-white/40 rounded-full"></div>
-          </div>
-        </div>
-      `;
-      const marker = new mapboxgl.Marker({ 
-        element: el,
-        anchor: 'center'
-      })
-        .setLngLat(lngLat)
-        .addTo(mapRef.current);
-      courierMarkerRef.current = marker;
-    }
-  };
-
-  // Démarrer le suivi d'itinéraire réel (Live GPS Watcher)
-  const handleStartTracking = () => {
-    if (!selectedBuilding || !routeInfo) return;
-
-    setTrackingStatus('running');
-    setIsGpsTrackingActive(true);
-
-    const generatedGuidance = guidanceList.length > 0 ? guidanceList : generateGuidanceList(routeInfo.coordinates);
-    if (guidanceList.length === 0) {
-      setGuidanceList(generatedGuidance);
-    }
-
-    addApiLog('TRACKING_GPS_REAL_START', `/api/v1/tracking/start-real`, {
-      cameraMode: trackingCameraMode,
-      addressId: selectedBuilding.id
-    });
-
-    // 1. Essayer d'initialiser immédiatement avec la position de l'utilisateur s'il y en a une
-    if (userLocation) {
-      handleRealUserLocationChange(userLocation.latitude, userLocation.longitude, null, 0);
-    }
-
-    // 2. Lancer un watchPosition géospatial de haute précision
-    if (navigator.geolocation) {
-      if (gpsWatchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
-      }
-
-      gpsWatchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude, speed, heading } = position.coords;
-          handleRealUserLocationChange(latitude, longitude, speed, heading);
-        },
-        (error) => {
-          console.warn("Erreur de rafraîchissement GPS réel:", error.message);
-          addApiLog('GPS_REALTIME_ERROR', `/client/gps/error`, { message: error.message });
-          
-          setMapNotification({
-            type: 'warning',
-            title: 'Signal GPS Réel Faible',
-            message: `Le GPS physique n'a pas pu s'actualiser : ${error.message}. Vous pouvez utiliser le clic sur la carte pour simuler la progression de l'itinéraire.`
-          });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      setMapNotification({
-        type: 'warning',
-        title: 'GPS absent ou bloqué',
-        message: "L'API de géolocalisation n'est pas prise en charge. Veuillez utiliser le mode clic ou démarrer l'application depuis un smartphone."
-      });
-    }
-  };
-
+                  // Démarrer le suivi d'itinéraire réel (Live GPS Watcher)
+  
   // Arrêter le suivi GPS
-  const handlePauseTracking = () => {
-    if (gpsWatchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
-      gpsWatchIdRef.current = null;
-    }
-    setTrackingStatus('idle');
-    setIsGpsTrackingActive(false);
-    setTelemetrySpeed(0);
-    addApiLog('TRACKING_GPS_STOPPED', `/api/v1/tracking/stop`, { status: "paused" });
-  };
-
+  
   // Réinitialiser le suivi et tracer de nouveau depuis la dernière position
-  const handleResetTracking = () => {
-    if (gpsWatchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
-      gpsWatchIdRef.current = null;
-    }
-    setIsGpsTrackingActive(false);
-    setTrackingStatus('idle');
-    setTelemetrySpeed(0);
-    setTelemetryDistanceLeft(routeInfo ? routeInfo.distance : 0);
-    setTelemetryTimeLeft(routeInfo ? routeInfo.duration : 0);
-    setActiveGuidanceText("Suivi réinitialisé. En attente d'activation GPS.");
-    
-    if (routeInfo && routeInfo.coordinates.length > 0) {
-      createOrUpdateCourierMarker(routeInfo.coordinates[0], 0);
-      if (mapRef.current) {
-        mapRef.current.flyTo({
-          center: routeInfo.coordinates[0],
-          zoom: 16.5,
-          pitch: 30,
-          bearing: 0,
-          duration: 1000
-        });
-      }
-    }
-    addApiLog('TRACKING_RESET', `/api/v1/tracking/reset`);
-  };
-
+  
   // Réinitialiser complètement le tracé et stopper tous les trackers GPS
-  const clearRoute = () => {
-    if (gpsWatchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
-      gpsWatchIdRef.current = null;
-    }
-    if (courierMarkerRef.current) {
-      courierMarkerRef.current.remove();
-      courierMarkerRef.current = null;
-    }
-    setIsGpsTrackingActive(false);
-    setTrackingStatus('idle');
-    setTelemetrySpeed(0);
-    setTelemetryDistanceLeft(0);
-    setTelemetryTimeLeft(0);
-    setActiveGuidanceText("Guidage achevé. Veuillez sélectionner un point de livraison.");
-    setGuidanceList([]);
-
-    setRouteInfo(null);
-    setRouteError(null);
-    if (mapRef.current) {
-      const source = mapRef.current.getSource('route') as mapboxgl.GeoJSONSource;
-      if (source) {
-        source.setData({
-          type: 'FeatureCollection',
-          features: []
-        });
-      }
-    }
-    addApiLog('ROUTE_CLEAR', `/map/route/clear`, null, { success: true });
-  };
-
+  
   // Fonction de recentrage sur la position GPS en temps réel style Google Maps (Zoom 18 & FlyTo)
   const recenterMap = useCallback(() => {
     if (isRecentering) return;
@@ -5946,7 +3547,6 @@ export default function App() {
     }
 
     setIsRecentering(true);
-    addApiLog('GPS_RECENTER_START', '/client/gps/recenter', null, { status: 'Acquisition du signal GPS...' });
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -5955,11 +3555,6 @@ export default function App() {
 
         // 1. Mettre à jour l'état de localisation utilisateur (affiche automatiquement le point bleu Google Maps)
         setUserLocation({ latitude, longitude });
-
-        // 2. Si le suivi d'itinéraire est en cours, synchroniser la télémétrie
-        if (isGpsTrackingActiveRef.current && routeInfo) {
-          handleRealUserLocationChangeRef.current(latitude, longitude, position.coords.speed, heading);
-        }
 
         // 3. Effectuer un recentrage fluide de la vue de la carte sur cette position avec zoom 18
         if (mapRef.current && typeof longitude === 'number' && typeof latitude === 'number' && !isNaN(longitude) && !isNaN(latitude)) {
@@ -5978,11 +3573,6 @@ export default function App() {
         }
 
         setIsRecentering(false);
-        addApiLog('GPS_RECENTER_SUCCESS', '/client/gps/recenter', null, {
-          status: 'Succès',
-          coords: { latitude, longitude },
-          zoom: 18
-        });
 
         setMapNotification({
           type: 'success',
@@ -6003,10 +3593,6 @@ export default function App() {
           errorMessage = "Délai d'acquisition GPS dépassé. Veuillez réessayer.";
         }
 
-        addApiLog('GPS_RECENTER_ERROR', '/client/gps/error', null, {
-          code: error.code,
-          message: error.message
-        });
 
         setMapNotification({
           type: 'warning',
@@ -6020,7 +3606,7 @@ export default function App() {
         maximumAge: 0
       }
     );
-  }, [isRecentering, currentStyle, routeInfo]);
+  }, [isRecentering, currentStyle]);
 
   // Gestionnaire pour le mode interactif de sélection d'entrée (verrouillage / snapping mur de cour)
   const handleEntrancePickerModeChange = useCallback((config: EntrancePickerConfig | null) => {
@@ -6101,7 +3687,6 @@ export default function App() {
       setClickSelectionTarget('building');
       setSelectionTargetNature('courtyard');
     }
-    addApiLog('SET_ATELIER_TOOL', `/client/tool/${t}`, null, { tool: t });
   };
 
   // L'assistant s'ouvre tout de suite avec les outils de création ; avec l'outil Sélection, l'inspecteur propose d'abord les actions.
@@ -6170,7 +3755,6 @@ export default function App() {
     setDrawPoints([]);
     const drawSource = mapRef.current?.getSource('draw-source') as mapboxgl.GeoJSONSource | undefined;
     if (drawSource) drawSource.setData({ type: 'FeatureCollection', features: [] });
-    addApiLog('DRAW_RESET', `/map/draw/reset`, null, { success: true });
   };
 
   // Raccourcis clavier de l'Atelier v2 (V, B, C, P) : seulement sur la carte, hors champs de saisie.
@@ -6298,297 +3882,201 @@ export default function App() {
                 />
               )}
 
-              {/* 1. PANNEAU LATÉRAL GAUCHE DE CONTROLE DE L'APPLICATION (v1) */}
-              <div 
-                className={`absolute md:relative inset-y-0 left-0 z-40 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl h-full transition-all duration-300 ease-in-out shrink-0
-                  ${'!hidden'} ${isSidebarOpen 
-                    ? 'w-full sm:w-[390px] md:w-[390px] translate-x-0 opacity-100' 
-                    : '-translate-x-full md:translate-x-0 md:w-0 overflow-hidden border-r-0 opacity-0 pointer-events-none'
-                  }`}
-              >
-                
-                {/* EN-TÊTE ULTRA-DISCRET */}
-                <div className="p-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-                    Atelier de Contrôle
-                  </span>
-                  <button
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="p-1.5 rounded-lg bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
-                    title="Masquer le panneau"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+              
 
-        {/* CONTENU AVEC BANDE DE DÉFILEMENT */}
-        <div 
-          ref={sidebarScrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative scroll-smooth"
-        >
-          
-          {/* BARRE DE RECHERCHE D'ADRESSE UNIQUE */}
-          <div className="relative">
-            <label className="block text-xs font-mono font-medium text-slate-400 mb-1.5">Rechercher une Adresse Unique <span className="text-orange-400">*</span></label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Renseignez un code (ex: HLM-CON-8720)..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full bg-slate-950/80 border border-slate-700 rounded-xl pl-10 pr-9 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-mono"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => { setSearchQuery(''); setSearchSuggestions([]); }} 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+      {/* 3. CAPTURE DE LA CARTE MAPBOX EN PLEIN ÉCRAN */}
+      <div className="flex-1 relative h-full w-full">
+        
+        {/* LE CONTENEUR DE LA CARTE */}
+        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" id="mapbox-viewport" />
 
-            {/* Suggestions de recherche */}
-            <AnimatePresence>
-              {searchSuggestions.length > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="absolute left-0 right-0 mt-1.5 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-2xl z-20 max-h-56 overflow-y-auto"
-                >
-                  {searchSuggestions.map((b, sIdx) => {
-                    const occupantName = profiles.find(p => p.id === b.claimed_by || p.id === b.submitted_by)?.full_name;
-                    const displayName = b.landmark_note || occupantName || `Bâtiment ${b.building_type}`;
-                    const dual = computeDualAddressing(b);
-                    return (
-                      <button
-                        key={`sugg-${b.id || 'b'}-${b.hailand_code || sIdx}-${sIdx}`}
-                        onClick={() => selectBuildingFromSearch(b)}
-                        className="w-full px-4 py-3 hover:bg-slate-750/80 border-b border-slate-700/50 last:border-0 flex flex-col text-left transition-colors group"
-                      >
-                        <div className="flex justify-between items-center w-full">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-xs font-bold text-amber-400 group-hover:text-amber-300">
-                              {b.hailand_code || dual.gridAddress.hailandCode}
-                            </span>
-                            {(b.admin_address_code || dual.adminAddress.adminAddressCode) && (
-                              <span className="font-mono text-[10px] font-semibold text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/20">
-                                {b.admin_address_code || dual.adminAddress.adminAddressCode}
-                              </span>
-                            )}
-                          </div>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs font-medium text-slate-200 font-sans">{displayName}</span>
-                          <span className="text-[10px] text-slate-400 font-sans">
-                            {b.commune}{b.quartier ? ` · ${b.quartier}` : ''}
-                          </span>
-                        </div>
-                        {b.access_note && (
-                          <p className="text-[11px] text-slate-400 italic line-clamp-1 mt-0.5">{b.access_note}</p>
-                        )}
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+              <AtelierToolbar
+                  tool={activeTool}
+                  onTool={selectAtelierTool}
+                  is3D={currentPitch > 15}
+                  onToggle3D={() => {
+                    if (!mapRef.current) return;
+                    const nextPitch = mapRef.current.getPitch() > 15 ? 0 : 50;
+                    mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
+                    setCurrentPitch(nextPitch);
+                  }}
+                  drawing={
+                    isDrawMode
+                      ? {
+                          points: drawPoints.length,
+                          areaM2: drawPoints.length >= 3 ? Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]])) : null,
+                          onFinish: handleFinalizeCustomDraw,
+                          onUndo: () => setDrawPoints((prev) => prev.slice(0, -1)),
+                          onQuit: quitFreeDraw,
+                        }
+                      : null
+                  }
+                />
 
-          {/* BANDEAU INTERACTIF MODE SÉLECTION DE ZONE (en v2 : remplacé par la barre d'outils de la carte) */}
+
+        {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
+        <div className={`absolute left-4 z-20 flex items-center gap-2 ${"top-16"}`}>
           
 
-          {/* SECTION CARTE INTERACTIVE & NAVIGATION GÉOSPATIALE HIÉRARCHIQUE (ÉTAPES 1-4) */}
-          <div className="p-3.5 bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-700/70 rounded-2xl flex flex-col gap-3 shadow-xl ring-1 ring-white/5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`p-2 rounded-xl border transition-colors ${
-                  isInteractiveMapActive 
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-sm shadow-emerald-500/20' 
-                    : 'bg-slate-800/80 border-slate-700/80 text-slate-400'
-                }`}>
-                  <Compass className={`w-4 h-4 ${isInteractiveMapActive ? 'animate-pulse' : ''}`} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-mono font-bold text-white tracking-wide">
-                      CARTE INTERACTIVE
-                    </span>
-                    {isInteractiveMapActive && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        ACTIF
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+        </div>
 
+        {/* BOUTON FLOTTANT DISCRET "MASQUER" À CÔTÉ DU CURSEUR LORSQU'UN POLYGONE EST SÉLECTIONNÉ */}
+        <AnimatePresence>
+          {selectedPolygonHideAction && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 3 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 3 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              style={{
+                position: 'absolute',
+                left: `${Math.max(8, Math.min(window.innerWidth - 110, selectedPolygonHideAction.screenPos.x + 10))}px`,
+                top: `${Math.max(8, Math.min(window.innerHeight - 45, selectedPolygonHideAction.screenPos.y - 12))}px`,
+                zIndex: 40,
+                pointerEvents: 'auto'
+              }}
+            >
               <button
                 type="button"
-                onClick={handleToggleInteractiveMap}
-                className={`py-1.5 px-3 rounded-xl text-[10px] font-bold font-display cursor-pointer transition-all shadow-md active:scale-95 flex items-center gap-1.5 shrink-0 ${
-                  isInteractiveMapActive 
-                    ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-emerald-500/20' 
-                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleHideSelectedPolygon();
+                }}
+                className="group flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/95 hover:bg-rose-600 text-white rounded-full border border-slate-700/90 hover:border-rose-500 shadow-xl backdrop-blur-md text-[11px] font-semibold tracking-wide transition-all duration-150 cursor-pointer active:scale-95 ring-1 ring-white/10"
+                title="Masquer ou supprimer ce polygone"
               >
-                <Sparkles className="w-3 h-3" />
-                <span>{isInteractiveMapActive ? 'DÉSACTIVER' : 'ACTIVER'}</span>
+                <EyeOff className="w-3 h-3 text-slate-400 group-hover:text-white transition-colors" />
+                <span>Masquer</span>
               </button>
-            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Fil d'Ariane / Badge d'état de l'entité ou des entités sélectionnées */}
-            {isInteractiveMapActive && selectedTerritories.length > 0 && (
-              <div className="p-2.5 bg-slate-950/90 border border-slate-800/90 rounded-xl flex flex-col gap-2 animate-fadeIn shadow-lg shadow-black/40">
-                {selectedTerritories.length === 1 ? (
-                  // Affichage pour un seul territoire actif
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 overflow-hidden text-xs min-w-0">
-                      <span 
-                        className="w-2.5 h-2.5 rounded-full shrink-0 animate-ping"
-                        style={{ backgroundColor: TERRITORY_LEVEL_COLORS[selectedTerritories[0].level] }}
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-1 text-[9px] font-mono text-slate-400 truncate">
-                          <span className="uppercase font-bold text-slate-300">
-                            {selectedTerritories[0].level}
-                          </span>
-                          {selectedTerritories[0].parentChain?.region && (
-                            <span>• {selectedTerritories[0].parentChain.region.nom}</span>
-                          )}
-                          {selectedTerritories[0].parentChain?.commune && (
-                            <span>› {selectedTerritories[0].parentChain.commune.nom}</span>
-                          )}
-                        </div>
-                        <span className="font-bold text-white text-xs truncate">
-                          {selectedTerritories[0].nom}
-                          {selectedTerritories[0].code ? ` (${selectedTerritories[0].code})` : ''}
-                        </span>
-                      </div>
-                    </div>
+        {/* MODALE D'INSPECTION / MODIFICATION DU BÂTIMENT 3D */}
+        <Building3DDetailModal
+          building={selected3DBuilding}
+          onClose={() => setSelected3DBuilding(null)}
+          onUpdate={(updated) => {
+            setCustom3DBuildings(prev => prev.map(b => b.id === updated.id ? updated : b));
+            setSelected3DBuilding(null);
+            setMapNotification({
+              type: 'success',
+              title: 'Bâtiment 3D Mis à Jour',
+              message: `Propriétés volumétriques enregistrées (${updated.floors} étages, ${updated.height}m).`
+            });
+          }}
+          onDelete={(bId) => {
+            handleDeleteCustom3DBuilding(bId);
+            setSelected3DBuilding(null);
+            setMapNotification({
+              type: 'warning',
+              title: 'Bâtiment 3D Supprimé',
+              message: 'Le volume 3D a été retiré de la carte.'
+            });
+          }}
+          onFlyTo={(b) => {
+            if (mapRef.current) {
+              mapRef.current.flyTo({
+                center: b.centroid,
+                zoom: 17.5,
+                pitch: 60,
+                bearing: -25,
+                duration: 1200
+              });
+              setCurrentPitch(60);
+            }
+          }}
+        />
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {selectedTerritories[0].totalBatiments3D !== undefined && selectedTerritories[0].totalBatiments3D > 0 && (
-                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
-                          {selectedTerritories[0].totalBatiments3D} bâtis 3D
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleClearTerritorySelection}
-                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-                        title="Désélectionner"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // Affichage multi-territoires actifs
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="font-mono text-slate-200 text-[11px] font-bold">
-                          {selectedTerritories.length} frontières actives simultanément
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (mapRef.current) {
-                              zoomToTerritories(mapRef.current, selectedTerritories);
-                            }
-                          }}
-                          className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-500/30 hover:bg-amber-900/60 transition cursor-pointer"
-                          title="Recentrer la caméra sur toutes les frontières sélectionnées"
-                        >
-                          Recentrer
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleClearTerritorySelection}
-                          className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer"
-                          title="Tout désélectionner"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
+        {/* ENCART DE NOTIFICATION DES OPÉRATIONS DE DÉTOURAGE ET DE VALIDATION ALGORITHMIQUE */}
+        <AnimatePresence>
+          
+        </AnimatePresence>
 
-                    {/* Pastilles avec suppression unitaire */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-h-24 flex-wrap no-scrollbar">
-                      {selectedTerritories.map((t) => (
-                        <div
-                          key={`active-badge-${t.level}-${t.id}`}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900 border text-[10px] font-mono transition-all group"
-                          style={{ borderColor: `${TERRITORY_LEVEL_COLORS[t.level]}60` }}
-                        >
-                          <span 
-                            className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: TERRITORY_LEVEL_COLORS[t.level] }}
-                          />
-                          <span 
-                            onClick={() => {
-                              if (mapRef.current) {
-                                zoomToTerritory(mapRef.current, t);
-                              }
-                            }}
-                            className="text-slate-200 font-semibold cursor-pointer hover:underline truncate max-w-[120px]"
-                            title={`Cliquer pour zoomer sur ${t.nom}`}
-                          >
-                            {t.nom}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSingleTerritory(t.id)}
-                            className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition cursor-pointer"
-                            title={`Retirer ${t.nom}`}
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+        {/* Atelier v2 : fond de carte et réglages du satellite en haut à droite */}
+        {activeAdminView === 'carte' && (
+          <div className="absolute right-3.5 top-3.5 z-20 flex flex-col items-end gap-2">
+            <MapStyleControl current={currentStyle} onChange={handleStyleChange} onOpenLayers={() => { setLeftTab('couches'); setLeftOpen(true); }} />
+            {currentStyle === 'satellite' && (
+              <SatelliteOptions
+                hd={isHdEnhanceForce}
+                onToggleHd={() => { setIsHdEnhanceForce(!isHdEnhanceForce);}}
+                grid={is200mGridActive}
+                onToggleGrid={() => { setIs200mGridActive(!is200mGridActive);}}
+                zoom={zoomLevel}
+              />
             )}
-
-            {/* Menu déroulant hiérarchique tiroirs mère-enfant (Étape 2 & 3 Multi-Sélection) */}
-            <AnimatePresence>
-              {isInteractiveMapActive && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="overflow-hidden pt-1"
-                >
-                  <InteractiveTerritoryTree
-                    selectedTerritories={selectedTerritories}
-                    selectedTerritoryIds={selectedTerritories.map((t) => t.id)}
-                    selectedTerritoryId={selectedTerritory?.id || null}
-                    selectedEntityId={selectedTerritory?.id || null}
-                    onToggleTerritory={handleToggleTerritory}
-                    onToggleBatchTerritories={handleToggleBatchTerritories}
-                    onSelectTerritory={handleToggleTerritory}
-                    onSelectEntity={handleToggleTerritory}
-                    onResetSelection={handleClearTerritorySelection}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
+        )}
 
-          {/* CRÉATION D'ADRESSE : Étape interactive par Clic (Module 1) */}
-          <AnimatePresence mode="wait">
-            {clickedCoords && (assistantStarted) ? (
-              <RegistrationSlot v2={true} host={assistantHost}>
+        
+
+        
+
+        {activeAdminView === 'carte' && (
+          <div className="absolute bottom-4 right-3.5 z-20 max-md:bottom-auto max-md:top-[64px]">
+            <ZoomCluster
+              onZoomIn={() => mapRef.current?.zoomIn()}
+              onZoomOut={() => mapRef.current?.zoomOut()}
+              onNorth={() => mapRef.current?.easeTo({ bearing: 0, pitch: 45, duration: 800 })}
+              onLocate={recenterMap}
+              locating={isRecentering || isLocating}
+              located={!!userLocation}
+            />
+          </div>
+        )}
+
+        
+
+        {/* Atelier v2 : fiche flottante près du bâtiment sélectionné (remplace l'ancien panneau de droite) */}
+        {activeAdminView === 'carte' && !assistantStarted && clickedCoords && (
+          <CandidateCard
+            map={mapRef.current}
+            coords={clickedCoords}
+            zone={detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+            commune={detectCommuneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+            buildings={buildings}
+            onCreate={() => startAssistant('single')}
+            onConcession={() => startAssistant('courtyard')}
+            onRedraw={() => { setClickedCoords(null); selectAtelierTool('trace'); }}
+            onClose={() => setClickedCoords(null)}
+          />
+        )}
+        {activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
+          <BuildingCard map={mapRef.current} building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
+        )}
+
+        {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
+        {activeAdminView === 'carte' && !leftOpen && !(clickedCoords && assistantStarted) && (
+          <div className="absolute left-3.5 top-3.5 z-20 max-md:hidden">
+            <PanelHandle onOpen={() => setLeftOpen(true)} />
+          </div>
+        )}
+
+        {/* RUSTINE DE BIENVENUE & CONSEIL GPS */}
+        <div className={`absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm ${"hidden"}`}>
+          <div className="bg-slate-950/90 border border-slate-800 backdrop-blur-md p-3 rounded-2xl shadow-2xl pointer-events-auto flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-400 mt-0.5 pointer-events-none shrink-0 border border-orange-500/15 flex-shrink-0">
+              <Info className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-100 font-display">Conseil d'utilisation</h4>
+              <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed font-sans">
+                Activez votre départ de livraison en utilisant votre <span className="text-emerald-400 font-bold">GPS Réel</span> (bouton vert/boussole) puis cliquez sur un bâtiment sur la carte pour tracer l'itinéraire instantanément.
+              </p>
+            </div>
+          </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Panneau latéral droit pour l'administration de bâtiment sélectionné masqué temporairement */}
+
+        {/* Encart flottant discret pour le carreau de grille 200m sélectionné sans ouvrir le grand volet */}
+        
+
+        {activeAdminView === 'carte' && clickedCoords && assistantStarted && (
+          <AssistantAside>
               <InteractiveBuildingForm
                 clickedCoords={clickedCoords}
                 buildings={buildings}
@@ -6769,513 +4257,9 @@ export default function App() {
                   }
                 }}
               />
-              </RegistrationSlot>
-            ) : selectedBuilding ? (
-              /* DÉTAIL DU BÂTIMENT EN VUE ACTIVE (Module 2) */
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-xl"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 mt-0.5 shrink-0">
-                      <MapIcon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-mono text-orange-400 font-bold bg-orange-950/40 px-2 py-0.5 rounded-full border border-orange-500/10">
-                        {selectedBuilding.hailand_code || `DRAFT-${selectedBuilding.id.substring(0, 6).toUpperCase()}`}
-                      </span>
-                      <h3 className="text-sm font-bold text-white font-display mt-1">
-                        {selectedBuilding.landmark_note || profiles.find(p => p.id === selectedBuilding.claimed_by || p.id === selectedBuilding.submitted_by)?.full_name || `Bâtiment ${selectedBuilding.building_type}`}
-                      </h3>
-                    </div>
-                  </div>
-                  <button onClick={() => { setSelectedBuilding(null); clearRoute(); }} className="text-slate-400 hover:text-slate-200 shrink-0">
-                    <X className="w-4.5 h-4.5" />
-                  </button>
-                </div>
-
-                <p className="text-xs text-slate-300 italic mb-3 font-sans border-l-2 border-orange-500/50 pl-2">
-                  "{selectedBuilding.access_note || 'Aucune note de livraison.'}"
-                </p>
-
-                <div className="p-2.5 bg-slate-950/40 rounded-xl mb-4 text-[11px] font-mono border border-slate-700 flex flex-col gap-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Coordonnées :</span>
-                    <span className="text-slate-300">
-                      {selectedBuilding.centroid.coordinates[1].toFixed(6)}, {selectedBuilding.centroid.coordinates[0].toFixed(6)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Créé le :</span>
-                    <span className="text-slate-300">{new Date(selectedBuilding.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-800 pt-1.5 mt-1.5">
-                    <span className="text-slate-500">Surface de toiture :</span>
-                    <span className="text-orange-400 font-bold bg-orange-950/45 px-2 py-0.5 rounded text-[10px] border border-orange-500/15">
-                      {safeCalculateArea(selectedBuilding.geom, 80).toLocaleString()} m²
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-800 pt-1.5 mt-1.5 items-center">
-                    <span className="text-slate-500">Format stocké :</span>
-                    <span className="text-emerald-400 font-bold bg-emerald-950/45 px-2 py-0.5 rounded text-[9px] border border-emerald-500/10">
-                      POLYGONE GeoJSON
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center border-t border-slate-800 pt-1.5 mt-1.5">
-                    <span className="text-slate-500">Statut :</span>
-                    <span className="text-orange-400 font-bold text-[10px] bg-orange-950/50 border border-orange-500/20 px-1.5 py-0.5 rounded flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {selectedBuilding.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* OPTIONS D'ITINÉRAIRE */}
-                <div className="space-y-2">
-                  {!userLocation ? (
-                    <div className="p-3 bg-slate-900 border border-slate-700 rounded-xl flex flex-col gap-2">
-                      <p className="text-[11px] text-slate-400">
-                        Pour tracer l'itinéraire de livraison, activez le module de localisation GPS réelle.
-                      </p>
-                      <button
-                        onClick={recenterMap}
-                        disabled={isRecentering}
-                        className="w-full bg-slate-850 hover:bg-slate-700 border border-slate-700 text-slate-200 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                      >
-                        {isRecentering ? (
-                          <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                        ) : (
-                          <LocateFixed className="w-4 h-4 text-blue-400" />
-                        )}
-                        Activer ma position GPS réelle
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-xs font-mono text-slate-400 bg-slate-950/30 p-2 rounded-lg border border-slate-800/80">
-                        <span className="flex items-center gap-1 text-[11px]"><Compass className="w-3.5 h-3.5 text-emerald-400" /> Départ : Position GPS Réelle</span>
-                        <button 
-                          onClick={() => { setUserLocation(null); }} 
-                          className="text-rose-400 hover:text-rose-300 hover:underline text-[10px]"
-                        >
-                          Désactiver
-                        </button>
-                      </div>
-
-                      {/* Info d'itinéraire calculé */}
-                      {routeLoading ? (
-                        <div className="p-4 bg-slate-950 border border-slate-700 rounded-xl flex items-center justify-center gap-2">
-                          <RefreshCw className="w-4 h-4 text-orange-400 animate-spin" />
-                          <span className="text-xs font-mono text-slate-300">Traçage de la route API Mapbox...</span>
-                        </div>
-                      ) : routeInfo ? (
-                        <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-2xl space-y-3.5 shadow-2xl">
-                          {/* En-tête de Suivi */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-cyan-400">
-                              <Truck className="w-5 h-5" />
-                              <span className="text-xs font-bold font-display uppercase tracking-wider">Suivi Pro d'Itinéraire</span>
-                            </div>
-                            {/* Statut dynamique */}
-                            {isGpsTrackingActive ? (
-                              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/45 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                SUIVI GPS ACTIF
-                              </span>
-                            ) : trackingStatus === 'arrived' ? (
-                              <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/45 px-2 py-0.5 rounded border border-cyan-500/20 flex items-center gap-1">
-                                <Check className="w-3 h-3" />
-                                COLIS ARRIVÉ
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
-                                PRÊT À SUIVRE
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Grille de Télémétrie en temps réel */}
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <div className="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-col justify-center">
-                              <div className="flex justify-center items-center gap-1 text-slate-500 mb-0.5">
-                                <Gauge className="w-3 h-3" />
-                                <span className="text-[9px] uppercase font-mono tracking-wider">Vitesse</span>
-                              </div>
-                              <span className="text-sm font-bold text-white font-mono">
-                                {isGpsTrackingActive ? telemetrySpeed : 0} <span className="text-[10px] text-slate-400 font-normal">km/h</span>
-                              </span>
-                            </div>
-                            <div className="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-col justify-center">
-                              <span className="text-[9px] text-slate-500 uppercase font-mono tracking-wider mb-0.5">Reste dist.</span>
-                              <span className="text-sm font-bold text-cyan-400 font-mono">
-                                {!isGpsTrackingActive ? (routeInfo.distance / 1000).toFixed(2) : (telemetryDistanceLeft / 1000).toFixed(2)} <span className="text-[10px] text-cyan-500/80 font-normal">km</span>
-                              </span>
-                            </div>
-                            <div className="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-col justify-center">
-                              <span className="text-[9px] text-slate-500 uppercase font-mono tracking-wider mb-0.5">Reste temp.</span>
-                              <span className="text-sm font-bold text-emerald-400 font-mono">
-                                {!isGpsTrackingActive ? Math.round(routeInfo.duration / 60) : Math.round(telemetryTimeLeft / 60)} <span className="text-[10px] text-emerald-500/80 font-normal">min</span>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Bouton de Contrôle Principal de Suivi */}
-                          <div className="flex gap-2">
-                            {!isGpsTrackingActive ? (
-                              <button
-                                onClick={handleStartTracking}
-                                className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 py-2 px-3 rounded-xl text-xs font-bold font-display flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-cyan-600/10 active:scale-95 cursor-pointer"
-                              >
-                                <Play className="w-4 h-4 fill-slate-950" />
-                                Connecter mon GPS Réel
-                              </button>
-                            ) : (
-                              <button
-                                onClick={handlePauseTracking}
-                                className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 py-2 px-3 rounded-xl text-xs font-bold font-display flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                              >
-                                <Pause className="w-4 h-4 fill-slate-950" />
-                                Suspendre le Guidage GPS
-                              </button>
-                            )}
-
-                            {isGpsTrackingActive && (
-                              <button
-                                onClick={handleResetTracking}
-                                className="bg-slate-850 hover:bg-slate-800 border border-slate-700 p-2 rounded-xl text-slate-300 hover:text-white transition-all active:scale-95 cursor-pointer"
-                                title="Réinitialiser la course"
-                              >
-                                <RotateCcw className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Émulation de position par clic */}
-                          <div className="bg-slate-950/65 p-2.5 rounded-xl border border-slate-850 space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] text-slate-300 font-mono font-bold flex items-center gap-1">
-                                🖱️ Simuler par simple clic carte
-                              </span>
-                              <button
-                                onClick={() => setIsVirtualGpsActive(!isVirtualGpsActive)}
-                                className={`px-2 py-0.5 text-[9px] font-bold rounded border transition-all ${
-                                  isVirtualGpsActive
-                                    ? 'bg-emerald-950 text-emerald-400 border-emerald-500/30'
-                                    : 'bg-slate-850 text-slate-500 border-slate-700/35'
-                                }`}
-                              >
-                                {isVirtualGpsActive ? 'ACTIF (RECOMMANDÉ)' : 'DÉSACTIVÉ'}
-                              </button>
-                            </div>
-                            <p className="text-[10px] leading-relaxed text-slate-400">
-                              Idéal pour tester l'application en temps réel sur ordinateur : activez le guidage et cliquez n'importe où sur l'itinéraire pour déplacer virtuellement le véhicule et voir recalculer la télémétrie en 3D !
-                            </p>
-                          </div>
-
-                          {/* Sélecteurs de Caméra de Cinéma 3D */}
-                          <div className="space-y-1.5 border-t border-slate-850 pt-2.5">
-                            <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider flex items-center gap-1">
-                              <Camera className="w-3.5 h-3.5 text-cyan-400" />
-                              Cinématique de la caméra 3D Mapbox :
-                            </span>
-                            <div className="grid grid-cols-4 gap-1 p-0.5 bg-slate-950/80 border border-slate-800/80 rounded-xl">
-                              <button
-                                onClick={() => setTrackingCameraMode('chase')}
-                                className={`py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${
-                                  trackingCameraMode === 'chase'
-                                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
-                                }`}
-                                title="Caméra subjective 3D suivant le véhicule"
-                              >
-                                🎥 Course
-                              </button>
-                              <button
-                                onClick={() => setTrackingCameraMode('orbit')}
-                                className={`py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${
-                                  trackingCameraMode === 'orbit'
-                                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
-                                }`}
-                                title="Caméra rotative orbitant autour de la cible"
-                              >
-                                🔄 Orbite
-                              </button>
-                              <button
-                                onClick={() => setTrackingCameraMode('overhead')}
-                                className={`py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${
-                                  trackingCameraMode === 'overhead'
-                                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
-                                }`}
-                                title="Caméra aérienne plate centrée"
-                              >
-                                ✈️ Survol
-                              </button>
-                              <button
-                                onClick={() => setTrackingCameraMode('free')}
-                                className={`py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${
-                                  trackingCameraMode === 'free'
-                                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
-                                }`}
-                                title="Laissez libre contrôle de la caméra à l'utilisateur"
-                              >
-                                🗺️ Libre
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Tableau d'instructions Turn-by-Turn GPS en temps réel */}
-                          <div className="p-2.5 bg-slate-950/80 rounded-xl border border-slate-800">
-                            <span className="text-[9px] text-slate-500 uppercase font-mono tracking-wider block mb-1 font-bold">
-                              📡 Feuille de route / Guidage Professionnel :
-                            </span>
-                            <div className="flex items-start gap-2 text-[11px] font-medium text-slate-200 min-h-[30px] font-mono leading-relaxed">
-                              <span>{activeGuidanceText}</span>
-                            </div>
-                            {/* Barre de progression cinématique */}
-                            <div className="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
-                              <div
-                                className="bg-cyan-400 h-full transition-all duration-300"
-                                style={{
-                                  width: `${
-                                    routeInfo.distance > 0
-                                      ? Math.max(0, Math.min(100, (1 - (telemetryDistanceLeft / routeInfo.distance)) * 100))
-                                      : 0
-                                  }%`,
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-
-                          {/* Options d'extinction */}
-                          <button
-                            onClick={clearRoute}
-                            className="w-full bg-slate-950 hover:bg-slate-850 border border-slate-850 text-xs py-1.5 px-3 rounded-lg text-slate-500 hover:text-slate-300 transition-colors cursor-pointer text-center font-semibold"
-                          >
-                            Réinitialiser l'Itinéraire & Traceurs
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => calculateRoute(userLocation, selectedBuilding.centroid.coordinates[1], selectedBuilding.centroid.coordinates[0], selectedBuilding.id)}
-                          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-xl text-xs font-bold font-display flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-blue-600/10"
-                        >
-                          <Navigation className="w-4 h-4" />
-                          Calculer l'itinéraire de livraison
-                        </button>
-                      )}
-
-                      {routeError && (
-                        <div className="p-2 bg-rose-950/40 border border-rose-500/20 rounded-lg text-[11px] text-rose-300 font-mono">
-                          ⚠️ {routeError}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* 3. CAPTURE DE LA CARTE MAPBOX EN PLEIN ÉCRAN */}
-      <div className="flex-1 relative h-full w-full">
-        
-        {/* LE CONTENEUR DE LA CARTE */}
-        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" id="mapbox-viewport" />
-
-              <AtelierToolbar
-                  tool={activeTool}
-                  onTool={selectAtelierTool}
-                  is3D={currentPitch > 15}
-                  onToggle3D={() => {
-                    if (!mapRef.current) return;
-                    const nextPitch = mapRef.current.getPitch() > 15 ? 0 : 50;
-                    mapRef.current.easeTo({ pitch: nextPitch, duration: 800 });
-                    setCurrentPitch(nextPitch);
-                  }}
-                  drawing={
-                    isDrawMode
-                      ? {
-                          points: drawPoints.length,
-                          areaM2: drawPoints.length >= 3 ? Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]])) : null,
-                          onFinish: handleFinalizeCustomDraw,
-                          onUndo: () => setDrawPoints((prev) => prev.slice(0, -1)),
-                          onQuit: quitFreeDraw,
-                        }
-                      : null
-                  }
-                />
-
-
-        {/* BARRE D'OUTILS SUPÉRIEURE GAUCHE (Atelier + Mode Édition 3D Tracé) */}
-        <div className={`absolute left-4 z-20 flex items-center gap-2 ${"top-16"}`}>
-          
-
-        </div>
-
-        {/* BOUTON FLOTTANT DISCRET "MASQUER" À CÔTÉ DU CURSEUR LORSQU'UN POLYGONE EST SÉLECTIONNÉ */}
-        <AnimatePresence>
-          {selectedPolygonHideAction && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 3 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 3 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              style={{
-                position: 'absolute',
-                left: `${Math.max(8, Math.min(window.innerWidth - 110, selectedPolygonHideAction.screenPos.x + 10))}px`,
-                top: `${Math.max(8, Math.min(window.innerHeight - 45, selectedPolygonHideAction.screenPos.y - 12))}px`,
-                zIndex: 40,
-                pointerEvents: 'auto'
-              }}
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleHideSelectedPolygon();
-                }}
-                className="group flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/95 hover:bg-rose-600 text-white rounded-full border border-slate-700/90 hover:border-rose-500 shadow-xl backdrop-blur-md text-[11px] font-semibold tracking-wide transition-all duration-150 cursor-pointer active:scale-95 ring-1 ring-white/10"
-                title="Masquer ou supprimer ce polygone"
-              >
-                <EyeOff className="w-3 h-3 text-slate-400 group-hover:text-white transition-colors" />
-                <span>Masquer</span>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* MODALE D'INSPECTION / MODIFICATION DU BÂTIMENT 3D */}
-        <Building3DDetailModal
-          building={selected3DBuilding}
-          onClose={() => setSelected3DBuilding(null)}
-          onUpdate={(updated) => {
-            setCustom3DBuildings(prev => prev.map(b => b.id === updated.id ? updated : b));
-            setSelected3DBuilding(null);
-            setMapNotification({
-              type: 'success',
-              title: 'Bâtiment 3D Mis à Jour',
-              message: `Propriétés volumétriques enregistrées (${updated.floors} étages, ${updated.height}m).`
-            });
-          }}
-          onDelete={(bId) => {
-            handleDeleteCustom3DBuilding(bId);
-            setSelected3DBuilding(null);
-            setMapNotification({
-              type: 'warning',
-              title: 'Bâtiment 3D Supprimé',
-              message: 'Le volume 3D a été retiré de la carte.'
-            });
-          }}
-          onFlyTo={(b) => {
-            if (mapRef.current) {
-              mapRef.current.flyTo({
-                center: b.centroid,
-                zoom: 17.5,
-                pitch: 60,
-                bearing: -25,
-                duration: 1200
-              });
-              setCurrentPitch(60);
-            }
-          }}
-        />
-
-        {/* ENCART DE NOTIFICATION DES OPÉRATIONS DE DÉTOURAGE ET DE VALIDATION ALGORITHMIQUE */}
-        <AnimatePresence>
-          
-        </AnimatePresence>
-
-        {/* Atelier v2 : fond de carte et réglages du satellite en haut à droite */}
-        {activeAdminView === 'carte' && (
-          <div className="absolute right-3.5 top-3.5 z-20 flex flex-col items-end gap-2">
-            <MapStyleControl current={currentStyle} onChange={handleStyleChange} onOpenLayers={() => { setLeftTab('couches'); setLeftOpen(true); }} />
-            {currentStyle === 'satellite' && (
-              <SatelliteOptions
-                hd={isHdEnhanceForce}
-                onToggleHd={() => { setIsHdEnhanceForce(!isHdEnhanceForce); addApiLog('TOGGLE_CV_HD', `/map/satellite/hd-mode`, null, { active: !isHdEnhanceForce }); }}
-                grid={is200mGridActive}
-                onToggleGrid={() => { setIs200mGridActive(!is200mGridActive); addApiLog('TOGGLE_GRID_200M', `/map/satellite/grid-200m`, null, { active: !is200mGridActive }); }}
-                zoom={zoomLevel}
-              />
-            )}
-          </div>
+              
+          </AssistantAside>
         )}
-
-        
-
-        
-
-        {activeAdminView === 'carte' && (
-          <div className="absolute bottom-4 right-3.5 z-20 max-md:bottom-auto max-md:top-[64px]">
-            <ZoomCluster
-              onZoomIn={() => mapRef.current?.zoomIn()}
-              onZoomOut={() => mapRef.current?.zoomOut()}
-              onNorth={() => mapRef.current?.easeTo({ bearing: 0, pitch: 45, duration: 800 })}
-              onLocate={recenterMap}
-              locating={isRecentering || isLocating}
-              located={!!userLocation}
-            />
-          </div>
-        )}
-
-        
-
-        {/* Atelier v2 : fiche flottante près du bâtiment sélectionné (remplace l'ancien panneau de droite) */}
-        {activeAdminView === 'carte' && !assistantStarted && clickedCoords && (
-          <CandidateCard
-            map={mapRef.current}
-            coords={clickedCoords}
-            zone={detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
-            commune={detectCommuneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
-            buildings={buildings}
-            onCreate={() => startAssistant('single')}
-            onConcession={() => startAssistant('courtyard')}
-            onRedraw={() => { setClickedCoords(null); selectAtelierTool('trace'); }}
-            onClose={() => setClickedCoords(null)}
-          />
-        )}
-        {activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
-          <BuildingCard map={mapRef.current} building={selectedBuilding} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
-        )}
-
-        {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
-        {activeAdminView === 'carte' && !leftOpen && !(clickedCoords && assistantStarted) && (
-          <div className="absolute left-3.5 top-3.5 z-20 max-md:hidden">
-            <PanelHandle onOpen={() => setLeftOpen(true)} />
-          </div>
-        )}
-
-        {/* RUSTINE DE BIENVENUE & CONSEIL GPS */}
-        <div className={`absolute bottom-6 left-4 z-20 pointer-events-none max-w-sm ${"hidden"}`}>
-          <div className="bg-slate-950/90 border border-slate-800 backdrop-blur-md p-3 rounded-2xl shadow-2xl pointer-events-auto flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-400 mt-0.5 pointer-events-none shrink-0 border border-orange-500/15 flex-shrink-0">
-              <Info className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-slate-100 font-display">Conseil d'utilisation</h4>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed font-sans">
-                Activez votre départ de livraison en utilisant votre <span className="text-emerald-400 font-bold">GPS Réel</span> (bouton vert/boussole) puis cliquez sur un bâtiment sur la carte pour tracer l'itinéraire instantanément.
-              </p>
-            </div>
-          </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Panneau latéral droit pour l'administration de bâtiment sélectionné masqué temporairement */}
-
-        {/* Encart flottant discret pour le carreau de grille 200m sélectionné sans ouvrir le grand volet */}
-        
-
-        {activeAdminView === 'carte' && clickedCoords && assistantStarted && <AssistantAside hostRef={setAssistantHost} />}
 
         {/* Panneau latéral droit pour le carreau de grille 200m sélectionné */}
         {!selectedBuilding && selectedGridCell && isGridPanelOpen && (
@@ -7288,7 +4272,6 @@ export default function App() {
               setIsGridPanelOpen(false);
             }}
             onSelectBuilding={(b) => setSelectedBuilding(b)}
-            onApproveAll={handleApproveAllGridBuildings}
           />
         )}
       </div>
@@ -7388,95 +4371,13 @@ export default function App() {
           ]}
         />
 
-      {/* MODAL DES PARAMÈTRES ET CLÉS DE L'ATELIER GEOGRAPHIQUE */}
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 15 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 15 }}
-              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
-            >
-              {/* Entête */}
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/20">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-slate-400" />
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-white font-bold">Paramètres cartographiques</h3>
-                </div>
-                <button
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer active:scale-95"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Contenu */}
-              <div className="p-5 overflow-y-auto space-y-5">
-                
-                {/* Section 1 : Cle publique Mapbox */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Clé d'accès Mapbox (Token)</label>
-                  <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-                    L'application utilise une clé publique d'usine par défaut. Pour optimiser les performances 3D ou utiliser vos propres couches, configurez votre jeton Mapbox ci-dessous. Il sera mémorisé localement dans votre navigateur.
-                  </p>
-                  <div className="flex gap-2 pt-1">
-                    <input
-                      type="password"
-                      placeholder="pk.eyJ1Ijo..."
-                      value={accessToken}
-                      onChange={(e) => setAccessToken(e.target.value)}
-                      className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 font-mono text-xs text-slate-200 focus:outline-none focus:border-indigo-500/80 transition-all shadow-inner"
-                    />
-                    <button
-                      onClick={() => {
-                        setMapNotification({
-                          type: 'success',
-                          title: 'Configuration Enregistrée',
-                          message: "Le jeton d'accès public Mapbox a été mis à jour et stocké."
-                        });
-                        localStorage.setItem('hailandmap_token', accessToken);
-                        setIsSettingsOpen(false);
-                      }}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition active:scale-[0.97] cursor-pointer shadow-md shadow-indigo-600/10"
-                    >
-                      Appliquer
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section 2 : Informations Système */}
-                <div className="border-t border-slate-800/60 pt-4 space-y-2">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Informations Système</span>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                    <div className="p-2.5 bg-slate-950/40 border border-slate-800/40 rounded-lg">
-                      <span className="text-slate-500 text-[9px] uppercase">Réseau d'Urbanisme</span>
-                      <span className="block text-slate-300 mt-0.5">Souverain - Conakry</span>
-                    </div>
-                    <div className="p-2.5 bg-slate-950/40 border border-slate-800/40 rounded-lg">
-                      <span className="text-slate-500 text-[9px] uppercase">Stockage local</span>
-                      <span className="block text-slate-300 mt-0.5">Activé (LocalStorage)</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Pied */}
-              <div className="p-4 border-t border-slate-800 bg-slate-950/10 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span>HailandMap Studio</span>
-                <span>v3.0.0</span>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SettingsModal
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        accessToken={accessToken}
+        setAccessToken={setAccessToken}
+        onSaved={() => setMapNotification({ type: 'success', title: 'Configuration Enregistrée', message: "Le jeton d'accès public Mapbox a été mis à jour et stocké." })}
+      />
 
       <AtelierStatusBar
           buildingsCount={buildings.length}
