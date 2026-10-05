@@ -170,7 +170,7 @@ export const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList
 };
 
 // Calcul du bounding box [minLng, minLat, maxLng, maxLat] à partir de coordonnées GeoJSON quelconques
-export const getCoordsBbox = (coords: any): [number, number, number, number] | null => {
+const getCoordsBbox = (coords: any): [number, number, number, number] | null => {
   if (!coords) return null;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const walk = (c: any) => {
@@ -191,7 +191,7 @@ export const getCoordsBbox = (coords: any): [number, number, number, number] | n
 };
 
 // Test d'intersection entre la géométrie et le rectangle de vision de l'écran (viewport)
-export const isBboxInViewport = (
+const isBboxInViewport = (
   featureBbox: [number, number, number, number] | null,
   viewBbox: [number, number, number, number]
 ): boolean => {
@@ -205,7 +205,7 @@ export const isBboxInViewport = (
 };
 
 // Récupère l'emprise géographique visible à l'écran avec une marge de confort de 20%
-export const getExtendedViewportBounds = (mapInstance: mapboxgl.Map, marginRatio = 0.2): [number, number, number, number] | null => {
+const getExtendedViewportBounds = (mapInstance: mapboxgl.Map, marginRatio = 0.2): [number, number, number, number] | null => {
   try {
     const bounds = mapInstance.getBounds();
     if (!bounds) return null;

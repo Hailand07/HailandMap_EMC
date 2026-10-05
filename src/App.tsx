@@ -177,15 +177,10 @@ export default function App() {
   }, [buildings]);
 
   const custom3DBuildingsRef = useRef<Custom3DBuilding[]>([]);
-  const [is3DDrawMode] = useState(false);
-  const is3DDrawModeRef = useRef<boolean>(false);
-  const [drawPoints3D, setDrawPoints3D] = useState<[number, number][]>([]);
-  const drawPoints3DRef = useRef<[number, number][]>([]);
   const lastMouseCoordRef = useRef<{ lng: number; lat: number; point: mapboxgl.Point } | null>(null);
   const drawRafRef = useRef<number | null>(null);
   const renderDrawRubberbandPreviewRef = useRef<((lng?: number, lat?: number, point?: mapboxgl.Point) => void) | null>(null);
   const handleFinalizeCustomDrawRef = useRef<(() => void) | null>(null);
-  const [, setIs3DConfigModalOpen] = useState<boolean>(false);
   const [selected3DBuilding, setSelected3DBuilding] = useState<Custom3DBuilding | null>(null);
   const [currentPitch, setCurrentPitch] = useState<number>(45);
 
@@ -240,10 +235,6 @@ export default function App() {
   useEffect(() => {
     highlighted3DBuildingIdRef.current = highlighted3DBuildingId;
   }, [highlighted3DBuildingId]);
-
-  useEffect(() => {
-    is3DDrawModeRef.current = is3DDrawMode;
-  }, [is3DDrawMode]);
 
   useEffect(() => {
     isDrawModeRef.current = isDrawMode;
@@ -447,19 +438,15 @@ export default function App() {
     drawPointsRef.current = drawPoints;
   }, [drawPoints]);
 
-  useEffect(() => {
-    drawPoints3DRef.current = drawPoints3D;
-  }, [drawPoints3D]);
-
   // Désactiver le zoom double-clic de Mapbox pendant le dessin pour permettre la fermeture rapide par double-clic
   useEffect(() => {
     if (!mapRef.current) return;
-    if (isDrawMode || is3DDrawMode) {
+    if (isDrawMode) {
       mapRef.current.doubleClickZoom.disable();
     } else {
       mapRef.current.doubleClickZoom.enable();
     }
-  }, [isDrawMode, is3DDrawMode]);
+  }, [isDrawMode]);
 
   // États de configuration Mapbox
   const [accessToken, setAccessToken] = useState(() => {
@@ -760,7 +747,7 @@ export default function App() {
       // Ajouter l'échelle
       map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }));
 
-      const ctx = { buildings, buildingsRef, childDrawCompleteHandlerRef, childMapClickHandlerRef, clickSelectionTargetRef, clickedCoordsRef, currentStyle, custom3DBuildingsRef, detectOsmBuildingsInZone, detectedOsmFeaturesRef, drawPoints3DRef, drawPointsRef, drawRafRef, entrancePickerConfigRef, handleFinalizeCustomDrawRef, hiddenBuildingsListRef, is200mGridActive, is200mGridActiveRef, is3DDrawModeRef, isDrawModeRef, isSelectionModeRef, lastMouseCoordRef, map, markerRef, previewEntranceMarkerRef, renderDrawRubberbandPreviewRef, selectedBuildingRef, selectedTerritoriesRef, selectionTargetNatureRef, setClickedCoords, setDrawPoints, setDrawPoints3D, setIs3DConfigModalOpen, setIsGridPanelOpen, setMapNotification, setSelected3DBuilding, setSelectedBuilding, setSelectedGridBuildings, setSelectedGridCell, setSelectedPolygonHideAction, snappedCoordsRef, wallLineCacheRef };
+      const ctx = { buildings, buildingsRef, childDrawCompleteHandlerRef, childMapClickHandlerRef, clickSelectionTargetRef, clickedCoordsRef, currentStyle, custom3DBuildingsRef, detectOsmBuildingsInZone, detectedOsmFeaturesRef, drawPointsRef, drawRafRef, entrancePickerConfigRef, handleFinalizeCustomDrawRef, hiddenBuildingsListRef, is200mGridActive, is200mGridActiveRef, isDrawModeRef, isSelectionModeRef, lastMouseCoordRef, map, markerRef, previewEntranceMarkerRef, renderDrawRubberbandPreviewRef, selectedBuildingRef, selectedTerritoriesRef, selectionTargetNatureRef, setClickedCoords, setDrawPoints, setIsGridPanelOpen, setMapNotification, setSelected3DBuilding, setSelectedBuilding, setSelectedGridBuildings, setSelectedGridCell, setSelectedPolygonHideAction, snappedCoordsRef, wallLineCacheRef };
       map.on('load', () => handleMapLoad(ctx));
 
       // Événement clic sur la carte
@@ -777,7 +764,7 @@ export default function App() {
           drawRafRef.current = null;
         }
         lastMouseCoordRef.current = null;
-        if (isDrawModeRef.current || is3DDrawModeRef.current) {
+        if (isDrawModeRef.current) {
           renderDrawRubberbandPreviewRef.current?.();
         }
         const hoverSource = map.getSource('hovered-building') as mapboxgl.GeoJSONSource;
@@ -794,11 +781,6 @@ export default function App() {
         if (isDrawModeRef.current && drawPointsRef.current.length >= 3) {
           e.preventDefault();
           handleFinalizeCustomDrawRef.current?.();
-          return;
-        }
-        if (is3DDrawModeRef.current && drawPoints3DRef.current.length >= 3) {
-          e.preventDefault();
-          setIs3DConfigModalOpen(true);
           return;
         }
       });
@@ -1258,10 +1240,7 @@ export default function App() {
       const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
       if (!drawSource) return;
 
-      const is3D = is3DDrawModeRef.current;
-      const is2D = isDrawModeRef.current;
-
-      if (!is3D && !is2D) {
+      if (!isDrawModeRef.current) {
         drawSource.setData({
           type: 'FeatureCollection',
           features: []
@@ -1269,7 +1248,7 @@ export default function App() {
         return;
       }
 
-      const points = is3D ? drawPoints3DRef.current : drawPointsRef.current;
+      const points = drawPointsRef.current;
       if (points.length === 0) {
         drawSource.setData({
           type: 'FeatureCollection',
@@ -1387,13 +1366,6 @@ export default function App() {
     renderDrawRubberbandPreviewRef.current = renderDrawRubberbandPreview;
   }, [renderDrawRubberbandPreview]);
 
-  // Synchronisation du tracé 3D lors du changement de points
-  useEffect(() => {
-    if (is3DDrawMode) {
-      renderDrawRubberbandPreview();
-    }
-  }, [drawPoints3D, is3DDrawMode, renderDrawRubberbandPreview]);
-
   // Synchronisation de la délimitation libre OSM lors du changement de points
   useEffect(() => {
     if (isDrawMode) {
@@ -1403,7 +1375,7 @@ export default function App() {
 
   // Nettoyage de la source de dessin lorsque les modes sont quittés
   useEffect(() => {
-    if (!isDrawMode && !is3DDrawMode && mapRef.current) {
+    if (!isDrawMode && mapRef.current) {
       try {
         const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
         if (drawSource) {
@@ -1414,7 +1386,7 @@ export default function App() {
         }
       } catch (e) {}
     }
-  }, [isDrawMode, is3DDrawMode]);
+  }, [isDrawMode]);
 
   // Finalisation et validation du dessin libre personnalisé
   const handleFinalizeCustomDraw = useCallback(() => {
