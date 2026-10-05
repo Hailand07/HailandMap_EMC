@@ -5,9 +5,8 @@
  * d'authentification devient l'auteur réel des enregistrements (`submitted_by`, `validated_by`, `validator_id`) à la place
  * des valeurs codées en dur (« admin-1 », « Admin », « admin-auto »).
  *
- * Autorisation : table `agents` (proposée dans migrations/proposed/, NON appliquée à ce jour). Tant qu'elle n'existe pas,
- * l'application est en « mode transition » : tout compte authentifié est accepté (le contrôle réel viendra des règles
- * de sécurité de la base, une fois appliquées).
+ * Autorisation : table `agents` (id d'authentification, nom, rôle, actif), créée et appliquée en base le 2026-10-04.
+ * Tout compte absent de la table ou inactif voit l'écran « Compte non autorisé » avec son identifiant à transmettre.
  */
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';

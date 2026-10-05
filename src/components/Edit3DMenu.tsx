@@ -26,6 +26,8 @@ interface Edit3DMenuProps {
   onSelectPlaced3DModel?: (model: Placed3DModel) => void;
   onDeletePlaced3DModel?: (modelId: string) => void;
   onUpdatePlaced3DModelScale?: (modelId: string, newScale: number) => void;
+  /** Atelier v2 : le bouton prend la forme d'un outil du dock (icône + nom) et le menu s'ouvre vers le haut. */
+  dock?: boolean;
 }
 
 export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
@@ -41,7 +43,8 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
   placed3DModels = [],
   onSelectPlaced3DModel,
   onDeletePlaced3DModel,
-  onUpdatePlaced3DModelScale
+  onUpdatePlaced3DModelScale,
+  dock = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const totalEntities = buildings3D.length + placed3DModels.length;
@@ -49,6 +52,23 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
   return (
     <div className="relative">
       {/* BOUTON ÉDIT PRINCIPAL */}
+      {dock ? (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-label="Volumes 3D"
+          title="Volumes 3D — tracé manuel, volumes et modèles GLTF"
+          className={`relative flex h-14 w-[72px] flex-col items-center justify-center gap-1 rounded-[9px] transition max-md:h-[46px] max-md:w-[46px] ${
+            isOpen || isDrawing3D || isPlacingModel3D ? 'bg-hx-accent text-white' : 'text-[#d0d0d0] hover:bg-hx-hover'
+          }`}
+        >
+          <Box className="h-[18px] w-[18px]" />
+          <span className="text-[11px] max-md:hidden">Volumes 3D</span>
+          {totalEntities > 0 && (
+            <span className="absolute right-1 top-1 min-w-[16px] rounded-full bg-hx-card px-1 text-center font-mono text-[10px] text-hx-accent-text">{totalEntities}</span>
+          )}
+        </button>
+      ) : (
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border shadow-2xl transition-all cursor-pointer select-none active:scale-95 group ${
@@ -68,6 +88,7 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
           </span>
         )}
       </button>
+      )}
 
       {/* MENU DÉROULANT DES ACTIONS D'ÉDITION */}
       <AnimatePresence>
@@ -77,7 +98,7 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full mt-2 left-0 w-80 sm:w-96 bg-slate-900/95 border border-slate-700 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md z-40 space-y-3 text-left ring-1 ring-white/10 max-h-[85vh] overflow-y-auto no-scrollbar"
+            className={`absolute ${dock ? "bottom-full mb-3 right-0 max-md:left-0 max-md:right-auto" : "top-full mt-2 left-0"} w-80 sm:w-96 bg-slate-900/95 border border-slate-700 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md z-40 space-y-3 text-left ring-1 ring-white/10 max-h-[70vh] overflow-y-auto no-scrollbar`}
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
@@ -105,7 +126,7 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
                 setIsOpen(false);
                 onStartDrawing3D();
               }}
-              className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-between shadow-lg shadow-blue-600/20 transition-all cursor-pointer active:scale-98 group"
+              className={`w-full py-2.5 px-3.5 rounded-xl ${dock ? 'bg-hx-accent hover:brightness-110' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500'} text-white font-bold text-xs flex items-center justify-between shadow-lg shadow-blue-600/20 transition-all cursor-pointer active:scale-98 group`}
             >
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-300" />
@@ -126,7 +147,7 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
                 className={`w-full py-2.5 px-3.5 rounded-xl text-white font-bold text-xs flex items-center justify-between shadow-lg transition-all cursor-pointer active:scale-98 group ${
                   isPlacingModel3D
                     ? 'bg-amber-600 border border-amber-400 ring-2 ring-amber-400/40 shadow-amber-600/30'
-                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20'
+                    : (dock ? 'bg-hx-hover border border-hx-line2 hover:bg-hx-card' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20')
                 }`}
               >
                 <div className="flex items-center gap-2">
