@@ -6,10 +6,9 @@ import {
   Trash2, 
   ChevronRight, 
   Compass,
-  Boxes,
   MapPin
 } from 'lucide-react';
-import type { Custom3DBuilding, Placed3DModel } from '../types';
+import type { Custom3DBuilding } from '../types';
 
 interface Edit3DMenuProps {
   buildings3D: Custom3DBuilding[];
@@ -19,13 +18,6 @@ interface Edit3DMenuProps {
   onDeleteBuilding3D: (buildingId: string) => void;
   onToggle3DPitch: () => void;
   currentPitch: number;
-  // Nouveau : Support Placement Modèles 3D GLTF/GLB
-  isPlacingModel3D?: boolean;
-  onStartModel3DPlacement?: () => void;
-  placed3DModels?: Placed3DModel[];
-  onSelectPlaced3DModel?: (model: Placed3DModel) => void;
-  onDeletePlaced3DModel?: (modelId: string) => void;
-  onUpdatePlaced3DModelScale?: (modelId: string, newScale: number) => void;
   /** Atelier v2 : le bouton prend la forme d'un outil du dock (icône + nom) et le menu s'ouvre vers le haut. */
   dock?: boolean;
 }
@@ -38,16 +30,10 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
   onDeleteBuilding3D,
   onToggle3DPitch,
   currentPitch,
-  isPlacingModel3D = false,
-  onStartModel3DPlacement,
-  placed3DModels = [],
-  onSelectPlaced3DModel,
-  onDeletePlaced3DModel,
-  onUpdatePlaced3DModelScale,
   dock = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const totalEntities = buildings3D.length + placed3DModels.length;
+  const totalEntities = buildings3D.length;
 
   return (
     <div className="relative">
@@ -57,9 +43,9 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           aria-label="Volumes 3D"
-          title="Volumes 3D — tracé manuel, volumes et modèles GLTF"
+          title="Volumes 3D — tracé manuel et volumes"
           className={`relative flex h-14 w-[72px] flex-col items-center justify-center gap-1 rounded-[9px] transition max-md:h-[46px] max-md:w-[46px] ${
-            isOpen || isDrawing3D || isPlacingModel3D ? 'bg-hx-accent text-white' : 'text-[#d0d0d0] hover:bg-hx-hover'
+            isOpen || isDrawing3D ? 'bg-hx-accent text-white' : 'text-[#d0d0d0] hover:bg-hx-hover'
           }`}
         >
           <Box className="h-[18px] w-[18px]" />
@@ -72,11 +58,11 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border shadow-2xl transition-all cursor-pointer select-none active:scale-95 group ${
-          isOpen || isDrawing3D || isPlacingModel3D
+          isOpen || isDrawing3D
             ? 'bg-blue-600 border-blue-400 text-white shadow-blue-500/25 ring-2 ring-blue-400/40'
             : 'bg-slate-900/95 border-slate-700/80 hover:border-blue-500/50 text-slate-200 hover:text-white hover:bg-slate-850 ring-1 ring-white/10'
         }`}
-        title="Mode Édition 3D — Tracé manuel, volumes et modèles GLTF"
+        title="Mode Édition 3D — Tracé manuel et volumes"
       >
         <Box className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-12 text-white' : 'text-blue-400 group-hover:scale-110'}`} />
         <span className="text-xs font-bold font-display uppercase tracking-wider">
@@ -111,13 +97,10 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
                     Mode Édition 3D
                   </h3>
                   <p className="text-[10px] text-slate-400 font-sans">
-                    Extrusion volumétrique & modèles GLTF
+                    Extrusion volumétrique des bâtiments
                   </p>
                 </div>
               </div>
-              <span className="text-[9px] font-mono text-blue-300 bg-blue-950 px-2 py-0.5 rounded-full border border-blue-500/30">
-                Mapbox Model 3D
-              </span>
             </div>
 
             {/* ACTION 1 : AJOUTER UN BÂTIMENT */}
@@ -136,29 +119,6 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
                 Tracé 3D
               </span>
             </button>
-
-            {/* ACTION 2 : IMPORTER OBJET 3D (GLTF/GLB) */}
-            {onStartModel3DPlacement && (
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  onStartModel3DPlacement();
-                }}
-                className={`w-full py-2.5 px-3.5 rounded-xl text-white font-bold text-xs flex items-center justify-between shadow-lg transition-all cursor-pointer active:scale-98 group ${
-                  isPlacingModel3D
-                    ? 'bg-amber-600 border border-amber-400 ring-2 ring-amber-400/40 shadow-amber-600/30'
-                    : (dock ? 'bg-hx-hover border border-hx-line2 hover:bg-hx-card' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20')
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Boxes className="w-4 h-4 text-white group-hover:scale-110 transition-transform duration-300" />
-                  <span>+ Importer Objet 3D</span>
-                </div>
-                <span className="text-[10px] font-mono bg-white/20 px-2 py-0.5 rounded-full text-white flex items-center gap-1">
-                  GLTF 3D
-                </span>
-              </button>
-            )}
 
             {/* CONTRÔLE DE PERSPECTIVE CAMÉRA 3D */}
             <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
@@ -179,88 +139,6 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
               </button>
             </div>
 
-            {/* LISTE DES OBJETS 3D GLTF PLACÉS */}
-            {placed3DModels.length > 0 && (
-              <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
-                <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 px-1">
-                  <span className="font-bold flex items-center gap-1">
-                    <Boxes className="w-3 h-3" /> OBJETS 3D GLTF ({placed3DModels.length})
-                  </span>
-                  <span className="text-slate-400 font-mono">Échelle moyenne (~20m)</span>
-                </div>
-
-                <div className="max-h-44 overflow-y-auto space-y-2 pr-1 no-scrollbar">
-                  {placed3DModels.map((m) => {
-                    const currentScale = m.scale && m.scale > 3 ? m.scale : 20;
-                    return (
-                      <div
-                        key={m.id}
-                        onClick={() => onSelectPlaced3DModel?.(m)}
-                        className="p-2.5 bg-emerald-950/20 hover:bg-emerald-950/40 rounded-xl border border-emerald-800/40 hover:border-emerald-700/60 transition cursor-pointer flex flex-col gap-2 group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-sm" />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-slate-200 truncate group-hover:text-emerald-300 transition">
-                                {m.name}
-                              </p>
-                              <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                                <MapPin className="w-2.5 h-2.5 text-emerald-400" />
-                                {m.lat.toFixed(5)}, {m.lng.toFixed(5)}
-                              </p>
-                            </div>
-                          </div>
-
-                          {onDeletePlaced3DModel && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeletePlaced3DModel(m.id);
-                              }}
-                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition cursor-pointer border border-transparent hover:border-rose-500/30 ml-2"
-                              title="Supprimer cet objet 3D"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* CONTRÔLE DE L'ÉCHELLE DU MODÈLE */}
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center justify-between pt-1 border-t border-emerald-900/30 text-[10px] font-mono text-slate-400"
-                        >
-                          <span className="text-slate-400">Échelle: <strong className="text-emerald-400 font-bold">{currentScale}m</strong></span>
-                          {onUpdatePlaced3DModelScale && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => onUpdatePlaced3DModelScale(m.id, Math.max(5, currentScale - 5))}
-                                className="w-5 h-5 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 active:scale-95 transition"
-                                title="Réduire l'échelle (-5m)"
-                              >
-                                -
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => onUpdatePlaced3DModelScale(m.id, Math.min(60, currentScale + 5))}
-                                className="w-5 h-5 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 active:scale-95 transition"
-                                title="Augmenter l'échelle (+5m)"
-                              >
-                                +
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* LISTE DES BÂTIMENTS 3D CRÉÉS */}
             <div className="space-y-1.5 pt-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
@@ -268,9 +146,9 @@ export const Edit3DMenu: React.FC<Edit3DMenuProps> = ({
                 {buildings3D.length > 0 && <span>Étage / Hauteur</span>}
               </div>
 
-              {buildings3D.length === 0 && placed3DModels.length === 0 ? (
+              {buildings3D.length === 0 ? (
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80 text-center text-[11px] text-slate-500 font-sans leading-relaxed">
-                  Aucune entité 3D. Cliquez sur <strong className="text-blue-400">+ Ajouter un Bâtiment</strong> ou <strong className="text-emerald-400">+ Importer Objet 3D</strong>.
+                  Aucune entité 3D. Cliquez sur <strong className="text-blue-400">+ Ajouter un Bâtiment</strong>.
                 </div>
               ) : (
                 <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 no-scrollbar">
