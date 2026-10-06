@@ -162,7 +162,7 @@ export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error,
                 <div className="mt-0.5 font-mono text-[12px] text-hx-dim">{linkedBuilding?.admin_code || '—'} <span className="text-hx-faint">(interne : {linkedBuilding?.hailand_code || '—'})</span></div>
                 <div className="mt-1.5 text-hx-dim">
                   {selected.unit_id ? 'Emplacement choisi par le résident.' : 'Emplacement à choisir par le résident dans NavigationX.'}
-                  {selected.link_method && ` · ${{ gps_auto: 'rattachement automatique (GPS)', retroactif: 'rattaché à la certification', agent: 'rattaché par un agent', resident: 'précisé par le résident' }[selected.link_method]}`}
+                  {selected.link_method && ` · ${{ gps_auto: 'rattachement automatique (GPS)', retroactif: 'rattaché à la certification', agent: 'rattaché par un agent', resident: 'choisi ou confirmé par le résident' }[selected.link_method]}`}
                 </div>
                 <button type="button" disabled={busy} onClick={() => link(null)} className="mt-3 h-[32px] rounded-lg border border-hx-bad/50 px-3 text-[12.5px] text-hx-bad transition hover:bg-hx-bad/10 disabled:opacity-40">
                   Détacher

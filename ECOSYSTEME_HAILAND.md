@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 43** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 44** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -437,7 +437,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-06 (révision 43).**
+**Dernière mise à jour de cette section : 2026-10-06 (révision 44).**
+
+- **Fait (2026-10-06, NavigationX — enregistrement guidé)** : nouveau parcours d'enregistrement d'un bâtiment (guide → récupération GPS par mesures multiples avec animation plein écran et vrais calculs → vue satellite d'analyse → bâtiment certifié / OSM / le plus proche verrouillé et confirmé → sinon l'utilisateur touche son bâtiment). **Décision 5 du §16.6** : rattachement à un bâtiment certifié approuvé sur confirmation visuelle — **appliqué en base** (accord du fondateur) et vérifié par 5 essais annulés. Testé par le fondateur sur son téléphone (avant les derniers ajustements). **Prochaine étape** : phase F (tests de bout en bout, finitions) ; recherche spatiale des bâtiments certifiés en base quand le registre grandira.
 
 - **Fait (2026-10-06, suite)** : contour et unités d'un bâtiment existant modifiables par révision justifiée ; refus motivé d'une demande de certification (visible par le résident dans NavigationX, qui peut redemander) ; **NavigationX envoie désormais la demande de vérification** (avant : aucune demande n'existait). Unités retirées = désactivées (`building_units.active`). Plus rien de la liste « reste à faire » du 2026-10-06. **Reste possible** : notification poussée hors application (SMS), tests sur un vrai téléphone, sauvegarde automatique de la base, décision sur les 273 937 bâtiments OSM.
 - **Fait (2026-10-06, HailandMap)** : certification demandée par un résident = parcours distinct (bandeau, pré-remplissage, rattachement garanti) ; bâtiments enregistrés reconnus sur la carte (« Voir la fiche ») ; masquage OSM automatique sous tout bâtiment ou concession enregistré ; fiche du bâtiment avec historique ; **modifications contrôlées** en base (`building_revisions`, un bâtiment certifié ne se modifie plus que par révision justifiée ; agent = proposition, administrateur = décision). Voir `HAILANDMAP.md`. **Reste** : modifier le contour et les unités d'un bâtiment existant par révision ; refuser une demande de certification (motif au résident).
@@ -600,6 +602,8 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 3. **HailandX = application séparée** (vitrines rapides et partageables).
 4. **Paiement au lancement : à la livraison ET Orange Money**, avec automatisation et fidélisation dès le début (confirmations automatiques, suivi de commande, rappels, clients récurrents). ⚠️ À vérifier : compte marchand et accès API Orange Money auprès d'Orange Guinée, conditions si Hailand encaisse pour le compte des vendeurs.
 
+5. **Rattachement par confirmation visuelle (2026-10-06)** : la certification niveau 3 atteste que le **bâtiment existe** à tel endroit (selon telles informations), **pas qui l'occupe** ; plusieurs personnes peuvent s'y rattacher. Quand un utilisateur de NavigationX **confirme** qu'il identifie visuellement un bâtiment certifié (le plus proche de sa position, ou celui qu'il touche sur la vue satellite), le rattachement officiel est **approuvé automatiquement**, même si son point GPS tombe à côté. Garde-fou en base : bâtiment certifié (actif, validé) et à moins de max(100 m, précision GPS) de la position mesurée ; `link_method = 'resident'`. Appliqué en base le 2026-10-06 (`Lynx/migrations/2026-10-06_rattachement_visuel.sql`, déclencheur d'insertion des déclarations ; la position GPS mesurée reste dans `gps_point`, le point touché devient `anchor_point`).
+
 ---
 
 ## 11. Journal des mises à jour
@@ -638,3 +642,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-05 | Révision 41 : avis de certification et style niveau 3 dans NavigationX. |
 | 2026-10-06 | Révision 42 : parcours de certification distinct, masquage OSM automatique, modifications contrôlées des bâtiments (`building_revisions`). |
 | 2026-10-06 | Révision 43 : contour et unités par révision, refus motivé, demande de vérification dans NavigationX. |
+| 2026-10-06 | Révision 44 : décision 5 du §16.6 (rattachement à un bâtiment certifié sur confirmation visuelle, appliqué en base) ; enregistrement guidé de NavigationX (§14). |
