@@ -689,6 +689,8 @@ export default function App() {
       });
 
       mapRef.current = map;
+      // Outil de test (développement seulement) : permet aux tests de bout en bout de piloter la caméra.
+      if ((import.meta as any).env?.DEV) (window as any).__hxMap = map;
 
       // Force la vue Nadir à plat (0 d'inclinaison) et orientée Nord pour éliminer la perspective en satellite
       if (currentStyle === 'satellite') {
@@ -2424,8 +2426,9 @@ export default function App() {
   const conflictCount = buildings.filter((b) => b.status === 'conteste').length;
 
 
+  // h-dvh : hauteur réellement visible sur mobile (la barre du navigateur ne cache plus le bas de l'écran) ; h-screen en repli.
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
+    <div className="flex flex-col h-screen h-dvh w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
       <AtelierTopBar
           view={activeAdminView}
           adminName={currentAdmin?.full_name ?? 'Agent'}
@@ -2655,7 +2658,7 @@ export default function App() {
         
 
         {activeAdminView === 'carte' && (
-          <div className="absolute bottom-4 right-3.5 z-20 max-md:bottom-auto max-md:top-[64px]">
+          <div className={`absolute bottom-4 right-3.5 z-20 max-md:bottom-auto ${currentStyle === 'satellite' ? 'max-md:top-[122px]' : 'max-md:top-[64px]'}`}>
             <ZoomCluster
               onZoomIn={() => mapRef.current?.zoomIn()}
               onZoomOut={() => mapRef.current?.zoomOut()}
