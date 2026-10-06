@@ -4,6 +4,8 @@ import { generateHailandCode } from '../../lib/supabase';
 import { MiniMap } from '../common/MiniMap';
 import { fmtDate, levelsOf, natureOf, StatusDot, typeLabel } from '../common/status';
 import { DemandesPanel } from './DemandesPanel';
+import { ModificationsPanel } from './ModificationsPanel';
+import { loadPendingRevisions } from '../../lib/revisions';
 import type { Declaration } from '../../lib/attachment';
 
 interface Props {
@@ -17,9 +19,13 @@ interface Props {
   declarationsError: string | null;
   onOpenPoint: (lng: number, lat: number) => void;
   onLinkDeclaration: (declarationId: string, buildingId: string | null) => void | Promise<void>;
+  /** Lance la certification demandée par un résident (parcours distinct d'un enregistrement ordinaire). */
+  onCertify: (declarationId: string) => void;
+  /** Relit le registre après une modification appliquée. */
+  onRegistryChanged: () => void;
 }
 
-type Tab = 'demandes' | 'todo' | 'contested' | 'done';
+type Tab = 'demandes' | 'modifications' | 'todo' | 'contested' | 'done';
 
 const CHECKS = [
   'Le point GPS tombe dans le contour',
@@ -29,7 +35,11 @@ const CHECKS = [
 ];
 
 /** Module Revue (maquette) : file des demandes, plan du bâtiment, liste de contrôle et décision. */
-export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onApprove, onReject, onRequestVisit, declarations, declarationsError, onOpenPoint, onLinkDeclaration }) => {
+export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onApprove, onReject, onRequestVisit, declarations, declarationsError, onOpenPoint, onLinkDeclaration, onCertify, onRegistryChanged }) => {
+  const [pendingMods, setPendingMods] = useState<number | null>(null);
+  useEffect(() => {
+    loadPendingRevisions().then((r) => setPendingMods(r.length)).catch(() => {});
+  }, []);
   const [tab, setTab] = useState<Tab>('demandes');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checks, setChecks] = useState<Record<string, boolean[]>>({});
@@ -45,7 +55,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
       done: buildings.filter((b) => b.status === 'actif' || b.status === 'inactif').sort(sortRecent).slice(0, 60),
     };
   }, [buildings]);
-  const list = tab === 'demandes' ? [] : groups[tab];
+  const list = tab === 'demandes' || tab === 'modifications' ? [] : groups[tab];
   const pendingDeclarations = declarations.filter((d) => !d.certified_building_id).length;
   const selected = list.find((b) => b.id === selectedId) ?? list[0] ?? null;
 
@@ -88,7 +98,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
     const h = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
-      if (tab === 'demandes') return;
+      if (tab === 'demandes' || tab === 'modifications') return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const i = selected ? list.findIndex((b) => b.id === selected.id) : -1;
       if (e.key === 'j') setSelectedId(list[Math.min(list.length - 1, i + 1)]?.id ?? null);
@@ -102,12 +112,13 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
 
   const tabBtn = (id: Tab, label: string, n: number) => (
     <button key={id} type="button" onClick={() => { setTab(id); setSelectedId(null); }} className={`h-[30px] rounded-md px-3 text-[12.5px] transition ${tab === id ? 'bg-hx-hover font-semibold text-hx-text' : 'text-hx-dim hover:bg-hx-hover/40'}`}>
-      {label}{id !== 'done' ? ` · ${n}` : ''}
+      {label}{id !== 'done' && !(id === 'modifications' && pendingMods === null) ? ` · ${n}` : ''}
     </button>
   );
   const tabs = (
     <>
       {tabBtn('demandes', 'Demandes', pendingDeclarations)}
+      {tabBtn('modifications', 'Modifications', pendingMods ?? 0)}
       {tabBtn('todo', 'À traiter', groups.todo.length)}
       {tabBtn('contested', 'Contestés', groups.contested.length)}
       {tabBtn('done', 'Traités', 0)}
@@ -118,7 +129,15 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
     return (
       <div className="flex h-full min-h-0 flex-col bg-hx-base text-hx-text">
         <div className="flex gap-1 border-b border-hx-line bg-hx-panel p-3.5">{tabs}</div>
-        <DemandesPanel declarations={declarations} buildings={buildings} error={declarationsError} onOpenPoint={onOpenPoint} onLink={onLinkDeclaration} />
+        <DemandesPanel declarations={declarations} buildings={buildings} error={declarationsError} onOpenPoint={onOpenPoint} onLink={onLinkDeclaration} onCertify={onCertify} />
+      </div>
+    );
+  }
+  if (tab === 'modifications') {
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-hx-base text-hx-text">
+        <div className="flex gap-1 border-b border-hx-line bg-hx-panel p-3.5">{tabs}</div>
+        <ModificationsPanel buildings={buildings} profiles={profiles} onOpenOnMap={onOpenOnMap} onApplied={onRegistryChanged} onCount={setPendingMods} />
       </div>
     );
   }

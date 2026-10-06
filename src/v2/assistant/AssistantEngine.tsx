@@ -24,6 +24,8 @@ export interface AssistantEngineProps {
   onDetectOsmBuildings?: (g: any) => string[] | void;
   onMaskOsmBuildings?: (g?: any) => number;
   onStageChange?: (stage: string) => void;
+  /** Pré-remplissage (certification demandée) ; transmis au parcours « bâtiment direct ». */
+  prefill?: { buildingType?: string | null; floorsCount?: number | null; landmarkNote?: string | null } | null;
 }
 
 /** Moteur de l'assistant v2 : choisit le parcours (bâtiment direct ou concession) selon l'outil, puis monte l'assistant correspondant. */
@@ -71,6 +73,7 @@ export const AssistantEngine: React.FC<AssistantEngineProps> = (p) => {
       onEntrancePickerModeChange={p.onEntrancePickerModeChange}
       onStageChange={p.onStageChange}
       onSwitchPathway={setPathway}
+      prefill={p.prefill}
       onSubmit={(b) => p.onSubmit(b)}
       onCancel={p.onCancel}
     />

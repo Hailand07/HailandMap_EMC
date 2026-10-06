@@ -29,6 +29,8 @@ interface DirectBuildingFormProps {
   onEntrancePointChange?: (coords: { lng: number; lat: number } | null) => void;
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onStageChange?: (stage: RegistrationStage) => void;
+  /** Valeurs proposées (ex. déclarées par le résident lors d'une demande de certification) : l'agent les vérifie. */
+  prefill?: { buildingType?: string | null; floorsCount?: number | null; landmarkNote?: string | null } | null;
 }
 
 /**
@@ -45,7 +47,8 @@ export function useDirectBuildingForm({
   onChildMapClickRegistration,
   onEntrancePointChange,
   onEntrancePickerModeChange,
-  onStageChange
+  onStageChange,
+  prefill
 }: DirectBuildingFormProps) {
   // 🧭 SÉPARATION STRICTE EN 2 MODULES :
   // Module A : Phase 1 — Fiche Bâtiment (Caractéristiques physiques)
@@ -79,10 +82,10 @@ export function useDirectBuildingForm({
   const formattedSeq = String(sequenceNum).padStart(3, '0');
 
   // ===== ÉTATS PHASE 1 : FICHE BÂTIMENT =====
-  const [buildingType, setBuildingType] = useState<BuildingType>('R');
+  const [buildingType, setBuildingType] = useState<BuildingType>(() => normalizeBuildingType(prefill?.buildingType || 'R'));
   
   // Hauteur globale du bâtiment
-  const [floorsCount, setFloorsCount] = useState<number>(0);
+  const [floorsCount, setFloorsCount] = useState<number>(() => Math.max(0, Math.min(30, Number(prefill?.floorsCount ?? 0) || 0)));
   const [hasBasement, setHasBasement] = useState<boolean>(false);
   const [hasMezzanine, setHasMezzanine] = useState<boolean>(false);
   
@@ -132,7 +135,7 @@ export function useDirectBuildingForm({
     : 1;
   
   const [physicalPosition, setPhysicalPosition] = useState<PhysicalPosition | null>(null);
-  const [landmarkNote, setLandmarkNote] = useState<string>('');
+  const [landmarkNote, setLandmarkNote] = useState<string>(() => prefill?.landmarkNote || '');
   const [accessNote, setAccessNote] = useState<string>('');
   
   // 🚪 GPS FIXE D'ENTRÉE MANUELLE DU BÂTIMENT

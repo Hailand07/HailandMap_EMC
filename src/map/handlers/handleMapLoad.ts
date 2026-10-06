@@ -19,17 +19,35 @@ export function handleMapLoad(ctx: Record<string, any>) {
         if (layers) {
           // Si on utilise Streets, on ajoute une couche 3D des bâtiments si elle n'existe pas (sauf pour le style satellite)
           const has3D = layers.some(l => l.id === '3d-buildings');
-          if (currentStyle !== 'satellite' && !has3D && map.getSource('composite')) {
+          // Style « Standard » (fond importé) : ses bâtiments 3D ne se filtrent pas. On les éteint et on les remplace par une couche
+          // Hailand équivalente (mêmes tuiles OSM), que le masquage sous les bâtiments enregistrés peut filtrer.
+          const isImportedBasemap = Array.isArray((map.getStyle() as any)?.imports) && (map.getStyle() as any).imports.some((i: any) => i.id === 'basemap');
+          let osmSource: string | null = map.getSource('composite') ? 'composite' : null;
+          if (!osmSource) {
+            try {
+              if (!map.getSource('hx-osm')) map.addSource('hx-osm', { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' });
+              osmSource = 'hx-osm';
+            } catch (e) {
+              osmSource = null;
+            }
+          }
+          if (isImportedBasemap && currentStyle !== 'satellite') {
+            try {
+              map.setConfigProperty('basemap', 'show3dBuildings', false);
+            } catch (e) {}
+          }
+          if (currentStyle !== 'satellite' && !has3D && osmSource) {
             map.addLayer(
               {
                 'id': '3d-buildings',
-                'source': 'composite',
+                'source': osmSource,
+                ...(isImportedBasemap ? { slot: 'middle' } : {}),
                 'source-layer': 'building',
-                'filter': ['==', 'extrude', 'true'],
+                'filter': ['==', ['get', 'extrude'], 'true'],
                 'type': 'fill-extrusion',
                 'minzoom': 14,
                 'paint': {
-                  'fill-extrusion-color': '#f0eee9',
+                  'fill-extrusion-color': (isImportedBasemap && (map.getConfigProperty('basemap', 'colorBuildings') as string)) || '#f0eee9',
                   // Utilise une transition fluide pour l'extrusion 3D
                   'fill-extrusion-height': [
                     'interpolate',
@@ -56,14 +74,14 @@ export function handleMapLoad(ctx: Record<string, any>) {
               // Insérer sous les labels de rue si possible
               layers.find(l => l.type === 'symbol' && l.layout?.['text-field'])?.id
             );
-          } else if (currentStyle === 'satellite' && map.getSource('composite')) {
+          } else if (currentStyle === 'satellite' && osmSource && !layers.some(l => l.id === '3d-buildings-invisible')) {
             // Pour la vue satellite, on ajoute une couche de bâtiments invisible au sol (fill)
             // afin que queryRenderedFeatures puisse l'interroger et de cette manière détecter mathématiquement les contours
             // pré-existants exactement au même endroit que sous la vue 3D !
             map.addLayer(
               {
                 'id': '3d-buildings-invisible',
-                'source': 'composite',
+                'source': osmSource,
                 'source-layer': 'building',
                 'type': 'fill',
                 'minzoom': 13,

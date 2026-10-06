@@ -20,6 +20,7 @@ export interface DirectAssistantProps {
   onEntrancePickerModeChange?: (config: EntrancePickerConfig | null) => void;
   onStageChange?: (stage: string) => void;
   onSwitchPathway: (p: 'courtyard') => void;
+  prefill?: { buildingType?: string | null; floorsCount?: number | null; landmarkNote?: string | null } | null;
 }
 
 const POSITIONS: { value: PhysicalPosition; label: string }[] = [
@@ -73,7 +74,7 @@ export const DirectAssistant: React.FC<DirectAssistantProps> = (props) => {
     <AssistantFrame
       stage={stage}
       onStage={setStage}
-      title="Nouveau bâtiment"
+      title={props.prefill ? "Certification du bâtiment" : "Nouveau bâtiment"}
       code={{ main: code, sub: f.adminHierarchy.adminAddressCode, place }}
       onQuit={f.onCancel}
       back={{ label: idx === 0 ? 'Annuler' : 'Précédent', onClick: () => (idx === 0 ? f.onCancel() : setStage(order[idx - 1])) }}
