@@ -233,6 +233,8 @@ function prepareBuildingPayloadForSupabase(raw: any): Record<string, any> {
     rejection_reason: raw.rejection_reason || null,
     modification_request: raw.modification_request || null,
     osm_id: raw.osm_id || null,
+    registration_origin: raw.registration_origin || null,
+    registration_ref: raw.registration_ref || null,
     created_at: raw.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString()
   };

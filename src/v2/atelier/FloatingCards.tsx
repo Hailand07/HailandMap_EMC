@@ -181,13 +181,13 @@ interface BuildingProps {
   map: mapboxgl.Map | null;
   building: Building;
   onClose: () => void;
-  onOpenRegistre: () => void;
+  onOpenSheet: () => void;
   /** Personnes rattachées officiellement (déclarations liées à ce bâtiment certifié). */
   residents?: number;
 }
 
-/** Bâtiment déjà au registre : l'essentiel de sa fiche, et l'accès au registre pour le détail. */
-export const BuildingCard: React.FC<BuildingProps> = ({ map, building: b, onClose, onOpenRegistre, residents = 0 }) => {
+/** Bâtiment ENREGISTRÉ (jamais un bâtiment OSM) : l'essentiel, et « Voir la fiche » (détail, historique, modification contrôlée). */
+export const BuildingCard: React.FC<BuildingProps> = ({ map, building: b, onClose, onOpenSheet, residents = 0 }) => {
   const st = STATUS_LABEL[b.status] ?? STATUS_LABEL.inactif;
   const kind = b.has_courtyard ? 'Concession' : b.parent_building_id ? 'Bâtiment de concession' : 'Bâtiment';
   const place = [b.quartier, b.commune].filter(Boolean).join(', ');
@@ -213,8 +213,8 @@ export const BuildingCard: React.FC<BuildingProps> = ({ map, building: b, onClos
         {b.hailand_code && <div className="font-mono text-[11.5px] text-hx-faint" title="Code de grille, usage interne">interne · {b.hailand_code}</div>}
       </div>
       <div className="flex gap-2 px-4 pb-4">
-        <button type="button" onClick={onOpenRegistre} className="h-[42px] flex-1 rounded-[9px] bg-hx-accent text-sm font-semibold text-white transition hover:brightness-110 max-md:h-[54px] max-md:text-base">
-          Ouvrir au registre
+        <button type="button" onClick={onOpenSheet} className="h-[42px] flex-1 rounded-[9px] bg-hx-accent text-sm font-semibold text-white transition hover:brightness-110 max-md:h-[54px] max-md:text-base">
+          Voir la fiche
         </button>
       </div>
     </Anchored>

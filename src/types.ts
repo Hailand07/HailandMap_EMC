@@ -113,6 +113,12 @@ export interface Building {
   rejection_reason: string | null;
   modification_request: string | null;
   osm_id: string | null;
+  /** Origine de l'enregistrement : nouveau tracé, bâtiment OSM repris, ou certification demandée par un résident. */
+  registration_origin?: 'nouveau' | 'osm' | 'certification' | null;
+  /** Déclaration (certification) ou bâtiment OSM d'origine. */
+  registration_ref?: string | null;
+  /** Numéro de révision courant (1 à la création). */
+  revision?: number;
   created_at: string;
   updated_at: string;
 }

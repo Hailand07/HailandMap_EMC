@@ -607,7 +607,9 @@ export function useCourtyardManager({
 
     // 3. Enregistrement persistant en deux temps sur Supabase (Cour parente -> Bâtiments enfants)
     try {
-      await saveCourtyardWithBuildings(motherBuilding, generatedBuildings);
+      const res: any = await saveCourtyardWithBuildings(motherBuilding, generatedBuildings);
+      // Déjà enregistrés en deux temps : l'application ne les réécrit pas (un bâtiment certifié ne se modifie que par révision).
+      if (res?.success) [motherBuilding, ...generatedBuildings].forEach((b) => ((b as any)._saved = true));
     } catch (err) {
       console.warn("[CourtyardManager] Erreur lors de l'appel saveCourtyardWithBuildings :", err);
     }

@@ -8,6 +8,36 @@ export interface LayerEnv {
   selectedBuildingId: () => string | null | undefined;
   detectedOsmFeatures: () => any[];
 }
+// ===== MASQUAGE SPATIAL SOUS LES BÂTIMENTS ENREGISTRÉS =====
+// Zone déduite des bâtiments et concessions enregistrés (voir map/registered.ts) : tout bâtiment OSM qui la recoupe est retiré
+// du fond de carte. Déduite de la base à chaque chargement : valable sur tous les appareils, sans liste locale à entretenir.
+let registeredMask: GeoJSON.MultiPolygon | null = null;
+export const setRegisteredMask = (zone: GeoJSON.MultiPolygon | null) => {
+  registeredMask = zone;
+};
+
+const ORIGINAL_FILTERS = new WeakMap<mapboxgl.Map, Map<string, any>>();
+function originalFilter(map: mapboxgl.Map, layer: any): any {
+  const key = `${(map.getStyle() as any)?.name ?? ''}::${layer.id}`;
+  let m = ORIGINAL_FILTERS.get(map);
+  if (!m) {
+    m = new Map();
+    ORIGINAL_FILTERS.set(map, m);
+  }
+  if (!m.has(key)) m.set(key, layer.filter ?? null);
+  return m.get(key);
+}
+
+/** Filtre écrit dans l'ancienne syntaxe Mapbox (non combinable avec une expression). */
+export function isLegacyFilter(f: any): boolean {
+  if (!Array.isArray(f) || typeof f[0] !== 'string') return false;
+  const op = f[0];
+  if (['==', '!=', '<', '>', '<=', '>=', 'in', '!in'].includes(op)) return typeof f[1] === 'string';
+  if (op === 'has' || op === '!has') return true;
+  if (op === 'all' || op === 'any' || op === 'none') return f.slice(1).some(isLegacyFilter);
+  return false;
+}
+
 // ===== FILTRE ET MASQUAGE DYNAMIQUE DES BÂTIMENTS/POLYGONES =====
 export const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList: HiddenBuildingData[], retryCount = 0) => {
   if (!mapInstance) return;
@@ -57,11 +87,11 @@ export const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList
 
     // 3. Appliquer le filtre à TOUTES les couches de bâtiments de la carte (3D et 2D)
     layers.forEach(layer => {
+      // Seulement les bâtiments OSM des tuiles vectorielles (couche source « building ») : jamais les couches Hailand
+      // (volumes générés, cours, sélection), qui disparaîtraient sinon sous leur propre masque.
       const isBuildingLayer =
-        layer.id === '3d-buildings' ||
-        layer.id === '3d-buildings-invisible' ||
-        (layer['source-layer'] === 'building' && !layer.id.includes('custom-3d') && !layer.id.includes('selected-') && !layer.id.includes('hovered-')) ||
-        (layer.id.toLowerCase().includes('building') && !layer.id.includes('custom-3d') && !layer.id.includes('selected-') && !layer.id.includes('hovered-'));
+        (layer as any)['source-layer'] === 'building' &&
+        !layer.id.includes('custom-3d') && !layer.id.includes('selected-') && !layer.id.includes('hovered-');
 
       if (!isBuildingLayer) return;
 
@@ -91,47 +121,27 @@ export const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList
           } catch (e) {}
         }
 
-        if (uniqueNumericIds.length === 0 && uniqueStringIds.length === 0) {
-          // Aucun polygone masqué
-          if (layer.id === '3d-buildings') {
-            mapInstance.setFilter('3d-buildings', ['==', 'extrude', 'true']);
-          } else if (layer.id === '3d-buildings-invisible') {
-            mapInstance.setFilter('3d-buildings-invisible', null);
-          }
+        const spatial: any[] = registeredMask ? [['>', ['distance', registeredMask], 0]] : [];
+        const excludeConditions: any[] = [...spatial];
+        if (uniqueNumericIds.length > 0) {
+          excludeConditions.push(['!', ['in', ['coalesce', ['id'], -1], ['literal', uniqueNumericIds]]]);
+        }
+        if (uniqueStringIds.length > 0) {
+          excludeConditions.push(['!', ['in', ['coalesce', ['get', 'id'], ''], ['literal', uniqueStringIds]]]);
+          excludeConditions.push(['!', ['in', ['coalesce', ['get', 'mapbox_id'], ''], ['literal', uniqueStringIds]]]);
+          excludeConditions.push(['!', ['in', ['coalesce', ['get', 'osm_id'], ''], ['literal', uniqueStringIds]]]);
+          excludeConditions.push(['!', ['in', ['to-string', ['coalesce', ['id'], '']], ['literal', uniqueStringIds]]]);
+        }
+        // Le filtre d'origine de la couche est mémorisé une fois : les filtres ne s'empilent plus à chaque appel.
+        const base = layer.id === '3d-buildings' ? ['==', ['get', 'extrude'], 'true'] : originalFilter(mapInstance, layer);
+        if (base && isLegacyFilter(base)) {
+          // Ancienne syntaxe de filtre : impossible de la combiner avec une expression, couche laissée telle quelle.
+          return;
+        }
+        if (excludeConditions.length === 0) {
+          mapInstance.setFilter(layer.id, base ?? null);
         } else {
-          // Construire les conditions d'exclusion pour le calque 3D fill-extrusion
-          const excludeConditions: any[] = [];
-          if (uniqueNumericIds.length > 0) {
-            excludeConditions.push(['!', ['in', ['coalesce', ['id'], -1], ['literal', uniqueNumericIds]]]);
-          }
-          if (uniqueStringIds.length > 0) {
-            excludeConditions.push(['!', ['in', ['coalesce', ['get', 'id'], ''], ['literal', uniqueStringIds]]]);
-            excludeConditions.push(['!', ['in', ['coalesce', ['get', 'mapbox_id'], ''], ['literal', uniqueStringIds]]]);
-            excludeConditions.push(['!', ['in', ['coalesce', ['get', 'osm_id'], ''], ['literal', uniqueStringIds]]]);
-            excludeConditions.push(['!', ['in', ['to-string', ['coalesce', ['id'], '']], ['literal', uniqueStringIds]]]);
-          }
-
-          if (layer.id === '3d-buildings') {
-            mapInstance.setFilter('3d-buildings', [
-              'all',
-              ['==', 'extrude', 'true'],
-              ...excludeConditions
-            ]);
-          } else {
-            const currentFilter = (layer as any).filter;
-            if (currentFilter && Array.isArray(currentFilter) && currentFilter.length > 0) {
-              mapInstance.setFilter(layer.id, [
-                'all',
-                currentFilter,
-                ...excludeConditions
-              ]);
-            } else {
-              mapInstance.setFilter(layer.id, [
-                'all',
-                ...excludeConditions
-              ]);
-            }
-          }
+          mapInstance.setFilter(layer.id, base ? ['all', base, ...excludeConditions] : ['all', ...excludeConditions]);
         }
       } catch (layerErr) {
         console.warn(`Avertissement filtre couche ${layer.id}:`, layerErr);

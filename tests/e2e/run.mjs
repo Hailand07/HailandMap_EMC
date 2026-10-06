@@ -26,7 +26,7 @@ const FIXTURE = {
 
 const DECLARATION = {
   id: 'd0000000-0000-4000-8000-000000000001', user_id: 'u1', detected_level: 2, hailand_code: 'GN-CKY-01-03-008-0042',
-  gps_point: { type: 'Point', coordinates: [-13.6436, 9.5498] }, anchor_point: { type: 'Point', coordinates: [-13.6436, 9.5498] },
+  gps_point: { type: 'Point', coordinates: [-13.6762, 9.5316] }, anchor_point: { type: 'Point', coordinates: [-13.6762, 9.5316] },
   osm_polygon_geom: null, commune_id: 'com-matam', quartier_id: 'qtr-osm-5567222', admin_source: 'quartier',
   declared_label: 'Chez Mariama', declared_building_type: 'R', declared_floor_count: 1, declared_units_per_floor: 2,
   declared_landmark: 'Derrière la mosquée', declared_note: null, location_floor: null, location_door: null,
@@ -162,6 +162,17 @@ async function main() {
       check('la déclaration est un indice non officiel (niveau 2)', await page.getByText('INDICE · POLYGONE OSM (NIVEAU 2)').isVisible().catch(() => false));
       check('« vérification demandée » est signalée', await page.getByText(/VÉRIFICATION DEMANDÉE/).first().isVisible().catch(() => false));
       check('aucun bâtiment certifié proche : « le bâtiment reste à créer »', await page.getByText('Aucun : le bâtiment reste à créer.').isVisible().catch(() => false));
+      check('Demandes : bouton « Certifier ce bâtiment »', await page.getByRole('button', { name: /Certifier ce bâtiment/ }).isVisible().catch(() => false));
+      check('Revue : onglet « Modifications »', await page.getByRole('button', { name: /^Modifications/ }).isVisible().catch(() => false));
+      if (HAS_TOKEN) {
+        await page.getByRole('button', { name: /Certifier ce bâtiment/ }).click();
+        const banner = page.getByText('CERTIFICATION DEMANDÉE PAR UN RÉSIDENT');
+        check('certification : l’assistant s’ouvre avec le bandeau de la demande', await banner.waitFor({ timeout: 15000 }).then(() => true).catch(() => false));
+        check('certification : la conséquence est annoncée (niveau 3, même code)', await page.getByText(/garde le code/).isVisible().catch(() => false));
+        if (process.env.E2E_SHOTS) await page.screenshot({ path: `${process.env.E2E_SHOTS}/certification.png` });
+        await page.getByRole('button', { name: 'Revenir à la demande' }).click().catch(() => {});
+        check('certification : « Revenir à la demande » ramène à la Revue', await page.getByRole('button', { name: /^Demandes/ }).isVisible({ timeout: 8000 }).catch(() => false));
+      }
       check('aucune erreur de page (Demandes)', errors.length === 0, errors.join(' | ').slice(0, 300));
       if (process.env.E2E_SHOTS) await page.screenshot({ path: `${process.env.E2E_SHOTS}/revue-demandes.png` });
       await page.context().close();
@@ -191,12 +202,19 @@ async function main() {
       check('la fiche du registre apparaît dans l’arbre du territoire', true);
       await page.getByText('GN-Z4530-CR003').first().click();
       await page.waitForTimeout(9000);
-      check('sélectionner une fiche ouvre sa fiche flottante', await page.getByRole('button', { name: 'Ouvrir au registre' }).isVisible().catch(() => false));
+      check('sélectionner une fiche ouvre sa fiche flottante', await page.getByRole('button', { name: 'Voir la fiche' }).isVisible().catch(() => false));
       await page.getByRole('button', { name: 'Fermer' }).first().click().catch(() => {});
       await page.mouse.click(1170, 330);
       const create = page.getByRole('button', { name: /Créer la fiche/ });
       const hasCandidate = await create.first().waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
       check('cliquer un bâtiment non relevé propose « Créer la fiche »', hasCandidate);
+      if (hasCandidate) {
+        await page.getByRole('button', { name: 'Fermer' }).first().click().catch(() => {});
+        await page.waitForTimeout(600);
+        check('bâtiment OSM : aucune fausse fiche après fermeture', !(await page.getByRole('button', { name: /Voir la fiche|Ouvrir au registre/ }).isVisible().catch(() => false)));
+        await page.mouse.click(1170, 330);
+        await create.first().waitFor({ timeout: 8000 }).catch(() => {});
+      }
       if (hasCandidate) {
         await create.first().click();
         let last = '';
@@ -221,6 +239,21 @@ async function main() {
         }
         const rpc = writes.find((w) => w.table === 'rpc');
         check('les unités du bâtiment sont enregistrées après la fiche', Boolean(rpc) && /p_units/.test(rpc.body), rpc ? rpc.body.slice(0, 120) : 'aucun appel');
+        if (post) {
+          const row = (() => { const b = JSON.parse(post.body); return Array.isArray(b) ? b[0] : b; })();
+          check('l’origine de l’enregistrement est tracée (bâtiment OSM)', row.registration_origin === 'osm', String(row.registration_origin));
+        }
+        await page.getByRole('button', { name: 'Fermer' }).first().click().catch(() => {});
+        await page.waitForTimeout(1500);
+        await page.mouse.click(1170, 330);
+        await page.waitForTimeout(2000);
+        const sheetBtn = page.getByRole('button', { name: 'Voir la fiche' });
+        check('le bâtiment enregistré montre « Voir la fiche » (plus « Créer la fiche »)', await sheetBtn.isVisible().catch(() => false) && !(await page.getByRole('button', { name: /Créer la fiche/ }).isVisible().catch(() => false)));
+        await sheetBtn.click().catch(() => {});
+        check('la fiche s’ouvre avec historique et modification', await page.getByRole('dialog', { name: 'Fiche du bâtiment' }).isVisible({ timeout: 5000 }).catch(() => false));
+        await page.getByRole('button', { name: /Modifier|Proposer une modification/ }).first().click().catch(() => {});
+        check('la modification exige une justification', await page.getByText(/Justification/).isVisible().catch(() => false) && await page.getByRole('button', { name: /^Appliquer|^Proposer/ }).isDisabled().catch(() => false));
+        if (process.env.E2E_SHOTS) await page.screenshot({ path: `${process.env.E2E_SHOTS}/fiche.png` });
       }
       check('aucune erreur de page pendant la création', errors.length === 0, errors.join(' | ').slice(0, 300));
       await page.context().close();

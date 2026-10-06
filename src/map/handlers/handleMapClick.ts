@@ -5,6 +5,7 @@
 
 import type { Building, HiddenBuildingData } from '../../types';
 import mapboxgl from 'mapbox-gl';
+import { findRegisteredAt, findRegisteredCovering, footprintOf } from '../registered';
 import { actorId } from '../../lib/actor';
 import type { BuildingType } from '../../types';
 import { sanitizeGeometry, safeCalculateArea } from '../../utils/safeJson';
@@ -398,7 +399,7 @@ export function handleMapClick(e: any, ctx: Record<string, any>) {
             const featId = customFeat.properties?.id || customFeat.id;
             
             // Vérifier en priorité si ce volume 3D correspond à un bâtiment de la base de données
-            const matchedFromDb = buildings.find(b => 
+            const matchedFromDb = buildingsRef.current.find((b: Building) => 
               featId === `3d-auto-${b.id}` || 
               featId === `3d-wall-${b.id}` ||
               (typeof featId === 'string' && featId.startsWith(`3d-wall-${b.id}`)) ||
@@ -470,20 +471,14 @@ export function handleMapClick(e: any, ctx: Record<string, any>) {
             }
           }
 
-          // 2. Détection d'un bâtiment déjà enregistré dans la base
+          // 2. Bâtiment déjà enregistré qui contient le point cliqué (contour réel, liste à jour via la référence).
           if (!matchedBuildingObj) {
-            const existingBuilding = buildings.find(b => {
-              if (!b.centroid || !b.centroid.coordinates) return false;
-              const bLng = b.centroid.coordinates[0];
-              const bLat = b.centroid.coordinates[1];
-              const dist = calculateDistance(lat, lng, bLat, bLng);
-              return dist < 18;
-            });
-
+            const existingBuilding = findRegisteredAt(buildingsRef.current, lng, lat)
+              || (targetFeature?.geometry ? findRegisteredCovering(buildingsRef.current, targetFeature.geometry) : null);
             if (existingBuilding) {
               matchedBuildingObj = existingBuilding;
               matchedCentroid = [existingBuilding.centroid.coordinates[0], existingBuilding.centroid.coordinates[1]];
-              matchedGeometry = sanitizeGeometry(existingBuilding.geom);
+              matchedGeometry = sanitizeGeometry(footprintOf(existingBuilding) || existingBuilding.geom);
               matchedArea = safeCalculateArea(existingBuilding.geom, 80);
             }
           }
@@ -563,15 +558,34 @@ export function handleMapClick(e: any, ctx: Record<string, any>) {
           console.warn("Erreur détection entité bâtiment Mapbox:", err);
         }
 
-        // SI UN BÂTIMENT 3D (OSM, PERSO 3D, CUSTOM OU ENREGISTRÉ) A ÉTÉ CLIQUÉ :
+        // BÂTIMENT DÉJÀ ENREGISTRÉ : on montre SA fiche (jamais « Créer la fiche »), sans action « Masquer ».
+        const registered = matchedBuildingObj && buildingsRef.current.some((b: Building) => b.id === matchedBuildingObj!.id) ? matchedBuildingObj : null;
+        if (registered) {
+          setClickedCoords(null);
+          setSelectedPolygonHideAction(null);
+          setSelectedBuilding(registered);
+          const selectionSource = map.getSource('selected-building') as mapboxgl.GeoJSONSource;
+          if (selectionSource && matchedGeometry) {
+            selectionSource.setData({ type: 'Feature', properties: { is_courtyard: Boolean(registered.has_courtyard) }, geometry: matchedGeometry });
+          }
+          if (markerRef.current) {
+            markerRef.current.remove();
+            markerRef.current = null;
+          }
+          return;
+        }
+
+        // BÂTIMENT OSM (OU VOLUME LOCAL) NON ENREGISTRÉ : seulement le panneau « Créer la fiche » ; aucune fausse fiche.
         if (matchedBuildingObj) {
-          setSelectedBuilding(matchedBuildingObj);
+          setSelectedBuilding(null);
           setClickedCoords({
             latitude: matchedCentroid[1],
             longitude: matchedCentroid[0],
             buildingId: matchedBuildingObj.id,
             geometry: sanitizeGeometry(matchedGeometry),
-            area: matchedArea
+            area: matchedArea,
+            // Origine : bâtiment OSM repris (ou ancien volume local tracé à la main).
+            source: isCustomBuilding ? 'trace' : 'osm'
           });
 
           // Extraire les métadonnées complètes pour le masquage

@@ -43,14 +43,18 @@ import {
   clearTerritoryHighlight,
   
 } from './lib/interactiveMapEngine';
-import { calculateDistance, calculatePolygonArea,  } from './map/geometry';
+import { calculateDistance, calculatePolygonArea, generateSquarePolygon } from './map/geometry';
 import { generate200mGridGeoJSON, detect200mZoneFromCoords } from './map/grid';
 import { BUILDING_TYPE_3D_COLORS, createCourtyardWall3DEntities, generate3DEntitiesFromBuildingList } from './map/buildings3d';
 import { DEFAULT_MAPBOX_TOKEN, CUSTOM_STYLE_URL,  } from './map/constants';
-import { applyHiddenBuildingsFilter, enforceBuildingsAboveCourtyardsOrder, syncCourtyardsLayer, syncEntryPointsLayer, syncCustom3DBuildingsLayer, syncFixedGpsCentroidsLayer } from './map/layers';
+import { setRegisteredMask, applyHiddenBuildingsFilter, enforceBuildingsAboveCourtyardsOrder, syncCourtyardsLayer, syncEntryPointsLayer, syncCustom3DBuildingsLayer, syncFixedGpsCentroidsLayer } from './map/layers';
 import type { LayerEnv } from './map/layers';
 import { useRegistry } from './hooks/useRegistry';
-import { loadAdminCodes, saveUnits } from './lib/attachment';
+import { registeredMaskZone } from './map/registered';
+import { declarationPoint, linkDeclaration, loadAdminCodes, saveUnits, type Declaration } from './lib/attachment';
+import { BuildingSheet } from './v2/atelier/BuildingSheet';
+import { RegistrationBanner } from './v2/atelier/RegistrationBanner';
+import { findRegisteredAt } from './map/registered';
 import { SettingsModal } from './shell/SettingsModal';
 import { handleMapLoad, handleMapClick, handleMapMouseMove } from './map/handlers';
 
@@ -225,6 +229,23 @@ export default function App() {
   useEffect(() => {
     selectedPolygonHideActionRef.current = selectedPolygonHideAction;
   }, [selectedPolygonHideAction]);
+
+  // La sélection suit le registre relu (code public, révision…) ; la fiche se ferme quand plus rien n'est sélectionné.
+  useEffect(() => {
+    if (!selectedBuilding) {
+      setSheetOpen(false);
+      return;
+    }
+    const fresh = buildings.find((b) => b.id === selectedBuilding.id);
+    if (fresh && fresh !== selectedBuilding) setSelectedBuilding(fresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildings, selectedBuilding?.id]);
+
+  // Bâtiments OSM masqués automatiquement sous tout bâtiment ou concession enregistré (zone recalculée à chaque changement du registre).
+  useEffect(() => {
+    setRegisteredMask(registeredMaskZone(buildings));
+    if (mapRef.current) applyHiddenBuildingsFilter(mapRef.current, hiddenBuildingsListRef.current);
+  }, [buildings]);
 
   useEffect(() => {
     hiddenBuildingsListRef.current = hiddenBuildingsList;
@@ -528,7 +549,12 @@ export default function App() {
   }, [selectionTargetNature]);
 
   // Clic temporaire de maison / zone
-  const [clickedCoords, setClickedCoords] = useState<{ latitude: number; longitude: number; buildingId?: string | number; geometry?: any; area?: number } | null>(null);
+  const [clickedCoords, setClickedCoords] = useState<{ latitude: number; longitude: number; buildingId?: string | number; geometry?: any; area?: number; source?: 'osm' | 'trace' } | null>(null);
+
+  // Fiche détaillée du bâtiment ENREGISTRÉ sélectionné (historique, modification contrôlée).
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Certification demandée par un résident (NavigationX) : parcours distinct d'un enregistrement ordinaire.
+  const [certification, setCertification] = useState<Declaration | null>(null);
   
   useEffect(() => {
     clickedCoordsRef.current = clickedCoords;
@@ -1919,7 +1945,7 @@ export default function App() {
         }
 
         // Insertion séquentielle du bâtiment
-        const res = await insertBuildingInSupabase(newBuilding);
+        const res = (newBuilding as any)._saved ? { success: true, localOnly: false } : await insertBuildingInSupabase(newBuilding);
         const units = (newBuilding as any).units;
         if (res.success && !res.localOnly && Array.isArray(units) && units.length) {
           try {
@@ -2303,6 +2329,42 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [true]);
 
+  // Certification demandée par un résident : ouvre l'atelier sur le bâtiment déclaré, demande affichée et pré-remplie.
+  const handleCertify = (declarationId: string) => {
+    const d = declarations.find((x) => x.id === declarationId);
+    const p = d ? declarationPoint(d) : null;
+    if (!d || !p) return;
+    const geometry = d.osm_polygon_geom ? sanitizeGeometry(d.osm_polygon_geom) : sanitizeGeometry(generateSquarePolygon(p[0], p[1], 5));
+    setSelectedBuilding(null);
+    setSheetOpen(false);
+    setCertification(d);
+    setActiveAdminView('carte');
+    setClickedCoords({ latitude: p[1], longitude: p[0], buildingId: `decl-${d.id}`, geometry, area: safeCalculateArea(geometry, 100) });
+    startAssistant('single');
+    setTimeout(() => {
+      try {
+        mapRef.current?.flyTo({ center: p, zoom: 19, pitch: 0, bearing: 0, duration: 1100, essential: true });
+        const sel = mapRef.current?.getSource('selected-building') as mapboxgl.GeoJSONSource | undefined;
+        sel?.setData({ type: 'Feature', properties: { is_courtyard: false }, geometry });
+      } catch (e) {
+        console.warn('Centrage impossible :', e);
+      }
+    }, 350);
+  };
+
+  // Fin de certification : rattachement officiel garanti (même si l'agent a tracé un contour qui ne contient pas le point).
+  const completeCertification = async (d: Declaration, created: Building[]) => {
+    const p = declarationPoint(d);
+    const target = (p && findRegisteredAt(created, p[0], p[1])) || created.find((b) => !b.parent_building_id) || created[0];
+    try {
+      if (target) await linkDeclaration(d.id, target.id);
+      await syncAttachments();
+      setMapNotification({ type: 'success', title: 'Certification terminée', message: 'Le bâtiment est certifié (niveau 3) et le résident y est rattaché officiellement.' });
+    } catch (e: any) {
+      setMapNotification({ type: 'warning', title: 'Rattachement à vérifier', message: e?.message || 'Le bâtiment est enregistré ; vérifiez le rattachement dans Revue → Demandes.' });
+    }
+  };
+
   const startAssistant = (nature: 'single' | 'courtyard') => {
     setSelectionTargetNature(nature);
     setV2Tool(nature === 'courtyard' ? 'concession' : 'batiment');
@@ -2602,7 +2664,17 @@ export default function App() {
           />
         )}
         {activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
-          <BuildingCard map={mapRef.current} building={selectedBuilding} residents={occupancy[selectedBuilding.id]?.residents ?? 0} onClose={() => setSelectedBuilding(null)} onOpenRegistre={() => setActiveAdminView('batiments')} />
+          !sheetOpen && <BuildingCard map={mapRef.current} building={selectedBuilding} residents={occupancy[selectedBuilding.id]?.residents ?? 0} onClose={() => setSelectedBuilding(null)} onOpenSheet={() => setSheetOpen(true)} />
+        )}
+        {activeAdminView === 'carte' && !assistantStarted && selectedBuilding && sheetOpen && (
+          <BuildingSheet
+            building={selectedBuilding}
+            residents={occupancy[selectedBuilding.id]?.residents ?? 0}
+            profiles={profiles}
+            onClose={() => setSheetOpen(false)}
+            onOpenRegistre={() => setActiveAdminView('batiments')}
+            onChanged={() => syncData()}
+          />
         )}
 
         {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
@@ -2636,10 +2708,26 @@ export default function App() {
 
         {activeAdminView === 'carte' && clickedCoords && assistantStarted && (
           <AssistantAside>
+              <RegistrationBanner
+                origin={certification ? 'certification' : clickedCoords.source === 'osm' ? 'osm' : 'nouveau'}
+                declaration={certification}
+                onCancelCertification={() => {
+                  setCertification(null);
+                  setClickedCoords(null);
+                  setActiveAdminView('validations');
+                }}
+              />
               <InteractiveBuildingForm
                 clickedCoords={clickedCoords}
                 buildings={buildings}
+                prefill={certification ? {
+                  buildingType: certification.declared_building_type,
+                  // NavigationX compte les niveaux RDC compris ; HailandMap compte les étages au-dessus du RDC.
+                  floorsCount: certification.declared_floor_count != null ? Math.max(0, certification.declared_floor_count - 1) : null,
+                  landmarkNote: certification.declared_label || certification.declared_landmark,
+                } : null}
                 onCancel={() => {
+                  setCertification(null);
                   setClickedCoords(null);
                   detectedOsmFeaturesRef.current = [];
                   setDetectedOsmBuildingsInZone([]);
@@ -2664,7 +2752,14 @@ export default function App() {
                   }
                 }}
                 onSubmit={(newB) => {
-                  handleCreateBuilding(newB);
+                  // Origine de l'enregistrement, tracée dans la révision de création.
+                  const list = Array.isArray(newB) ? newB : [newB];
+                  const origin = certification ? 'certification' : clickedCoords.source === 'osm' ? 'osm' : 'nouveau';
+                  const ref = certification ? certification.id : clickedCoords.source === 'osm' ? String(clickedCoords.buildingId ?? '') || null : null;
+                  list.forEach((b) => Object.assign(b, { registration_origin: origin, registration_ref: ref }));
+                  const cert = certification;
+                  setCertification(null);
+                  handleCreateBuilding(newB).then(() => cert && completeCertification(cert, list));
                   detectedOsmFeaturesRef.current = [];
                   setDetectedOsmBuildingsInZone([]);
                   handleEntrancePickerModeChange(null);
@@ -2856,6 +2951,8 @@ export default function App() {
                   declarationsError={attachmentError}
                   onOpenPoint={handleOpenPointOnMap}
                   onLinkDeclaration={handleLinkDeclaration}
+                  onCertify={handleCertify}
+                  onRegistryChanged={() => syncData()}
                 />
             </motion.div>
           )}
@@ -2872,6 +2969,7 @@ export default function App() {
                   buildings={buildings}
                   profiles={profiles}
                   onOpenOnMap={handleSelectBuildingFromAdmin}
+                  focusId={selectedBuilding?.id ?? null}
                   onShowMap={() => setActiveAdminView('carte')}
                   onRefresh={async () => {
                     const refreshed = await loadRealBuildings();

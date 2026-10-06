@@ -46,6 +46,7 @@ export interface InteractiveBuildingFormProps {
   onDetectOsmBuildings?: (motherGeom: any) => string[] | void;
   onMaskOsmBuildings?: (motherGeom?: any) => number;
   onStageChange?: (stage: RegistrationStage) => void;
+  prefill?: { buildingType?: string | null; floorsCount?: number | null; landmarkNote?: string | null } | null;
 }
 
 /** Formulaire d'enregistrement : l'assistant en 5 étapes (v2). La logique de codes et d'enregistrement est dans `src/registration/`. */

@@ -13,17 +13,19 @@ interface Props {
   onShowMap: () => void;
   onRefresh: () => Promise<void>;
   onNotify: (title: string, message: string, tone?: 'success' | 'warning' | 'info') => void;
+  /** Bâtiment à ouvrir directement (depuis la fiche de la carte). */
+  focusId?: string | null;
 }
 
 type Row = { b: Building; depth: number };
 
 /** Module Registre (maquette) : tableau dense avec l'arbre concession → bâtiments, filtres et fiche 360°. */
-export const RegistreView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onShowMap, onRefresh, onNotify }) => {
+export const RegistreView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onShowMap, onRefresh, onNotify, focusId }) => {
   const [q, setQ] = useState('');
   const [commune, setCommune] = useState('');
   const [status, setStatus] = useState('');
   const [mode, setMode] = useState<'table' | 'tree'>('table');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(focusId ?? null);
   const [menu, setMenu] = useState<'export' | 'maintenance' | null>(null);
   const [working, setWorking] = useState(false);
 

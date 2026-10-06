@@ -11,6 +11,8 @@ interface Props {
   error: string | null;
   onOpenPoint: (lng: number, lat: number) => void;
   onLink: (declarationId: string, buildingId: string | null) => void | Promise<void>;
+  /** Lance la procédure de certification de cette demande (parcours distinct, pré-rempli, rattachement garanti). */
+  onCertify: (declarationId: string) => void;
 }
 
 type Filter = 'todo' | 'linked';
@@ -27,7 +29,7 @@ const placeOf = (d: Declaration) => {
  * - Non rattachée : simple indice (niveau 1 ou 2), non compté ; l'agent peut créer le bâtiment (rattachement automatique) ou rattacher à un bâtiment certifié proche.
  * - Rattachée à un bâtiment certifié : rattachement officiel ; le résident choisit son emplacement dans NavigationX.
  */
-export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error, onOpenPoint, onLink }) => {
+export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error, onOpenPoint, onLink, onCertify }) => {
   const [filter, setFilter] = useState<Filter>('todo');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -112,6 +114,11 @@ export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error,
             </dl>
 
             <div className="mt-4 flex gap-2">
+              {!selected.certified_building_id && point && (
+                <button type="button" onClick={() => onCertify(selected.id)} className="h-[34px] rounded-lg bg-hx-accent px-3.5 text-[13px] font-semibold text-white transition hover:brightness-110">
+                  Certifier ce bâtiment (niveau 3)
+                </button>
+              )}
               {point && (
                 <button type="button" onClick={() => onOpenPoint(point[0], point[1])} className="h-[34px] rounded-lg border border-hx-line2 px-3.5 text-[13px] transition hover:bg-hx-hover/40">
                   Voir sur la carte
@@ -136,7 +143,7 @@ export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error,
               <div className="mt-5 flex flex-col gap-2.5">
                 <div className="rounded-lg border border-hx-line px-3.5 py-3 text-[12.5px] text-hx-dim">
                   Indice non officiel et non compté : on sait seulement que la personne se trouve {selected.detected_level === 2 ? 'dans ce bâtiment OSM' : 'à cet endroit'}.
-                  Créez le bâtiment certifié sur la carte : la personne y sera rattachée automatiquement, avec le même code.
+                  « Certifier ce bâtiment » ouvre l’atelier sur sa position avec la demande affichée et pré-remplie : à l’enregistrement, la personne est rattachée officiellement, avec le même code.
                 </div>
                 <div className="text-[13px] font-semibold">Bâtiments certifiés à moins de 300 m</div>
                 {candidates.length === 0 && <div className="text-[12.5px] text-hx-faint">Aucun : le bâtiment reste à créer.</div>}
