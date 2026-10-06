@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Building, Profile } from '../../types';
+import * as turf from '@turf/turf';
 import { getActor } from '../../lib/actor';
+import { loadUnits } from '../../lib/attachment';
+import { buildUnits, levelIds, type UnitInput } from '../../registration/units';
+import { footprintOf } from '../../map/registered';
 import {
   EDITABLE_FIELDS,
   FIELD_LABELS,
@@ -10,6 +14,7 @@ import {
   loadRevisions,
   proposeChange,
   revisionErrorMessage,
+  type ChangeSet,
   type Draft,
   type EditableField,
   type Revision,
@@ -24,6 +29,13 @@ interface Props {
   onOpenRegistre: () => void;
   /** Appelé après une modification appliquée (pour relire le registre). */
   onChanged: () => void;
+  /** Contour retracé sur la carte, en attente de justification (null = aucun). */
+  pendingContour: GeoJSON.Polygon | null;
+  /** Lance le retraçage du contour sur la carte (la fiche se referme jusqu'à la fin du tracé). */
+  onStartContour: () => void;
+  onClearContour: () => void;
+  /** Onglet à ouvrir (ex. « modifier » au retour du retraçage). */
+  initialTab?: 'fiche' | 'historique' | 'modifier';
 }
 
 const ORIGIN: Record<string, string> = {
@@ -50,8 +62,11 @@ const FIELD_INPUT: Record<EditableField, 'text' | 'number' | 'type' | 'status'> 
  * Fiche d'un bâtiment ENREGISTRÉ (jamais d'un bâtiment OSM) : identité, codes, origine, occupation, historique des révisions,
  * et modification contrôlée — justification obligatoire ; un administrateur applique, un agent propose (décision d'un administrateur).
  */
-export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profiles, onClose, onOpenRegistre, onChanged }) => {
-  const [tab, setTab] = useState<'fiche' | 'historique' | 'modifier'>('fiche');
+export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profiles, onClose, onOpenRegistre, onChanged, pendingContour, onStartContour, onClearContour, initialTab }) => {
+  const [tab, setTab] = useState<'fiche' | 'historique' | 'modifier'>(initialTab ?? 'fiche');
+  const [unitsDraft, setUnitsDraft] = useState<UnitInput[] | null>(null);
+  const [unitsBase, setUnitsBase] = useState<UnitInput[] | null>(null);
+  const [perFloor, setPerFloor] = useState(2);
   const [revisions, setRevisions] = useState<Revision[] | null>(null);
   const [revError, setRevError] = useState('');
   const [draft, setDraft] = useState<Draft>({});
@@ -70,8 +85,22 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
       })
       .catch((e) => setRevError(revisionErrorMessage(e)));
   };
+  // Unités actuelles du bâtiment (hors cour) : base de comparaison de l'éditeur.
   useEffect(() => {
-    setTab('fiche');
+    setUnitsDraft(null);
+    setUnitsBase(null);
+    if (b.has_courtyard) return;
+    loadUnits(b.id)
+      .then((u) => {
+        const list = u.map((x, i) => ({ code: x.code, floor_label: x.floor_label, door: x.door, kind: x.kind as UnitInput['kind'], sort: i }));
+        setUnitsBase(list);
+        setUnitsDraft(list);
+      })
+      .catch(() => {});
+  }, [b.id, b.revision]);
+
+  useEffect(() => {
+    setTab(initialTab ?? 'fiche');
     setDraft({});
     setReason('');
     setMessage(null);
@@ -79,7 +108,25 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [b.id]);
 
-  const changes = useMemo(() => computeChanges(b, draft), [b, draft]);
+  const unitsChanged = useMemo(() => {
+    if (!unitsDraft || !unitsBase) return false;
+    const n = (l: UnitInput[]) => JSON.stringify(l.map((u) => [u.code, u.floor_label, u.door, u.kind]));
+    return n(unitsDraft) !== n(unitsBase);
+  }, [unitsDraft, unitsBase]);
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+  }, [initialTab, pendingContour]);
+  const changes = useMemo<ChangeSet>(() => {
+    const c: ChangeSet = { ...computeChanges(b, draft) };
+    if (pendingContour) {
+      if (b.has_courtyard) c.courtyard_geom = pendingContour;
+      c.geom = pendingContour;
+    }
+    if (unitsChanged && unitsDraft) c.units = unitsDraft.map((u, i) => ({ ...u, sort: i }));
+    return c;
+  }, [b, draft, pendingContour, unitsChanged, unitsDraft]);
+  const oldArea = useMemo(() => { try { const f = footprintOf(b); return f ? turf.area({ type: 'Feature', properties: {}, geometry: f } as any) : 0; } catch { return 0; } }, [b]);
+  const newArea = useMemo(() => (pendingContour ? turf.area({ type: 'Feature', properties: {}, geometry: pendingContour } as any) : 0), [pendingContour]);
   const nChanges = Object.keys(changes).length;
   const canSubmit = nChanges > 0 && reason.trim().length >= REASON_MIN && !busy;
   const pending = (revisions ?? []).filter((r) => r.status === 'proposee');
@@ -93,6 +140,7 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
       setMessage({ tone: 'ok', text: r.status === 'appliquee' ? `Modification appliquée (révision ${r.revision}).` : 'Proposition envoyée : un administrateur doit la valider.' });
       setDraft({});
       setReason('');
+      onClearContour();
       setTab('historique');
       reload();
       if (r.status === 'appliquee') onChanged();
@@ -180,7 +228,7 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
               {isAdmin
                 ? 'Administrateur : la modification est appliquée immédiatement et enregistrée dans l’historique avec votre justification.'
                 : 'Agent : votre modification est enregistrée comme proposition ; un administrateur la vérifie avant de l’appliquer.'}{' '}
-              Le contour se corrige par un nouveau tracé, pas ici.
+              Le contour et les unités se corrigent plus bas.
             </div>
             {EDITABLE_FIELDS.map((k) => (
               <label key={k} className="flex flex-col gap-1">
@@ -200,6 +248,45 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
                 )}
               </label>
             ))}
+            <div className="rounded-lg border border-hx-line px-3 py-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[12.5px] font-semibold">Contour {pendingContour && <span className="ml-1 font-normal text-hx-warn">· modifié</span>}</span>
+                <span className="flex gap-1.5">
+                  {pendingContour && <button type="button" onClick={onClearContour} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px]">Annuler le nouveau contour</button>}
+                  <button type="button" onClick={onStartContour} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px] transition hover:bg-hx-hover/40">{pendingContour ? 'Retracer' : 'Retracer le contour…'}</button>
+                </span>
+              </div>
+              <div className="mt-1 text-[12px] text-hx-dim">
+                {pendingContour ? `Nouveau contour : ${Math.round(newArea).toLocaleString('fr-FR')} m² (actuel : ${Math.round(oldArea).toLocaleString('fr-FR')} m²). Il doit recouvrir l’ancien.` : `Actuel : ${Math.round(oldArea).toLocaleString('fr-FR')} m². Un clic par angle, double-clic pour terminer.`}
+              </div>
+            </div>
+            {!b.has_courtyard && unitsDraft && (
+              <div className="rounded-lg border border-hx-line px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12.5px] font-semibold">Unités ({unitsDraft.length}) {unitsChanged && <span className="ml-1 font-normal text-hx-warn">· modifiées</span>}</span>
+                  <button type="button" onClick={() => setUnitsDraft((l) => [...(l ?? []), { code: `U${(l?.length ?? 0) + 1}`, floor_label: null, door: null, kind: 'logement', sort: l?.length ?? 0 }])} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px] transition hover:bg-hx-hover/40">+ Ajouter</button>
+                </div>
+                <div className="mt-2 flex items-center gap-2 text-[12px] text-hx-dim">
+                  <span>Générer</span>
+                  <input type="number" min={1} max={20} value={perFloor} onChange={(e) => setPerFloor(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} className="h-8 w-14 rounded-md border border-hx-line2 bg-hx-base/60 px-2 text-[12.5px]" />
+                  <span>unités par niveau d’après les {b.floor_count + 1} niveau(x)</span>
+                  <button type="button" onClick={() => { const lv = levelIds(b.floor_count); setUnitsDraft(buildUnits({ levels: lv, isSubdivided: true, unitsPerFloor: Object.fromEntries(lv.map((l) => [l, perFloor])), buildingType: b.building_type })); }} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px] transition hover:bg-hx-hover/40">Générer</button>
+                  <button type="button" onClick={() => setUnitsDraft([{ code: 'UNIQUE', floor_label: null, door: null, kind: b.building_type === 'R' ? 'maison' : 'autre', sort: 0 }])} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px] transition hover:bg-hx-hover/40">Unité unique</button>
+                </div>
+                <ul className="m-0 mt-2 flex max-h-[180px] list-none flex-col gap-1.5 overflow-y-auto p-0">
+                  {unitsDraft.map((u, i) => (
+                    <li key={i} className="flex items-center gap-1.5">
+                      <input aria-label={`Code de l’unité ${i + 1}`} value={u.code} onChange={(e) => setUnitsDraft((l) => l!.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className="h-8 min-w-0 flex-1 rounded-md border border-hx-line2 bg-hx-base/60 px-2 font-mono text-[12px]" />
+                      <select aria-label={`Nature de l’unité ${i + 1}`} value={u.kind} onChange={(e) => setUnitsDraft((l) => l!.map((x, j) => (j === i ? { ...x, kind: e.target.value as UnitInput['kind'] } : x)))} className="h-8 rounded-md border border-hx-line2 bg-hx-base/60 px-1.5 text-[12px]">
+                        <option value="logement">Logement</option><option value="commerce">Commerce</option><option value="maison">Maison</option><option value="bureau">Bureau</option><option value="autre">Autre</option>
+                      </select>
+                      <button type="button" aria-label={`Retirer l’unité ${i + 1}`} onClick={() => setUnitsDraft((l) => l!.filter((_, j) => j !== i))} className="h-8 w-8 rounded-md text-hx-bad hover:bg-hx-bad/10">✕</button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-1.5 text-[11.5px] text-hx-faint">Une unité retirée est désactivée (l’historique reste) ; les résidents qui l’avaient choisie devront en choisir une autre.</div>
+              </div>
+            )}
             <label className="flex flex-col gap-1">
               <span className="text-[12.5px] font-semibold">Justification <span className="font-normal text-hx-faint">(obligatoire, {REASON_MIN} caractères au moins)</span></span>
               <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex. visite terrain du 6 octobre : le bâtiment a deux étages, pas un." className="resize-none rounded-lg border border-hx-line2 bg-hx-base/60 px-3 py-2 text-[13px] outline-none focus:border-hx-accent" />
@@ -207,7 +294,7 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
             {nChanges > 0 && (
               <div className="rounded-lg bg-hx-base/50 px-3 py-2 font-mono text-[11.5px] text-hx-dim">
                 {Object.entries(changes).map(([k, v]) => (
-                  <div key={k}>{FIELD_LABELS[k]} : {fmtValue(k, (b as any)[k])} → {fmtValue(k, v)}</div>
+                  <div key={k}>{FIELD_LABELS[k] ?? k} : {k === 'geom' || k === 'courtyard_geom' ? `${Math.round(oldArea)} m² → ${fmtValue(k, v)}` : k === 'units' ? fmtValue(k, v) : `${fmtValue(k, (b as any)[k])} → ${fmtValue(k, v)}`}</div>
                 ))}
               </div>
             )}

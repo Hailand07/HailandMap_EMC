@@ -9,7 +9,7 @@ import {
   updateBuildingInSupabase,
 } from '../lib/supabase';
 import { actorId } from '../lib/actor';
-import { linkDeclaration, loadDeclarations, loadOccupancy, type Declaration, type Occupancy } from '../lib/attachment';
+import { linkDeclaration, loadDeclarations, loadOccupancy, refuseRequest, type Declaration, type Occupancy } from '../lib/attachment';
 
 export type Notify = (n: { type: 'success' | 'info' | 'warning'; title: string; message: string }) => void;
 
@@ -78,6 +78,17 @@ export function useRegistry(notify: Notify) {
     syncData();
     syncAttachments();
   }, [syncData, syncAttachments]);
+
+  /** Refus motivé d'une demande de certification (le résident voit le motif dans NavigationX). */
+  const handleRefuseRequest = async (declarationId: string, note: string) => {
+    try {
+      await refuseRequest(declarationId, note);
+      await syncAttachments();
+      notify({ type: 'success', title: 'Demande refusée', message: 'Le résident verra le motif et pourra redemander la vérification.' });
+    } catch (err: any) {
+      notify({ type: 'warning', title: 'Refus impossible', message: String(err?.message || '').includes('MOTIF_DE_REFUS') ? 'Indiquez un motif d’au moins 10 caractères.' : err?.message || 'La base n’a pas répondu : rien n’a été modifié.' });
+    }
+  };
 
   /** Rattache (ou détache, `buildingId = null`) une déclaration à un bâtiment certifié ; la base refuse tout bâtiment non certifié. */
   const handleLinkDeclaration = async (declarationId: string, buildingId: string | null, unitId: string | null = null) => {
@@ -196,5 +207,5 @@ export function useRegistry(notify: Notify) {
   };
 
 
-  return { buildings, setBuildings, zones, setZones, validations, setValidations, profiles, setProfiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit, declarations, occupancy, attachmentError, syncAttachments, handleLinkDeclaration };
+  return { buildings, setBuildings, zones, setZones, validations, setValidations, profiles, setProfiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit, declarations, occupancy, attachmentError, syncAttachments, handleLinkDeclaration, handleRefuseRequest };
 }

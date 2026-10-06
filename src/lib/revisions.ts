@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import * as turf from '@turf/turf';
 import type { Building } from '../types';
 
 /**
@@ -50,11 +51,17 @@ export const FIELD_LABELS: Record<string, string> = {
   intercom_code: 'Interphone',
   access_note: 'Note d’accès',
   status: 'Statut',
+  geom: 'Contour',
+  courtyard_geom: 'Contour de la cour',
+  units: 'Unités',
   origine: 'Origine',
   reference: 'Référence',
 };
 
 export type Draft = Partial<Record<EditableField, string | number | null>>;
+
+/** Modification envoyée à la base : champs simples, et éventuellement le contour et les unités. */
+export type ChangeSet = Draft & { geom?: any; courtyard_geom?: any; units?: any[] };
 
 const norm = (v: unknown) => (v === '' || v === undefined ? null : v);
 
@@ -93,6 +100,10 @@ const MESSAGES: Record<string, string> = {
   PROPOSITION_INTROUVABLE: 'Cette proposition a déjà été traitée.',
   CONFLIT: 'Le bâtiment a changé depuis la proposition : demandez une nouvelle proposition.',
   MODIFICATION_PAR_REVISION: 'Un bâtiment certifié se modifie par une révision justifiée.',
+  CONTOUR_TROP_DIFFERENT: 'Le nouveau contour doit recouvrir l’ancien (correction, pas déplacement).',
+  CONTOUR_INVALIDE: 'Le contour tracé n’est pas un polygone valide.',
+  CONTOUR_SURFACE: 'La surface du contour est hors limites (5 m² à 20 ha).',
+  UNITES_INVALIDES: 'Chaque unité doit avoir un code, unique dans le bâtiment.',
 };
 export function revisionErrorMessage(e: any): string {
   const m = String(e?.message || e || '');
@@ -101,7 +112,7 @@ export function revisionErrorMessage(e: any): string {
 }
 
 /** Propose (agent) ou applique (administrateur) une modification justifiée. */
-export async function proposeChange(buildingId: string, changes: Draft, reason: string): Promise<{ status: 'appliquee' | 'proposee'; revision?: number }> {
+export async function proposeChange(buildingId: string, changes: ChangeSet, reason: string): Promise<{ status: 'appliquee' | 'proposee'; revision?: number }> {
   const { data, error } = await supabase.rpc('fn_building_propose_change', { p_building: buildingId, p_changes: changes, p_reason: reason });
   if (error) throw error;
   return data as any;
@@ -119,6 +130,18 @@ export function fmtValue(field: string, v: unknown): string {
   if (v === null || v === undefined || v === '') return '—';
   if (field === 'floor_count') return Number(v) === 0 ? 'RDC' : `R+${v}`;
   if (field === 'building_type') return ({ R: 'Résidentiel', C: 'Commercial', M: 'Mixte', A: 'Administratif', H: 'Hébergement', P: 'Public', T: 'Temporaire' } as Record<string, string>)[String(v)] ?? String(v);
+  if (field === 'geom' || field === 'courtyard_geom') return contourLabel(v);
+  if (field === 'units') return Array.isArray(v) ? `${v.length} unité(s) : ${v.map((u: any) => u.code).join(', ')}` : '—';
   if (field === 'origine') return ({ nouveau: 'nouveau tracé', osm: 'bâtiment OSM', certification: 'certification demandée' } as Record<string, string>)[String(v)] ?? String(v);
   return String(v);
+}
+
+/** Surface d'un contour GeoJSON, pour l'historique (« contour de 1 524 m² »). */
+export function contourLabel(g: any): string {
+  try {
+    const a = turf.area({ type: 'Feature', properties: {}, geometry: g } as any);
+    return `contour de ${Math.round(a).toLocaleString('fr-FR')} m²`;
+  } catch {
+    return 'contour';
+  }
 }
