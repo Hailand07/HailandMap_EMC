@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 44** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 45** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -437,7 +437,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-06 (révision 44).**
+**Dernière mise à jour de cette section : 2026-10-06 (révision 45).**
+
+- **Fait (2026-10-06, NavigationX — phase F)** : enregistrement guidé terminé — croix de la vue satellite réparée, feuille du bas réduite par défaut, **tests de bout en bout** (`npm run test:e2e`, 20 vérifications). **Prochaine étape** : essai complet sur un vrai téléphone après déploiement ; recherche spatiale des bâtiments certifiés en base quand le registre grandira ; puis HailandX.
 
 - **Fait (2026-10-06, NavigationX — enregistrement guidé)** : nouveau parcours d'enregistrement d'un bâtiment (guide → récupération GPS par mesures multiples avec animation plein écran et vrais calculs → vue satellite d'analyse → bâtiment certifié / OSM / le plus proche verrouillé et confirmé → sinon l'utilisateur touche son bâtiment). **Décision 5 du §16.6** : rattachement à un bâtiment certifié approuvé sur confirmation visuelle — **appliqué en base** (accord du fondateur) et vérifié par 5 essais annulés. Testé par le fondateur sur son téléphone (avant les derniers ajustements). **Prochaine étape** : phase F (tests de bout en bout, finitions) ; recherche spatiale des bâtiments certifiés en base quand le registre grandira.
 
@@ -643,3 +645,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-06 | Révision 42 : parcours de certification distinct, masquage OSM automatique, modifications contrôlées des bâtiments (`building_revisions`). |
 | 2026-10-06 | Révision 43 : contour et unités par révision, refus motivé, demande de vérification dans NavigationX. |
 | 2026-10-06 | Révision 44 : décision 5 du §16.6 (rattachement à un bâtiment certifié sur confirmation visuelle, appliqué en base) ; enregistrement guidé de NavigationX (§14). |
+| 2026-10-06 | Révision 45 : §14 — enregistrement guidé de NavigationX terminé (phase F, tests de bout en bout). |
