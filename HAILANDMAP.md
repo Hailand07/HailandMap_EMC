@@ -329,3 +329,4 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 | 2026-10-06 | Écosystème révision 44 : rattachement à un bâtiment certifié sur **confirmation visuelle** du résident dans NavigationX (appliqué en base, `link_method = 'resident'`) ; la Revue affiche ce rattachement comme « choisi ou confirmé par le résident ». |
 | 2026-10-06 | Écosystème révision 45 (§14 : enregistrement guidé de NavigationX terminé) — documentation seule, rien ne change dans HailandMap. |
 | 2026-10-06 | Masquage OSM sans trace (découpe des empreintes exactes + recouvrement du liseré), mobile : réglages du satellite sur une ligne et zoom en dessous, pied de la fiche d'enregistrement visible (colonne flexible, unités `dvh`). |
+| 2026-10-06 | Masquage : la découpe est réappliquée après un changement de fond de carte (Plan → Satellite → Plan recréait la source vide) ; test de bout en bout correspondant. |

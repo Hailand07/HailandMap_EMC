@@ -25,10 +25,13 @@ export const setRegisteredMask = (zone: GeoJSON.MultiPolygon | null) => {
 let lastHidden: HiddenBuildingData[] = [];
 let clipFeatures: GeoJSON.Feature[] = [];
 let clipKey = '';
+/** Source qui a reçu les dernières données : après un changement de style la source est recréée (vide), il faut la remplir de nouveau. */
+let lastMaskSource: unknown = null;
 
 function pushMaskData(map: mapboxgl.Map) {
   const src = map.getSource('hidden-polygons-mask') as mapboxgl.GeoJSONSource | undefined;
   if (!src) return;
+  lastMaskSource = src;
   const manual = lastHidden
     .filter((b) => b.geometry && (b.geometry.coordinates || (b.geometry as any).geometries))
     .map((b) => ({ type: 'Feature' as const, properties: { id: b.id }, geometry: b.geometry }));
@@ -92,7 +95,7 @@ export function refreshRegisteredClip(map: mapboxgl.Map): void {
     const feats = map.querySourceFeatures(srcId, { sourceLayer: 'building' }) as unknown as GeoJSON.Feature[];
     const clip = computeRegisteredClip(feats, registeredMask);
     const key = `${clip.length}:${clip.reduce((n, f) => n + JSON.stringify((f.geometry as any).coordinates).length, 0)}`;
-    if (key === clipKey) return;
+    if (key === clipKey && map.getSource('hidden-polygons-mask') === lastMaskSource) return;
     clipKey = key;
     clipFeatures = clip;
     pushMaskData(map);

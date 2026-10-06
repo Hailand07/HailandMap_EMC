@@ -291,7 +291,7 @@ async function main() {
       check('mobile : les réglages du satellite ne recouvrent ni le zoom ni la position', !overlap(opts, zoomBtn) && !overlap(opts, gps), JSON.stringify({ opts, zoomBtn, gps }));
       if (toolbar) check('mobile : les réglages du satellite ne recouvrent pas la barre d’outils', !overlap(opts, toolbar), JSON.stringify({ opts, toolbar }));
       await page.getByRole('radio', { name: 'Plan' }).tap();
-      await page.waitForTimeout(3000);
+      await page.waitForFunction(() => { const src = window.__hxMap.getSource('hidden-polygons-mask'); return !!(src && src._data && src._data.features && src._data.features.length > 0); }, null, { timeout: 20000 }).catch(() => {});
       // Masquage : la couche de découpe reçoit l'empreinte exacte des bâtiments OSM sous le bâtiment enregistré
       const clip = await page.evaluate(() => { const m = window.__hxMap; const src = m.getSource('hidden-polygons-mask'); return { features: src && src._data && src._data.features ? src._data.features.length : -1, cover: !!m.getLayer('hidden-polygons-outline-cover'), clip: !!m.getLayer('hidden-polygons-clip-3d') }; });
       check('masquage : la couche de découpe et le recouvrement du liseré existent', clip.clip && clip.cover, JSON.stringify(clip));
