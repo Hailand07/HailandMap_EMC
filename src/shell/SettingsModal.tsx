@@ -25,7 +25,7 @@ export const SettingsModal: React.FC<Props> = ({ open, onClose, accessToken, set
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] max-h-[85dvh]"
             >
               {/* Entête */}
               <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/20">

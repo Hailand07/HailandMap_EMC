@@ -41,7 +41,7 @@ export const AssistantFrame: React.FC<FrameProps> = ({ stage, onStage, title, co
     return () => window.removeEventListener('keydown', h);
   });
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-3.5 border-b border-hx-line px-[18px] py-4">
         <div className="flex items-center justify-between gap-3">
           <span className="text-[15px] font-semibold text-hx-text">{title}</span>

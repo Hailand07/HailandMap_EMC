@@ -9,7 +9,7 @@ import {
   applyTerritoriesHighlight,
   } from '../../lib/interactiveMapEngine';
 import { generate200mGridGeoJSON,  } from '../../map/grid';
-import { applyHiddenBuildingsFilter, syncCustom3DBuildingsLayer,  } from '../../map/layers';
+import { applyHiddenBuildingsFilter, syncCustom3DBuildingsLayer, watchRegisteredClip } from '../../map/layers';
 
 /** Gestionnaire extrait d'App.tsx : `ctx` regroupe l'état et les références du composant au moment de l'initialisation de la carte. */
 export function handleMapLoad(ctx: Record<string, any>) {
@@ -624,7 +624,28 @@ export function handleMapLoad(ctx: Record<string, any>) {
           } catch (clipErr) {
             // Ignoré si le style ne supporte pas le type clip
           }
+
+          // La couche « clip » retire les remplissages mais pas le liseré de l'empreinte du fond : on le recouvre de la couleur du sol
+          // (réglage `colorLand` du fond Standard, qui suit l'éclairage jour/nuit comme le reste de la carte).
+          try {
+            const land = map.getConfigProperty('basemap', 'colorLand') as string | undefined;
+            if (land && currentStyle !== 'satellite' && !map.getLayer('hidden-polygons-outline-cover')) {
+              map.addLayer({
+                id: 'hidden-polygons-outline-cover',
+                type: 'line',
+                source: 'hidden-polygons-mask',
+                slot: 'middle',
+                layout: { 'line-join': 'round' },
+                paint: { 'line-color': land, 'line-width': 2.5, 'line-opacity': 1 },
+              } as any);
+            }
+          } catch (coverErr) {
+            // Style sans fond importé : pas de liseré à recouvrir
+          }
         }
+
+        // Découpe des empreintes OSM sous les bâtiments enregistrés (aucune trace au sol)
+        watchRegisteredClip(map);
 
         // Charger les bâtiments 3D personnalisés tracés manuellement (fill-extrusion)
         syncCustom3DBuildingsLayer(map, custom3DBuildingsRef.current);

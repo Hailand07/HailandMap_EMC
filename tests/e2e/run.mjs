@@ -267,6 +267,53 @@ async function main() {
       check('aucune erreur de page pendant la création', errors.length === 0, errors.join(' | ').slice(0, 300));
       await page.context().close();
     }
+    // 5. Mobile (390 × 844) : commandes de la carte sans chevauchement, pied de la fiche d'enregistrement visible, masquage sans trace
+    if (!HAS_TOKEN) {
+      skip('mobile : commandes, fiche d’enregistrement et masquage des empreintes', 'jeton Mapbox absent');
+    } else {
+      const errors = [];
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+      const page = await ctx.newPage();
+      page.on('pageerror', (e) => errors.push(e.message));
+      await mockSupabase(page, { agent: 'admin', registry: 'one' });
+      await login(page);
+      await page.waitForFunction(() => !!window.__hxMap, null, { timeout: 40000 });
+      await page.evaluate(() => window.__hxMap.jumpTo({ center: [-13.6775, 9.53075], zoom: 18.5, pitch: 0, bearing: 0 }));
+      await page.waitForTimeout(6000);
+      const box = async (sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; }, sel);
+      const overlap = (x, y) => x && y && x.l < y.r && x.r > y.l && x.t < y.b && x.b > y.t;
+      await page.getByRole('radio', { name: 'Satellite' }).tap();
+      await page.waitForSelector('[aria-label="Réglages du satellite"]', { timeout: 15000 });
+      const opts = await box('[aria-label="Réglages du satellite"]');
+      const zoomBtn = await box('[aria-label="Zoomer"]');
+      const gps = await box('#btn-recenter-gps');
+      const toolbar = await box('[aria-label="Outils de l’Atelier"], [aria-label^="Outils"]');
+      check('mobile : les réglages du satellite ne recouvrent ni le zoom ni la position', !overlap(opts, zoomBtn) && !overlap(opts, gps), JSON.stringify({ opts, zoomBtn, gps }));
+      if (toolbar) check('mobile : les réglages du satellite ne recouvrent pas la barre d’outils', !overlap(opts, toolbar), JSON.stringify({ opts, toolbar }));
+      await page.getByRole('radio', { name: 'Plan' }).tap();
+      await page.waitForFunction(() => { const src = window.__hxMap.getSource('hidden-polygons-mask'); return !!(src && src._data && src._data.features && src._data.features.length > 0); }, null, { timeout: 20000 }).catch(() => {});
+      // Masquage : la couche de découpe reçoit l'empreinte exacte des bâtiments OSM sous le bâtiment enregistré
+      const clip = await page.evaluate(() => { const m = window.__hxMap; const src = m.getSource('hidden-polygons-mask'); return { features: src && src._data && src._data.features ? src._data.features.length : -1, cover: !!m.getLayer('hidden-polygons-outline-cover'), clip: !!m.getLayer('hidden-polygons-clip-3d') }; });
+      check('masquage : la couche de découpe et le recouvrement du liseré existent', clip.clip && clip.cover, JSON.stringify(clip));
+      check('masquage : les empreintes OSM sous le bâtiment enregistré sont découpées', clip.features > 0, JSON.stringify(clip));
+      // Fiche d'enregistrement : « Annuler » et « Suivant » au-dessus de la barre des modules
+      const pt = await page.evaluate(() => { const p = window.__hxMap.project([-13.6775, 9.53075]); return [p.x, p.y + 260]; });
+      await page.touchscreen.tap(pt[0], pt[1]);
+      const create = page.getByRole('button', { name: /Créer la fiche/ }).first();
+      if (await create.isVisible({ timeout: 6000 }).catch(() => false)) {
+        await create.tap();
+        await page.getByRole('button', { name: /^Suivant/ }).waitFor({ timeout: 10000 });
+        const next = await box('aside[aria-label="Assistant de création"] button:last-of-type');
+        const rail = await box('nav[aria-label="Modules"]');
+        const nextBtn = await page.getByRole('button', { name: /^Suivant/ }).evaluate((e) => { const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; });
+        check('mobile : le pied de la fiche d’enregistrement n’est pas masqué par la barre des modules', nextBtn.b <= rail.t + 1, JSON.stringify({ nextBtn, rail }));
+        void next;
+      } else {
+        skip('mobile : pied de la fiche d’enregistrement', 'aucun point libre trouvé sous le bâtiment du test');
+      }
+      check('mobile : aucune erreur de page', errors.length === 0, errors.join(' | ').slice(0, 300));
+      await ctx.close();
+    }
   } finally {
     await browser.close();
     try { process.kill(-server.pid); } catch { server.kill(); }

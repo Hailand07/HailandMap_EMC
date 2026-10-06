@@ -275,7 +275,8 @@ interface AssistantProps {
 
 /** Tiroir de droite de l'Atelier pendant une création : contient l'assistant (étapes, codes, actions). */
 export const AssistantAside: React.FC<AssistantProps> = ({ children }) => (
-  <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
-    <div className="min-h-0 flex-1">{children}</div>
+  <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:h-[58dvh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
+    {/* Colonne : bandeau d'origine éventuel puis assistant, qui prend le reste de la hauteur (son pied de page reste visible). */}
+    <div className="flex min-h-0 flex-1 flex-col">{children}</div>
   </aside>
 );

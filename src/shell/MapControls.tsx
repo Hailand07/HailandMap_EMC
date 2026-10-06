@@ -52,12 +52,13 @@ interface SatProps {
 
 /** Réglages propres à l'imagerie satellite (remplace l'ancien bouton « Option IA & Grille »). */
 export const SatelliteOptions: React.FC<SatProps> = ({ hd, onToggleHd, grid, onToggleGrid, zoom }) => {
-  const row = (label: string, hint: string, on: boolean, toggle: () => void, icon: React.ReactNode) => (
-    <button type="button" role="switch" aria-checked={on} onClick={toggle} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-hx-hover/50">
+  const row = (label: string, short: string, hint: string, on: boolean, toggle: () => void, icon: React.ReactNode) => (
+    <button type="button" role="switch" aria-checked={on} onClick={toggle} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-hx-hover/50 max-md:h-11 max-md:w-auto max-md:gap-2 max-md:px-2.5 max-md:py-0">
       <span className="text-hx-accent-text">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px]">{label}</span>
-        <span className="block text-[11.5px] text-hx-faint">{hint}</span>
+        <span className="block text-[13px] max-md:hidden">{label}</span>
+        <span className="hidden whitespace-nowrap text-[12.5px] max-md:block">{short}</span>
+        <span className="block text-[11.5px] text-hx-faint max-md:hidden">{hint}</span>
       </span>
       <span className={`flex h-[18px] w-8 shrink-0 items-center rounded-full p-0.5 transition ${on ? 'bg-hx-accent' : 'bg-hx-hover'}`}>
         <span className={`h-3.5 w-3.5 rounded-full bg-white transition-transform ${on ? 'translate-x-3.5' : ''}`} />
@@ -65,10 +66,11 @@ export const SatelliteOptions: React.FC<SatProps> = ({ hd, onToggleHd, grid, onT
     </button>
   );
   return (
-    <div className={`w-[264px] rounded-xl p-1.5 ${FLOAT}`} role="group" aria-label="Réglages du satellite">
-      {row('Super-netteté', hd ? 'Convolution active' : 'Image brute', hd, onToggleHd, <Sparkles size={16} />)}
-      {row('Grille 200 m', grid ? 'Affichée' : 'Masquée', grid, onToggleGrid, <Layers size={16} />)}
-      <div className="px-2.5 pb-1 pt-1.5 font-mono text-[11px] text-hx-faint">zoom {zoom.toFixed(1)} / 22</div>
+    // Mobile : deux interrupteurs côte à côte (une seule ligne) pour ne pas recouvrir les boutons de zoom et de position.
+    <div className={`w-[264px] rounded-xl p-1.5 max-md:flex max-md:w-auto max-md:gap-1 max-md:p-1 ${FLOAT}`} role="group" aria-label="Réglages du satellite">
+      {row('Super-netteté', 'Netteté', hd ? 'Convolution active' : 'Image brute', hd, onToggleHd, <Sparkles size={16} />)}
+      {row('Grille 200 m', 'Grille 200 m', grid ? 'Affichée' : 'Masquée', grid, onToggleGrid, <Layers size={16} />)}
+      <div className="px-2.5 pb-1 pt-1.5 font-mono text-[11px] text-hx-faint max-md:hidden">zoom {zoom.toFixed(1)} / 22</div>
     </div>
   );
 };

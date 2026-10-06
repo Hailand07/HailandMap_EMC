@@ -14,7 +14,115 @@ export interface LayerEnv {
 let registeredMask: GeoJSON.MultiPolygon | null = null;
 export const setRegisteredMask = (zone: GeoJSON.MultiPolygon | null) => {
   registeredMask = zone;
+  clipKey = ''; // la zone a changé : les empreintes à découper sont recalculées au prochain passage
 };
+
+// ===== DÉCOUPE DES EMPREINTES AU SOL =====
+// Le fond « Standard » dessine, sous chaque bâtiment OSM, une empreinte à plat qu'aucun filtre ne peut retirer : il en restait la trace
+// au sol quand le bâtiment OSM était masqué sous un bâtiment enregistré. La couche « clip » (source `hidden-polygons-mask`) retire
+// tout ce qui est dessiné sous ses polygones : on y envoie l'empreinte EXACTE de chaque bâtiment OSM qui touche la zone enregistrée
+// (tous ses morceaux, les tuiles pouvant le couper), en plus des polygones masqués à la main.
+let lastHidden: HiddenBuildingData[] = [];
+let clipFeatures: GeoJSON.Feature[] = [];
+let clipKey = '';
+/** Source qui a reçu les dernières données : après un changement de style la source est recréée (vide), il faut la remplir de nouveau. */
+let lastMaskSource: unknown = null;
+
+function pushMaskData(map: mapboxgl.Map) {
+  const src = map.getSource('hidden-polygons-mask') as mapboxgl.GeoJSONSource | undefined;
+  if (!src) return;
+  lastMaskSource = src;
+  const manual = lastHidden
+    .filter((b) => b.geometry && (b.geometry.coordinates || (b.geometry as any).geometries))
+    .map((b) => ({ type: 'Feature' as const, properties: { id: b.id }, geometry: b.geometry }));
+  src.setData({ type: 'FeatureCollection', features: [...manual, ...clipFeatures] as any });
+}
+
+/** Empreintes OSM (tuiles chargées) qui touchent la zone des bâtiments enregistrés, avec tous les morceaux de chacune. */
+export function computeRegisteredClip(features: GeoJSON.Feature[], zone: GeoJSON.MultiPolygon): GeoJSON.Feature[] {
+  const parts = zone.coordinates.map((c) => {
+    const poly = turf.polygon(c);
+    return { poly, box: turf.bbox(poly) };
+  });
+  const overlaps = (a: number[], b: number[]) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+  const keyOf = (f: any) => (f.id ?? f.properties?.id ?? null) as string | number | null;
+  const hitIds = new Set<string | number>();
+  const hits: GeoJSON.Feature[] = [];
+  const rest: GeoJSON.Feature[] = [];
+  for (const f of features) {
+    if (!f.geometry || (f.geometry.type !== 'Polygon' && f.geometry.type !== 'MultiPolygon')) continue;
+    const box = turf.bbox(f);
+    let hit = false;
+    for (const p of parts) {
+      if (!overlaps(box, p.box)) continue;
+      try {
+        if (turf.booleanIntersects(f as any, p.poly)) {
+          hit = true;
+          break;
+        }
+      } catch {
+        /* géométrie invalide : ignorée */
+      }
+    }
+    if (hit) {
+      hits.push(f);
+      const k = keyOf(f);
+      if (k !== null) hitIds.add(k);
+    } else rest.push(f);
+  }
+  // Les autres morceaux d'un bâtiment coupé par les tuiles partagent son identifiant.
+  const siblings = rest.filter((f) => {
+    const k = keyOf(f);
+    return k !== null && hitIds.has(k);
+  });
+  return [...hits, ...siblings].map((f) => ({ type: 'Feature', properties: {}, geometry: f.geometry }));
+}
+
+/** Recalcule la découpe depuis les tuiles chargées ; sans effet tant que rien ne change. */
+export function refreshRegisteredClip(map: mapboxgl.Map): void {
+  try {
+    if (!map.getSource('hidden-polygons-mask')) return;
+    if (!registeredMask || registeredMask.coordinates.length === 0 || map.getZoom() < 14) {
+      if (clipFeatures.length) {
+        clipFeatures = [];
+        clipKey = '';
+        pushMaskData(map);
+      }
+      return;
+    }
+    const srcId = map.getSource('composite') ? 'composite' : map.getSource('hx-osm') ? 'hx-osm' : null;
+    if (!srcId) return;
+    const feats = map.querySourceFeatures(srcId, { sourceLayer: 'building' }) as unknown as GeoJSON.Feature[];
+    const clip = computeRegisteredClip(feats, registeredMask);
+    const key = `${clip.length}:${clip.reduce((n, f) => n + JSON.stringify((f.geometry as any).coordinates).length, 0)}`;
+    if (key === clipKey && map.getSource('hidden-polygons-mask') === lastMaskSource) return;
+    clipKey = key;
+    clipFeatures = clip;
+    pushMaskData(map);
+  } catch (e) {
+    console.warn('Découpe des empreintes sous les bâtiments enregistrés :', e);
+  }
+}
+
+/** À appeler une fois par carte : met la découpe à jour quand les tuiles se chargent ou que la vue change. */
+const WATCHED = new WeakSet<mapboxgl.Map>();
+export function watchRegisteredClip(map: mapboxgl.Map): void {
+  if (WATCHED.has(map)) {
+    refreshRegisteredClip(map); // changement de style : la source est recréée, on la remplit de nouveau
+    return;
+  }
+  WATCHED.add(map);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const later = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => refreshRegisteredClip(map), 250);
+  };
+  map.on('moveend', later);
+  map.on('sourcedata', (e: any) => {
+    if (e.isSourceLoaded && (e.sourceId === 'hx-osm' || e.sourceId === 'composite')) later();
+  });
+  later();
+}
 
 const ORIGINAL_FILTERS = new WeakMap<mapboxgl.Map, Map<string, any>>();
 function originalFilter(map: mapboxgl.Map, layer: any): any {
@@ -148,21 +256,10 @@ export const applyHiddenBuildingsFilter = (mapInstance: mapboxgl.Map, hiddenList
       }
     });
 
-    // 4. Mettre à jour la source GeoJSON de masquage visuel direct
-    const maskSource = mapInstance.getSource('hidden-polygons-mask') as mapboxgl.GeoJSONSource;
-    if (maskSource) {
-      const maskFeatures = hiddenList
-        .filter(b => b.geometry && (b.geometry.coordinates || (b.geometry as any).geometries))
-        .map(b => ({
-          type: 'Feature' as const,
-          properties: { id: b.id },
-          geometry: b.geometry
-        }));
-      maskSource.setData({
-        type: 'FeatureCollection',
-        features: maskFeatures as any
-      });
-    }
+    // 4. Mettre à jour la source de découpe (polygones masqués à la main + empreintes sous les bâtiments enregistrés)
+    lastHidden = hiddenList;
+    pushMaskData(mapInstance);
+    refreshRegisteredClip(mapInstance);
   } catch (err: any) {
     const msg = err?.message || String(err);
     if (msg.includes('Style is not done loading') || msg.includes('not done loading')) {

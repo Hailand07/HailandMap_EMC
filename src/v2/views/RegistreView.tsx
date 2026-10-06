@@ -176,7 +176,7 @@ export const RegistreView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap
       </main>
 
       {selected && (
-        <aside aria-label="Fiche 360°" className="flex w-[380px] shrink-0 flex-col border-l border-hx-line bg-hx-panel max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[60vh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
+        <aside aria-label="Fiche 360°" className="flex w-[380px] shrink-0 flex-col border-l border-hx-line bg-hx-panel max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[60vh] max-md:h-[60dvh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
           <div className="flex items-start justify-between gap-2.5 border-b border-hx-line px-[18px] py-4">
             <div>
               <div className="text-[11px] tracking-[0.08em] text-hx-faint">{natureOf(selected).toUpperCase()}</div>
