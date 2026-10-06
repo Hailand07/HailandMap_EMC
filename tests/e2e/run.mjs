@@ -152,9 +152,10 @@ async function main() {
     // 2 bis. Revue → Demandes : une déclaration de résident (indice de niveau 2, vérification demandée)
     {
       const errors = [];
+      const writes = [];
       const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
       page.on('pageerror', (e) => errors.push(e.message));
-      await mockSupabase(page, { agent: 'admin', declarations: [DECLARATION] });
+      await mockSupabase(page, { agent: 'admin', declarations: [DECLARATION], writes });
       await login(page);
       await page.getByRole('button', { name: 'Revue', exact: true }).first().waitFor({ timeout: 25000 });
       await page.getByRole('button', { name: 'Revue', exact: true }).first().click();
@@ -163,6 +164,12 @@ async function main() {
       check('« vérification demandée » est signalée', await page.getByText(/VÉRIFICATION DEMANDÉE/).first().isVisible().catch(() => false));
       check('aucun bâtiment certifié proche : « le bâtiment reste à créer »', await page.getByText('Aucun : le bâtiment reste à créer.').isVisible().catch(() => false));
       check('Demandes : bouton « Certifier ce bâtiment »', await page.getByRole('button', { name: /Certifier ce bâtiment/ }).isVisible().catch(() => false));
+      await page.getByRole('button', { name: /Refuser la demande/ }).click().catch(() => {});
+      check('refus : le motif est exigé (10 caractères)', await page.getByRole('button', { name: 'Confirmer le refus' }).isDisabled().catch(() => false));
+      await page.getByPlaceholder(/Ex\. le bâtiment/).fill('Bâtiment non identifiable : indiquez un repère précis.').catch(() => {});
+      await page.getByRole('button', { name: 'Confirmer le refus' }).click().catch(() => {});
+      await page.waitForTimeout(1200);
+      check('refus : la décision et son motif sont envoyés à la base', Boolean(writes.find((w) => w.method === 'POST' && w.table === 'rpc' && /p_note/.test(w.body))), JSON.stringify(writes.map((w) => w.table)));
       check('Revue : onglet « Modifications »', await page.getByRole('button', { name: /^Modifications/ }).isVisible().catch(() => false));
       if (HAS_TOKEN) {
         await page.getByRole('button', { name: /Certifier ce bâtiment/ }).click();
@@ -252,6 +259,8 @@ async function main() {
         await sheetBtn.click().catch(() => {});
         check('la fiche s’ouvre avec historique et modification', await page.getByRole('dialog', { name: 'Fiche du bâtiment' }).isVisible({ timeout: 5000 }).catch(() => false));
         await page.getByRole('button', { name: /Modifier|Proposer une modification/ }).first().click().catch(() => {});
+        check('la fiche propose de retracer le contour', await page.getByRole('button', { name: /Retracer le contour/ }).isVisible().catch(() => false));
+        check('la fiche propose d’éditer les unités (génération, unité unique)', await page.getByRole('button', { name: 'Unité unique' }).isVisible().catch(() => false));
         check('la modification exige une justification', await page.getByText(/Justification/).isVisible().catch(() => false) && await page.getByRole('button', { name: /^Appliquer|^Proposer/ }).isDisabled().catch(() => false));
         if (process.env.E2E_SHOTS) await page.screenshot({ path: `${process.env.E2E_SHOTS}/fiche.png` });
       }

@@ -27,6 +27,9 @@ export interface Declaration {
   location_floor: string | null;
   location_door: string | null;
   certification_requested_at: string | null;
+  certification_status: 'demandee' | 'refusee' | null;
+  certification_note: string | null;
+  certification_decided_at: string | null;
   certified_building_id: string | null;
   unit_id: string | null;
   link_method: 'gps_auto' | 'retroactif' | 'agent' | 'resident' | null;
@@ -46,7 +49,7 @@ export interface Occupancy {
 }
 
 const DECL_COLUMNS =
-  'id,user_id,detected_level,hailand_code,gps_point,anchor_point,osm_polygon_geom,commune_id,quartier_id,admin_source,declared_label,declared_building_type,declared_floor_count,declared_units_per_floor,declared_landmark,declared_note,location_floor,location_door,certification_requested_at,certified_building_id,unit_id,link_method,linked_at,created_at';
+  'id,user_id,detected_level,hailand_code,gps_point,anchor_point,osm_polygon_geom,commune_id,quartier_id,admin_source,declared_label,declared_building_type,declared_floor_count,declared_units_per_floor,declared_landmark,declared_note,location_floor,location_door,certification_requested_at,certification_status,certification_note,certification_decided_at,certified_building_id,unit_id,link_method,linked_at,created_at';
 
 /** Déclarations actives (lecture réservée aux agents par la base). */
 export async function loadDeclarations(): Promise<Declaration[]> {
@@ -65,20 +68,22 @@ export async function loadOccupancy(): Promise<Record<string, Occupancy>> {
 }
 
 export async function loadUnits(buildingId: string): Promise<BuildingUnit[]> {
-  const { data, error } = await supabase.from('building_units').select('*').eq('building_id', buildingId).order('sort');
+  const { data, error } = await supabase.from('building_units').select('*').eq('building_id', buildingId).eq('active', true).order('sort');
   if (error) throw error;
   return (data ?? []) as BuildingUnit[];
 }
 
-/** Enregistre la liste complète des unités d'un bâtiment : ajoute/met à jour, puis retire celles qui n'y figurent plus. */
+/** Enregistre les unités d'un bâtiment qui n'en a pas encore. */
 export async function saveUnits(buildingId: string, units: UnitInput[]): Promise<void> {
+  // Création seulement : un bâtiment déjà équipé se modifie par révision (fiche du bâtiment → Modifier → Unités).
   const { error } = await supabase.rpc('fn_sync_building_units', { p_building: buildingId, p_units: units });
   if (error) throw error;
-  const keep = units.map((u) => u.code);
-  let q = supabase.from('building_units').delete().eq('building_id', buildingId);
-  if (keep.length) q = q.not('code', 'in', `(${keep.map((c) => `"${c.replace(/"/g, '')}"`).join(',')})`);
-  const { error: delError } = await q;
-  if (delError) throw delError;
+}
+
+/** Refus motivé d'une demande de certification : le résident voit le motif dans NavigationX et peut redemander. */
+export async function refuseRequest(declarationId: string, note: string): Promise<void> {
+  const { error } = await supabase.rpc('fn_agent_refuse_request', { p_declaration: declarationId, p_note: note });
+  if (error) throw error;
 }
 
 /** Rattachement manuel par un agent (bâtiment certifié obligatoire) ; `buildingId = null` détache. */

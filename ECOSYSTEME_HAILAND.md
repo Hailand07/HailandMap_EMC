@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 42** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 43** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -437,8 +437,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-06 (révision 42).**
+**Dernière mise à jour de cette section : 2026-10-06 (révision 43).**
 
+- **Fait (2026-10-06, suite)** : contour et unités d'un bâtiment existant modifiables par révision justifiée ; refus motivé d'une demande de certification (visible par le résident dans NavigationX, qui peut redemander) ; **NavigationX envoie désormais la demande de vérification** (avant : aucune demande n'existait). Unités retirées = désactivées (`building_units.active`). Plus rien de la liste « reste à faire » du 2026-10-06. **Reste possible** : notification poussée hors application (SMS), tests sur un vrai téléphone, sauvegarde automatique de la base, décision sur les 273 937 bâtiments OSM.
 - **Fait (2026-10-06, HailandMap)** : certification demandée par un résident = parcours distinct (bandeau, pré-remplissage, rattachement garanti) ; bâtiments enregistrés reconnus sur la carte (« Voir la fiche ») ; masquage OSM automatique sous tout bâtiment ou concession enregistré ; fiche du bâtiment avec historique ; **modifications contrôlées** en base (`building_revisions`, un bâtiment certifié ne se modifie plus que par révision justifiée ; agent = proposition, administrateur = décision). Voir `HAILANDMAP.md`. **Reste** : modifier le contour et les unités d'un bâtiment existant par révision ; refuser une demande de certification (motif au résident).
 - **Fait (2026-10-05)** : NavigationX affiche l'avis « votre bâtiment vient d'être certifié » et un style propre au niveau 3 sur la carte (vert, anneau, ✓). Reste côté rattachement : notification hors application (SMS/téléphone), test sur un vrai téléphone. **Prochaine étape : HailandX.**
 - **Fait (2026-10-05, étape 2 du §16.5)** : NavigationX lit le rattachement (niveau effectif, choix du bâtiment dans une concession, choix de l'unité). **Prochaine étape : HailandX** (application séparée, paiement à la livraison + Orange Money) — ou, avant, le test sur un vrai téléphone et la notification « votre bâtiment vient d'être certifié ».
@@ -636,3 +637,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-05 | Révision 40 : étape 2 du §16.5 codée dans NavigationX (§16.7). |
 | 2026-10-05 | Révision 41 : avis de certification et style niveau 3 dans NavigationX. |
 | 2026-10-06 | Révision 42 : parcours de certification distinct, masquage OSM automatique, modifications contrôlées des bâtiments (`building_revisions`). |
+| 2026-10-06 | Révision 43 : contour et unités par révision, refus motivé, demande de vérification dans NavigationX. |

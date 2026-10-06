@@ -83,7 +83,7 @@ export default function App() {
     }
   }, [mapNotification]);
 
-  const { buildings, setBuildings, zones, setZones, validations, profiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit, declarations, occupancy, attachmentError, syncAttachments, handleLinkDeclaration } = useRegistry(setMapNotification);
+  const { buildings, setBuildings, zones, setZones, validations, profiles, loadError, loading, syncData, handleApproveBuilding, handleRejectBuilding, handleRequestVisit, declarations, occupancy, attachmentError, syncAttachments, handleLinkDeclaration, handleRefuseRequest } = useRegistry(setMapNotification);
   const [assistantStarted, setAssistantStarted] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -553,6 +553,14 @@ export default function App() {
 
   // Fiche détaillée du bâtiment ENREGISTRÉ sélectionné (historique, modification contrôlée).
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Retraçage du contour d'un bâtiment enregistré (modification contrôlée) : tracé en cours, puis contour en attente de justification.
+  const [contourTracing, setContourTracing] = useState(false);
+  const contourTracingRef = useRef(false);
+  const [pendingContour, setPendingContour] = useState<GeoJSON.Polygon | null>(null);
+  const [sheetTab, setSheetTab] = useState<'fiche' | 'historique' | 'modifier' | undefined>(undefined);
+  useEffect(() => {
+    contourTracingRef.current = contourTracing;
+  }, [contourTracing]);
   // Certification demandée par un résident (NavigationX) : parcours distinct d'un enregistrement ordinaire.
   const [certification, setCertification] = useState<Declaration | null>(null);
   
@@ -1434,6 +1442,18 @@ export default function App() {
   const handleFinalizeCustomDraw = useCallback(() => {
     const points = drawPointsRef.current;
     if (points.length < 3) return;
+
+    // Retraçage du contour d'un bâtiment enregistré : le polygone revient à la fiche (justification), rien n'est créé.
+    if (contourTracingRef.current) {
+      setPendingContour({ type: 'Polygon', coordinates: [[...points, points[0]]] });
+      setContourTracing(false);
+      setSheetTab('modifier');
+      setIsDrawMode(false);
+      setDrawPoints([]);
+      const drawSource = mapRef.current?.getSource('draw-source') as mapboxgl.GeoJSONSource | undefined;
+      drawSource?.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
 
     // Convertir drawPoints en polygone GeoJSON (avec point initial refermé en fin)
     const coordinates = [...points, points[0]];
@@ -2666,15 +2686,33 @@ export default function App() {
         {activeAdminView === 'carte' && !assistantStarted && !clickedCoords && selectedBuilding && (
           !sheetOpen && <BuildingCard map={mapRef.current} building={selectedBuilding} residents={occupancy[selectedBuilding.id]?.residents ?? 0} onClose={() => setSelectedBuilding(null)} onOpenSheet={() => setSheetOpen(true)} />
         )}
-        {activeAdminView === 'carte' && !assistantStarted && selectedBuilding && sheetOpen && (
-          <BuildingSheet
-            building={selectedBuilding}
-            residents={occupancy[selectedBuilding.id]?.residents ?? 0}
-            profiles={profiles}
-            onClose={() => setSheetOpen(false)}
-            onOpenRegistre={() => setActiveAdminView('batiments')}
-            onChanged={() => syncData()}
-          />
+        {activeAdminView === 'carte' && !assistantStarted && selectedBuilding && (sheetOpen || contourTracing) && (
+          <div className={contourTracing ? 'hidden' : undefined}>
+            <BuildingSheet
+              building={selectedBuilding}
+              residents={occupancy[selectedBuilding.id]?.residents ?? 0}
+              profiles={profiles}
+              onClose={() => { setSheetOpen(false); setPendingContour(null); setSheetTab(undefined); }}
+              onOpenRegistre={() => setActiveAdminView('batiments')}
+              onChanged={() => syncData()}
+              pendingContour={pendingContour}
+              initialTab={sheetTab}
+              onClearContour={() => setPendingContour(null)}
+              onStartContour={() => {
+                setPendingContour(null);
+                setContourTracing(true);
+                setIsSelectionMode(true);
+                setDrawPoints([]);
+                setIsDrawMode(true);
+              }}
+            />
+          </div>
+        )}
+        {contourTracing && selectedBuilding && (
+          <div role="status" className="absolute left-1/2 top-16 z-40 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-hx-warn/50 bg-hx-panel px-4 py-2.5 text-[13px] text-hx-text shadow-2xl">
+            <span><b className="text-hx-warn">Retraçage du contour</b> · {selectedBuilding.landmark_note || selectedBuilding.admin_code || selectedBuilding.id} — un clic par angle, double-clic pour terminer</span>
+            <button type="button" onClick={() => { setContourTracing(false); setIsDrawMode(false); setDrawPoints([]); setSheetTab('modifier'); }} className="h-8 rounded-md border border-hx-line2 px-3 text-[12.5px]">Annuler</button>
+          </div>
         )}
 
         {/* Atelier v2 : où je suis et où en est le registre (haut gauche) */}
@@ -2952,6 +2990,7 @@ export default function App() {
                   onOpenPoint={handleOpenPointOnMap}
                   onLinkDeclaration={handleLinkDeclaration}
                   onCertify={handleCertify}
+                  onRefuseRequest={handleRefuseRequest}
                   onRegistryChanged={() => syncData()}
                 />
             </motion.div>

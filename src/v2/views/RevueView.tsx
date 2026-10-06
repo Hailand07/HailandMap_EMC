@@ -21,6 +21,7 @@ interface Props {
   onLinkDeclaration: (declarationId: string, buildingId: string | null) => void | Promise<void>;
   /** Lance la certification demandée par un résident (parcours distinct d'un enregistrement ordinaire). */
   onCertify: (declarationId: string) => void;
+  onRefuseRequest: (declarationId: string, note: string) => void | Promise<void>;
   /** Relit le registre après une modification appliquée. */
   onRegistryChanged: () => void;
 }
@@ -35,7 +36,7 @@ const CHECKS = [
 ];
 
 /** Module Revue (maquette) : file des demandes, plan du bâtiment, liste de contrôle et décision. */
-export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onApprove, onReject, onRequestVisit, declarations, declarationsError, onOpenPoint, onLinkDeclaration, onCertify, onRegistryChanged }) => {
+export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, onApprove, onReject, onRequestVisit, declarations, declarationsError, onOpenPoint, onLinkDeclaration, onCertify, onRefuseRequest, onRegistryChanged }) => {
   const [pendingMods, setPendingMods] = useState<number | null>(null);
   useEffect(() => {
     loadPendingRevisions().then((r) => setPendingMods(r.length)).catch(() => {});
@@ -56,7 +57,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
     };
   }, [buildings]);
   const list = tab === 'demandes' || tab === 'modifications' ? [] : groups[tab];
-  const pendingDeclarations = declarations.filter((d) => !d.certified_building_id).length;
+  const pendingDeclarations = declarations.filter((d) => !d.certified_building_id && d.certification_status !== 'refusee').length;
   const selected = list.find((b) => b.id === selectedId) ?? list[0] ?? null;
 
   useEffect(() => {
@@ -129,7 +130,7 @@ export const RevueView: React.FC<Props> = ({ buildings, profiles, onOpenOnMap, o
     return (
       <div className="flex h-full min-h-0 flex-col bg-hx-base text-hx-text">
         <div className="flex gap-1 border-b border-hx-line bg-hx-panel p-3.5">{tabs}</div>
-        <DemandesPanel declarations={declarations} buildings={buildings} error={declarationsError} onOpenPoint={onOpenPoint} onLink={onLinkDeclaration} onCertify={onCertify} />
+        <DemandesPanel declarations={declarations} buildings={buildings} error={declarationsError} onOpenPoint={onOpenPoint} onLink={onLinkDeclaration} onCertify={onCertify} onRefuse={onRefuseRequest} />
       </div>
     );
   }
