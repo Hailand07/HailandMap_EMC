@@ -4,8 +4,8 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 45** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
-> **Dernière mise à jour :** 2026-10-04 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
+> **Révision : 46** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Dernière mise à jour :** 2026-10-08 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
 
@@ -22,6 +22,7 @@
 | Ajouter une **fonctionnalité** | §12 (procédure), puis la fiche du projet concerné |
 | Savoir ce qui **reste à synchroniser** entre dépôts | §13 |
 | **Rattachement des personnes, certification officielle, HailandX** | §16 |
+| **Stratégie de déploiement**, partenariats, niveau 3 payant, positionnement envers l'État | §17 |
 
 ---
 
@@ -437,7 +438,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-06 (révision 45).**
+**Dernière mise à jour de cette section : 2026-10-08 (révision 46).**
+
+- **Fait (2026-10-08, conseil, aucun code)** : le fondateur a demandé comment déployer l'écosystème (partenariats secours / banques / entreprises, niveau 3 payant et plaque, inscription de vendeurs avant lancement, positionnement envers l'État). Avis consigné au **§17**. **Prochaine étape** : le fondateur tranche les décisions du §17.8 ; produit éventuel : lien de partage sans compte (§17.7).
 
 - **Fait (2026-10-06, NavigationX — phase F)** : enregistrement guidé terminé — croix de la vue satellite réparée, feuille du bas réduite par défaut, **tests de bout en bout** (`npm run test:e2e`, 20 vérifications). **Prochaine étape** : essai complet sur un vrai téléphone après déploiement ; recherche spatiale des bâtiments certifiés en base quand le registre grandira ; puis HailandX.
 
@@ -608,6 +611,67 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 
 ---
 
+## 17. Stratégie de déploiement, partenariats et positionnement envers l'État 💡 (avis de Claude demandé par le fondateur, 2026-10-08 — **conseil, rien n'est décidé ni codé**)
+
+> Légende : 💡 proposé · ⚠️ à vérifier. Les exemples d'autres pays viennent de connaissances générales (pas vérifiées en session) : **vérifier chiffres et dates avant de les citer devant un partenaire**. Les points à décider par le fondateur sont repris en §17.8.
+
+### 17.1 Constat de départ
+- Les projets d'adressage qui ont échoué avaient souvent une bonne technologie dans un pays sans adresses : ce qui a manqué, c'est **l'usage quotidien**. Une adresse ne sert que le jour où quelqu'un doit vous trouver ; si ce jour est rare, personne ne revient sur l'application.
+- Précédents (⚠️ à vérifier) : **GhanaPostGPS** (Ghana, 2017 — fort soutien de l'État et campagne nationale, mais usage réel faible et polémiques sur le contrat) ; **what3words** (beaucoup de partenariats d'urgence et de postes nationales, mais modèle économique longtemps fragile) ; **Plus Codes** (gratuit et solide, jamais adopté par le grand public) ; projets de plaques de rues financés par des bailleurs en Afrique de l'Ouest, souvent mal entretenus ensuite. ⚠️ L'état des projets d'adressage existants à Conakry est inconnu : un projet existant est un concurrent **ou** un allié, à identifier.
+- **Conclusion** : les mêmes questions se posent ; l'avantage possible de Hailand est de **commencer par l'usage** (livraison, se faire trouver) plutôt que par le prestige (État, télévision).
+
+### 17.2 Partenariats — comment ils fonctionneraient vraiment
+- **Entreprises (livraison, e-commerce, factures à domicile)** : premier marché, le plus rapide. Livreurs, VTC, vendeurs WhatsApp/Facebook, pharmacies, distributeurs d'eau ou de gaz, fournisseurs d'énergie perdent du temps et de l'argent en appels « vous êtes où exactement ? ». **Potentiel réel : dans l'usage quotidien, pas dans l'adresse « officielle »** ; l'officiel vient ensuite comme une conséquence.
+- **Secours et sécurité** : faisable, mais pas en premier. Un service public a besoin d'une centrale d'appels, d'un opérateur qui saisit l'adresse et de véhicules qui s'en servent ; ⚠️ ces maillons sont probablement faibles en Guinée, une convention sans changement de pratique n'apporte ni vies sauvées ni utilisateurs. Commencer par les **acteurs privés** : cliniques et ambulances privées, sociétés de gardiennage, assureurs santé (problème réel « on ne trouve pas le patient », décision rapide, capacité à payer). Mécanique : le client partage son code → le partenaire l'ouvre dans un **lien NavigationX sans compte** → le chauffeur est guidé jusqu'à la porte (aucune intégration informatique lourde au départ). Avec le public (protection civile, police) : **un pilote dans une seule commune**, mesuré par « temps pour trouver l'adresse, avant / après ».
+- **Banques** : besoin réel (vérification d'adresse du client, le KYC, avec justificatif de domicile difficile à obtenir). Le blocage est **juridique, pas technique** : la banque n'acceptera l'attestation que si la réglementation de la **BCRG** le permet ou si elle l'accepte sous sa propre responsabilité comme élément supplémentaire (⚠️ à vérifier). Commencer par les **microfinances** et le **mobile money** (Orange Money, MTN MoMo : contrôles plus souples, clients souvent sans adresse). Se présenter comme « vérification d'adresse sur le terrain », pas comme « adresse officielle ». **Modèle : la banque paie** la vérification niveau 3 de ses clients (elle paie déjà des agents pour cela ; Hailand coûte moins cher).
+
+### 17.3 Niveau 3 payant et plaque
+- **Logique retenue : le niveau 3 coûte cher (agent, déplacement, plaque), il est normal qu'il soit payant**, avec deux garde-fous :
+  1. **Ne jamais mettre l'accès aux secours derrière un paiement.** Indéfendable moralement et commercialement (l'État et les ONG refuseraient, la presse attaquerait). Tous les niveaux peuvent être partagés aux secours avec l'accord de l'utilisateur ; le niveau 3 apporte **la précision et la preuve**, pas l'accès.
+  2. **Faire payer le service rendu, pas l'existence de l'adresse** : visite de l'agent, attestation, plaque, code reconnu par les partenaires, priorité au support.
+- **Réduire le coût** : campagnes **par quartier** (un agent certifie 30 à 50 bâtiments par jour dans une même zone) ; **payer par bâtiment** (propriétaire ou bailleur une fois, tous les occupants en profitent — cohérent avec la règle « le niveau 3 certifie le bâtiment, pas l'occupant », §16.6 décision 5) ; **faire payer un tiers** (banque, assureur, énergie, ONG, mairie) ; tarifs différents commerce / résidence ; **plaque en option** au départ (l'attestation numérique et le code suffisent à la plupart des usages).
+
+### 17.4 Avant le lancement : inscrire des vendeurs
+- **Bonne idée, à condition de la concentrer** : une seule **zone pilote** (une commune, quelques quartiers de Ratoma ou Kaloum). Mieux vaut 300 vendeurs et 2 000 clients dans 3 km² que 1 000 inscrits dispersés : ce qui compte est la **densité** (un livreur trouve des adresses Hailand à chaque course).
+- **Geste viral** : le vendeur affiche son code Hailand (statut WhatsApp, publications) et demande le code du client pour livrer. Il faut un **lien qui marche sans application ni compte** — c'est le point le plus important (le client ne doit rien installer pour être trouvé).
+- **Les livreurs sont les meilleurs ambassadeurs** (ce sont eux qui gagnent du temps) : les recruter tôt, éventuellement avec une petite prime.
+- **Risque** : annoncer trop tôt un produit pas fiable (adresse fausse, lenteur sur téléphone d'entrée de gamme, consommation de données) : une mauvaise première expérience se répète vite. Communiquer **après** vérification sur le terrain.
+- **À mesurer** : % de livraisons trouvées **sans appel téléphonique** ; temps gagné par course. Ces chiffres convaincront ensuite banques, secours et État.
+- Partenariats avant lancement : oui pour les **lettres d'intention** et les pilotes ; viser peu de partenaires réellement actifs plutôt que beaucoup de logos.
+
+### 17.5 Se positionner envers l'État
+- **L'intérêt de l'État est réel** : impôts locaux, recensement, planification, sécurité, élections, foncier ; sujet que les bailleurs financent volontiers. Mais l'État peut **soutenir, imposer ses conditions ou confier le marché à un autre**.
+- **Ne pas dire « adresse officielle du pays » tant qu'aucun texte ne le dit** : une campagne télévisée avec ce slogan sans base légale expose à un démenti public, voire une interdiction, et à un ennemi dans l'administration.
+- **Se positionner en partenaire technique, pas en remplaçant** : les **communes** gardent le nom des rues et des numéros ; La Poste guinéenne et le ministère chargé du numérique ou de la ville (⚠️ intitulés à vérifier) restent les autorités ; Hailand fournit l'outil, les relevés et les données.
+- **Commencer par un pilote avec une mairie**, par protocole d'accord : Hailand fournit gratuitement la carte des bâtiments certifiés de la zone ; la commune reconnaît l'attestation comme justificatif et facilite l'accès des agents.
+- **Préparer la question de la souveraineté des données** (hébergement, propriété, récupération) : réponse claire = copie remise à l'État + règles d'accès écrites.
+- **Ensuite seulement** : arrêté ou décret reconnaissant le système, puis campagne nationale (télévision, ce peut être l'État qui la fait avec Hailand).
+- **Risques** : dépendre d'un seul interlocuteur politique (un remaniement peut tout arrêter) ; se voir exiger les données sans contrepartie. **Garder un modèle qui vit sans l'État** (entreprises, livraison) : l'État est un accélérateur, pas la survie.
+
+### 17.6 Séquence recommandée
+| Phase | Durée indicative | Objectif | Preuve à obtenir |
+|---|---|---|---|
+| 1. Pilote terrain | 3 à 6 mois | 1 zone dense : vendeurs + livreurs + premières certifications niveau 3 par campagne de quartier | % de livraisons sans appel, temps gagné |
+| 2. Premiers payeurs | en parallèle | 2 ou 3 partenaires privés (livraison, clinique ou sécurité privée, une microfinance) | premier revenu récurrent |
+| 3. Convention communale | après ~3 mois de chiffres | protocole d'accord avec la mairie de la zone pilote | attestation reconnue localement |
+| 4. Extension | 6 à 12 mois | autres communes, banques plus importantes, pilote secours public | modèle reproductible, coût par certification maîtrisé |
+| 5. Reconnaissance nationale | ensuite | texte officiel, puis campagne « adresse numérique » avec l'État | — |
+
+### 17.7 Conséquences possibles pour le produit 💡 (non codées)
+- **Lien de partage sans compte** (ouvrir une adresse par son code, guidage jusqu'à la porte) : prérequis de la livraison, des secours privés et de la viralité.
+- **Attestation de niveau 3** (numérique, vérifiable par code) et **plaque en option**.
+- **Accès partenaires / API pro** (vérifier un code, obtenir le point d'accès) ; **partage aux secours** avec accord de l'utilisateur.
+- **Mesure** : événements « livraison trouvée sans appel » pour produire les chiffres du pilote.
+- Lien avec HailandX (§16, vitrines et commandes) : les vendeurs de la zone pilote en sont les premiers utilisateurs.
+
+### 17.8 Décisions ouvertes pour le fondateur
+1. Zone pilote (commune / quartiers) et premier type de partenaire payeur (livraison, clinique, microfinance).
+2. Qui paie le niveau 3 (particulier, bailleur, tiers) et grille de prix ; plaque incluse ou en option.
+3. Vérifier les projets d'adressage déjà existants à Conakry (concurrent ou allié) et les textes en vigueur (BCRG pour les banques, autorité de l'adressage) avant tout discours « officiel ».
+4. Moment de l'approche de l'État : après les chiffres du pilote (recommandé) ou avant.
+
+---
+
 ## 11. Journal des mises à jour
 
 | Date | Changement |
@@ -646,3 +710,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-06 | Révision 43 : contour et unités par révision, refus motivé, demande de vérification dans NavigationX. |
 | 2026-10-06 | Révision 44 : décision 5 du §16.6 (rattachement à un bâtiment certifié sur confirmation visuelle, appliqué en base) ; enregistrement guidé de NavigationX (§14). |
 | 2026-10-06 | Révision 45 : §14 — enregistrement guidé de NavigationX terminé (phase F, tests de bout en bout). |
+| 2026-10-08 | Révision 46 : §17 — stratégie de déploiement, partenariats (secours, banques, entreprises), niveau 3 payant et plaque, vendeurs avant lancement, positionnement envers l'État (avis, rien de codé). |
