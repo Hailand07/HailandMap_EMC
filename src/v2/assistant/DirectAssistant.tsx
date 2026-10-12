@@ -77,6 +77,11 @@ export const DirectAssistant: React.FC<DirectAssistantProps> = (props) => {
       title={props.prefill ? "Certification du bâtiment" : "Nouveau bâtiment"}
       code={{ main: code, sub: f.adminHierarchy.adminAddressCode, place }}
       onQuit={f.onCancel}
+      mapTask={
+        f.isPickingEntrance
+          ? { text: 'Touchez la carte, près du mur du bâtiment, pour poser l’entrée.', actions: [{ label: 'Annuler', onClick: f.handleCancelPickEntrance }] }
+          : null
+      }
       back={{ label: idx === 0 ? 'Annuler' : 'Précédent', onClick: () => (idx === 0 ? f.onCancel() : setStage(order[idx - 1])) }}
       next={
         stage === 'verification'

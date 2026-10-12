@@ -105,6 +105,8 @@ export const AtelierTopBar: React.FC<TopBarProps> = ({ view, adminName, onOpenSe
 };
 
 interface RailProps {
+  /** Téléphone : masquée pendant l'assistant de création (le panneau prend tout le bas de l'écran). */
+  hidden?: boolean;
   view: View;
   onViewChange: (v: View) => void;
   pendingCount: number;
@@ -112,11 +114,11 @@ interface RailProps {
 }
 
 /** Rail vertical des modules (Atelier, Revue, Registre, Territoire, Pilotage). */
-export const ModuleRail: React.FC<RailProps> = ({ view, onViewChange, pendingCount, conflictCount }) => {
+export const ModuleRail: React.FC<RailProps> = ({ hidden, view, onViewChange, pendingCount, conflictCount }) => {
   const current = moduleOfView(view).id;
   const badge = (id: ModuleId) => (id === 'revue' ? pendingCount + conflictCount : 0);
   return (
-    <nav aria-label="Modules" className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-slate-950 bg-slate-900 py-2.5 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-50 max-md:h-14 max-md:w-full max-md:flex-row max-md:justify-around max-md:border-r-0 max-md:border-t max-md:py-0">
+    <nav aria-label="Modules" className={`${hidden ? 'max-md:hidden ' : ''}flex w-14 shrink-0 flex-col items-center gap-1 border-r border-slate-950 bg-slate-900 py-2.5 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-50 max-md:h-14 max-md:w-full max-md:flex-row max-md:justify-around max-md:border-r-0 max-md:border-t max-md:py-0`}>
       {MODULES.map((m) => {
         const on = m.id === current;
         const n = badge(m.id);
@@ -203,6 +205,8 @@ const TOOL_ICONS: Record<AtelierTool, React.ReactNode> = {
 };
 
 interface ToolbarProps {
+  /** Téléphone : colonne d'outils masquée pendant l'assistant de création (la carte reste libre). */
+  hiddenOnPhone?: boolean;
   tool: AtelierTool | null;
   onTool: (t: AtelierTool) => void;
   is3D: boolean;
@@ -212,8 +216,8 @@ interface ToolbarProps {
 }
 
 /** Dock d'outils en bas de la carte (Atelier v2) : outils avec nom et raccourci, vue à plat / en perspective, actions du tracé libre. Sur téléphone : colonne à gauche. */
-export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onToggle3D, drawing }) => (
-  <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:bottom-auto max-md:left-3 max-md:top-3 max-md:max-w-none max-md:translate-x-0 max-md:items-start">
+export const AtelierToolbar: React.FC<ToolbarProps> = ({ hiddenOnPhone, tool, onTool, is3D, onToggle3D, drawing }) => (
+  <div className={`${hiddenOnPhone ? 'max-md:hidden ' : ''}pointer-events-none absolute bottom-4 left-1/2 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:bottom-auto max-md:left-3 max-md:top-3 max-md:max-w-none max-md:translate-x-0 max-md:items-start`}>
     {drawing && (
       <div className="pointer-events-auto flex flex-wrap items-center gap-3 rounded-xl border border-hx-line2 bg-hx-panel px-3.5 py-2 text-[12.5px] text-hx-dim shadow-[0_8px_24px_rgba(0,0,0,0.35)] max-md:fixed max-md:inset-x-3 max-md:bottom-[68px]">
         <span>
@@ -269,14 +273,93 @@ export const AtelierToolbar: React.FC<ToolbarProps> = ({ tool, onTool, is3D, onT
   </div>
 );
 
+/** Hauteur du panneau de l'assistant sur téléphone : réduit (en-tête + actions), mi-hauteur, plein écran. */
+export type SheetMode = 'peek' | 'half' | 'full';
+interface SheetContextValue {
+  mode: SheetMode;
+  setMode: (m: SheetMode) => void;
+  /** Tâche sur la carte en cours (poser un point, tracer) : le panneau se réduit à une barre pour laisser toute la carte. */
+  setTask: (on: boolean) => void;
+}
+const SheetContext = React.createContext<SheetContextValue>({ mode: 'half', setMode: () => {}, setTask: () => {} });
+export const useAssistantSheet = () => React.useContext(SheetContext);
+
 interface AssistantProps {
   children: React.ReactNode;
+  /** Hauteur occupée par le panneau en bas de l'écran (px, 0 sur ordinateur) : sert à garder le bâtiment visible au-dessus. */
+  onHeight?: (px: number) => void;
 }
 
-/** Tiroir de droite de l'Atelier pendant une création : contient l'assistant (étapes, codes, actions). */
-export const AssistantAside: React.FC<AssistantProps> = ({ children }) => (
-  <aside aria-label="Assistant de création" className="relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text max-md:fixed max-md:inset-x-0 max-md:bottom-14 max-md:z-[45] max-md:h-[58vh] max-md:h-[58dvh] max-md:w-auto max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-[0_-12px_32px_rgba(0,0,0,0.45)]">
-    {/* Colonne : bandeau d'origine éventuel puis assistant, qui prend le reste de la hauteur (son pied de page reste visible). */}
-    <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-  </aside>
-);
+const NEXT_UP: Record<SheetMode, SheetMode> = { peek: 'half', half: 'full', full: 'full' };
+const NEXT_DOWN: Record<SheetMode, SheetMode> = { full: 'half', half: 'peek', peek: 'peek' };
+
+/**
+ * Tiroir de l'assistant de création. Ordinateur : colonne de droite. Téléphone : panneau en bas à trois hauteurs (poignée : toucher ou glisser),
+ * qui se réduit à une barre pendant une tâche sur la carte.
+ */
+export const AssistantAside: React.FC<AssistantProps> = ({ children, onHeight }) => {
+  const [mode, setMode] = React.useState<SheetMode>('half');
+  const [task, setTask] = React.useState(false);
+  const ref = React.useRef<HTMLElement | null>(null);
+  const drag = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !onHeight) return;
+    const mobile = () => window.matchMedia('(max-width: 767px)').matches;
+    const report = () => onHeight(mobile() ? Math.round(el.getBoundingClientRect().height) : 0);
+    report();
+    const ro = new ResizeObserver(report);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      onHeight(0);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Pendant une tâche sur la carte, les repères posés sur la carte ne captent plus les touches (ils masqueraient le mur visé).
+  React.useEffect(() => {
+    document.body.dataset.sheetTask = task ? 'true' : 'false';
+    return () => {
+      delete document.body.dataset.sheetTask;
+    };
+  }, [task]);
+
+  const value = React.useMemo(() => ({ mode, setMode, setTask }), [mode]);
+  return (
+    <SheetContext.Provider value={value}>
+      <aside
+        ref={ref}
+        aria-label="Assistant de création"
+        data-mode={mode}
+        data-task={task ? 'true' : 'false'}
+        className="hx-sheet relative z-40 flex h-full w-[400px] shrink-0 flex-col border-l border-hx-line bg-hx-panel text-hx-text"
+      >
+        {/* Poignée (téléphone) : toucher = alterner réduit / mi-hauteur ; glisser vers le haut ou le bas = agrandir ou réduire. */}
+        <button
+          type="button"
+          aria-label="Agrandir ou réduire l’assistant"
+          onClick={() => setMode((m) => (m === 'peek' ? 'half' : m === 'half' ? 'full' : 'half'))}
+          onPointerDown={(e) => { drag.current = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }}
+          onPointerUp={(e) => {
+            const y0 = drag.current;
+            drag.current = null;
+            if (y0 === null) return;
+            const dy = e.clientY - y0;
+            if (Math.abs(dy) > 28) {
+              setMode((m) => (dy < 0 ? NEXT_UP[m] : NEXT_DOWN[m]));
+              e.preventDefault();
+            }
+          }}
+          style={{ touchAction: 'none' }}
+          className="hx-sheet-handle flex h-6 w-full shrink-0 items-center justify-center md:hidden"
+        >
+          <span className="h-1 w-10 rounded-full bg-hx-line2" />
+        </button>
+        {/* Colonne : bandeau d'origine éventuel puis assistant, qui prend le reste de la hauteur (son pied de page reste visible). */}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </aside>
+    </SheetContext.Provider>
+  );
+};

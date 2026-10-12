@@ -96,6 +96,28 @@ export const CourtyardAssistant: React.FC<CourtyardAssistantProps> = (props) => 
       title="Nouvelle concession"
       code={{ main: motherCode, sub: null, place: f.detectedCommune }}
       onQuit={f.onCancel}
+      mapTask={
+        stage === 'structure' && tracing
+          ? {
+              text:
+                f.tracingMode === 'smart'
+                  ? f.hasCapturedClick
+                    ? `Bâtiment ${letter(f.tracingIndex)} repéré : ${Math.round(f.activeChildArea)} m². Retenez-le ou touchez-en un autre.`
+                    : `Bâtiment ${letter(f.tracingIndex)} : touchez-le sur la carte, à l’intérieur de l’enceinte.`
+                  : `Bâtiment ${letter(f.tracingIndex)} : touchez les sommets un à un (${f.drawPoints?.length ?? 0} posé${(f.drawPoints?.length ?? 0) > 1 ? 's' : ''}).`,
+              actions: [
+                { label: 'Annuler', onClick: stopTracing },
+                { label: f.tracingMode === 'smart' ? 'Tracé libre' : 'Clic auto', onClick: () => f.handleToggleTracingMode(f.tracingMode === 'smart' ? 'draw' : 'smart') },
+                ...(f.tracingMode === 'draw' ? [{ label: 'Défaire', onClick: () => f.setDrawPoints?.((pts: [number, number][]) => pts.slice(0, -1)), disabled: (f.drawPoints?.length ?? 0) === 0 }] : []),
+                f.tracingMode === 'smart'
+                  ? { label: 'Retenir', onClick: () => f.handleConfirmChild(), primary: true, disabled: !f.hasCapturedClick }
+                  : { label: 'Valider', onClick: () => f.handleValidateFreehandDraw(), primary: true, disabled: (f.drawPoints?.length ?? 0) < 3 },
+              ],
+            }
+          : stage === 'acces' && f.isPickingCourtyardEntrance
+            ? { text: 'Touchez la carte, sur le mur de la cour, pour poser le portail.', actions: [{ label: 'Annuler', onClick: f.handleCancelPickCourtyardEntrance }] }
+            : null
+      }
       back={{ label: idx === 0 ? 'Annuler' : 'Précédent', onClick: () => { f.setActiveChildId(null); idx === 0 ? f.onCancel() : setStage(order[idx - 1]); } }}
       next={
         stage === 'verification'

@@ -1,6 +1,6 @@
 import { buildUnits } from './units';
 import type { RegistrationStage } from '../shell/registrationStage';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Home, Building2, Store, Landmark, Hotel, ShieldAlert,
   Tent, 
@@ -148,17 +148,16 @@ export function useDirectBuildingForm({
   const [doorColor, setDoorColor] = useState<string>('');
   const [intercomCode, setIntercomCode] = useState<string>('');
 
-  // Nettoyage du handler au démontage
+  // Nettoyage du handler au démontage UNIQUEMENT. (Avant : l'effet dépendait des fonctions reçues, recréées à chaque affichage de l'application ;
+  // chaque déplacement de la carte annulait donc la pose de l'entrée en cours.)
+  const mapHandlersRef = useRef({ onChildMapClickRegistration, onEntrancePickerModeChange });
+  mapHandlersRef.current = { onChildMapClickRegistration, onEntrancePickerModeChange };
   useEffect(() => {
     return () => {
-      if (onChildMapClickRegistration) {
-        onChildMapClickRegistration(null);
-      }
-      if (onEntrancePickerModeChange) {
-        onEntrancePickerModeChange(null);
-      }
+      mapHandlersRef.current.onChildMapClickRegistration?.(null);
+      mapHandlersRef.current.onEntrancePickerModeChange?.(null);
     };
-  }, [onChildMapClickRegistration, onEntrancePickerModeChange]);
+  }, []);
 
   // Déclencher le mode de sélection manuelle de l'entrée du bâtiment sur la carte
   const handleStartPickEntrance = () => {
