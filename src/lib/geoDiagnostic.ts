@@ -26,6 +26,7 @@ export const isIOS = (ua: string = navigator.userAgent, platform: string = navig
 export function isInAppBrowser(ua: string = navigator.userAgent, standalone: boolean = !!(navigator as unknown as { standalone?: boolean }).standalone): boolean {
   if (/FBAN|FBAV|FB_IAB|Instagram|MicroMessenger|Snapchat|TikTok|musical_ly|LinkedInApp|Twitter|WhatsApp|GSA\/|Line\//i.test(ua)) return true;
   if (/iPhone|iPad|iPod/.test(ua) && !standalone && !/Safari\//.test(ua)) return true;
+  if (/Android/.test(ua) && /; wv\)/.test(ua)) return true; // vue web Android (WhatsApp, etc.)
   return false;
 }
 

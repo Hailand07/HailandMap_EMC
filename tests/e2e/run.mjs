@@ -125,6 +125,22 @@ async function main() {
       await page.context().close();
     }
 
+    // 1b. Lien ouvert depuis WhatsApp (navigateur intégré sur iPhone) : avertissement dès l'ouverture ; dans Safari, aucun
+    {
+      const WEBVIEW_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+      const SAFARI_IOS = `${WEBVIEW_IOS.replace('Mobile/15E148', 'Version/17.4 Mobile/15E148')} Safari/604.1`;
+      for (const [name, userAgent, expected] of [['WhatsApp (navigateur intégré)', WEBVIEW_IOS, true], ['Safari', SAFARI_IOS, false]]) {
+        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, userAgent });
+        const page = await ctx.newPage();
+        await mockSupabase(page, { agent: 'none' });
+        await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+        await page.getByPlaceholder('6XX XX XX XX').waitFor({ timeout: 15000 });
+        const shown = await page.getByRole('alert', { name: 'Ouvrir dans le navigateur' }).isVisible().catch(() => false);
+        check(`iPhone ${name} : ${expected ? 'avertissement « Ouvrir dans Safari » affiché' : 'aucun avertissement'}`, shown === expected);
+        await ctx.close();
+      }
+    }
+
     // 2. Agent autorisé : aucune écriture au chargement ; registre vide accepté
     {
       const writes = [];
