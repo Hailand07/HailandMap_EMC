@@ -2,16 +2,16 @@
 
 ## Lire d'abord (économise la phase de compréhension)
 Ne pas tout relire : suivre le **« Guide de lecture »** en tête de `ECOSYSTEME_HAILAND.md` et ne lire que les sections utiles à la tâche.
-1. [`ECOSYSTEME_HAILAND.md`](./ECOSYSTEME_HAILAND.md) — vision, applications (HailandMap / NavigationX / HailandX), **base Supabase partagée**, flux, règles de communication, écarts, plan d'amélioration.
+1. [`ECOSYSTEME_HAILAND.md`](./ECOSYSTEME_HAILAND.md) — vision, applications (HailandMap / NavigationX / HailandX), **§18 HailandX, Flotte et Scorpion**, **base Supabase partagée**, flux, règles de communication, écarts, plan d'amélioration.
 2. [`HAILANDMAP.md`](./HAILANDMAP.md) — ce dépôt : architecture, flux d'enregistrement, règles de génération des codes, problèmes.
 
-Le dépôt frère est **`Hailand07/Lynx`** (NavigationX, vitrine utilisateurs). Les deux applications partagent la même base Supabase : une modification de schéma, de statut, de code ou de règle touche les deux.
+Le dépôt frère est **`Hailand07/Lynx`** (NavigationX, vitrine utilisateurs). Troisième dépôt : **`Hailand07/HailandX_Scorpion`** (HailandX, Flotte Hailand, Scorpion — fiche `HAILANDX.md`). Les applications partagent la même base Supabase : une modification de schéma, de statut, de code ou de règle touche les deux.
 
 ## Règle de maintenance de la documentation (obligatoire)
 À **chaque** modification qui change le comportement, un flux, une table/colonne utilisée, une règle de code ou de statut, une dépendance ou l'état d'avancement :
 1. mettre à jour **`HAILANDMAP.md`** (et son journal en bas) ;
 2. mettre à jour **`ECOSYSTEME_HAILAND.md`** si cela touche à la base partagée, aux règles de communication, aux écarts ou au plan ;
-3. si `ECOSYSTEME_HAILAND.md` a changé : **augmenter sa révision**, puis le recopier dans le dépôt Lynx (hors ligne « Fichiers liés ») ; si l'autre dépôt n'est pas accessible dans la session, ajouter la ligne à reporter dans son **§13** ;
+3. si `ECOSYSTEME_HAILAND.md` a changé : **augmenter sa révision**, puis le recopier dans les dépôts Lynx et HailandX_Scorpion (hors ligne « Fichiers liés ») ; si un dépôt n'est pas accessible dans la session, ajouter la ligne à reporter dans son **§13** ;
 4. faire ces mises à jour **dans le même commit** que le code ;
 5. **en fin de session**, mettre à jour `ECOSYSTEME_HAILAND.md` **§14** (fait / décidé / bloqué / prochaine étape) — c'est ce qui permet de reprendre sans tout refaire.
 Procédure complète pour une nouvelle fonctionnalité : `ECOSYSTEME_HAILAND.md` **§12**.

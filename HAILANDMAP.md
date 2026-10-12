@@ -291,6 +291,11 @@ Constat (capture du 12/10 sur Samsung Internet, barre d'adresse en haut et barre
 ### Bouton GPS sur iPhone (2026-10-12) ✅
 Le bouton « Recentrer sur ma position » essayait une seule fois en haute précision (10 s) et affichait un message générique. Il reprend maintenant le repli de NavigationX : haute précision (15 s), puis précision réduite (réseau, Wi-Fi), et en cas d'échec des consignes précises (réglages iPhone, navigateur intégré à WhatsApp/Facebook : `src/lib/geoDiagnostic.ts`, copie de celle de NavigationX). ⚠️ Non essayé sur un vrai iPhone. **Cause confirmée sur NavigationX : lien ouvert depuis WhatsApp** ; HailandMap affiche donc aussi un avertissement dès l'ouverture dans un navigateur intégré (`InAppBrowserNotice` : ouvrir dans Safari, copier le lien) — les administrateurs reçoivent les liens par WhatsApp.
 
+### HailandX et la Flotte : ce qui concernera HailandMap (2026-10-12) 💡
+- Les **vendeurs** HailandX devront être au **niveau 3** pour vendre : leur inscription enverra une **demande de certification « vendeur », prioritaire**, dans Revue → Demandes. À prévoir : un marqueur de priorité et un filtre.
+- La certification des lieux reste **ici** ; la validation des livreurs, les litiges et la modération des produits iront dans une console d'administration de HailandX (proposition).
+- Détail : `ECOSYSTEME_HAILAND.md` §18 et `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`).
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -355,3 +360,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-12 | Téléphone (Samsung Internet) : l'application est ancrée à la zone visible (fixed inset-0), l'en-tête n'est plus coupé sous la barre d'adresse ; panneau de l'assistant en pourcentage de la zone visible. |
 | 2026-10-12 | Bouton GPS : repli en précision réduite et consignes iPhone (copie de `geoDiagnostic`). |
 | 2026-10-12 | Avertissement dès l'ouverture dans un navigateur intégré (WhatsApp) : ouvrir dans Safari, copier le lien. |
+| 2026-10-12 | Documentation : HailandX, Flotte et Scorpion cadrés (§18 de l'écosystème) ; demandes de certification « vendeur » prioritaires à prévoir dans Revue → Demandes. |

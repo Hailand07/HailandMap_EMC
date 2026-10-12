@@ -1,10 +1,10 @@
 # ÉCOSYSTÈME HAILAND — Document de référence global
 
-> **À lire en premier** avant toute tâche sur `Hailand07/Lynx` (NavigationX) ou `Hailand07/HailandMap_EMC` (HailandMap).
-> Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
+> **À lire en premier** avant toute tâche sur `Hailand07/Lynx` (NavigationX), `Hailand07/HailandMap_EMC` (HailandMap) ou `Hailand07/HailandX_Scorpion` (HailandX, Flotte, Scorpion).
+> Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 52** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 53** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -22,6 +22,7 @@
 | Ajouter une **fonctionnalité** | §12 (procédure), puis la fiche du projet concerné |
 | Savoir ce qui **reste à synchroniser** entre dépôts | §13 |
 | **Rattachement des personnes, certification officielle, HailandX** | §16 |
+| **HailandX, Flotte Hailand, Scorpion** (vision détaillée du 2026-10-12, plan de travail) | §18, puis `HAILANDX.md` (dépôt HailandX_Scorpion) |
 | **Comptes, administrateurs, un compte = son application** | §4.9 |
 | **Stratégie de déploiement**, partenariats, niveau 3 payant, positionnement envers l'État | §17 |
 
@@ -74,7 +75,7 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
    ┌────▼─────┐         ┌─────▼──────┐        ┌─────▼─────┐
    │ HailandMap│        │ NavigationX │       │ HailandX   │
    │ ATELIER   │        │ VITRINE     │       │ E-COMMERCE │
-   │ (agents)  │        │ (utilisateurs)│     │ (pas débuté)│
+   │ (agents)  │        │ (utilisateurs)│     │ + FLOTTE   │
    └────┬──────┘        └─────┬───────┘       └─────┬──────┘
         │ écrit               │ lit (+ réclame)     │ lira / écrira
         └──────────┬──────────┴──────────┬──────────┘
@@ -89,9 +90,9 @@ Vendeurs → HailandX → Commandes → Livraisons → Revenus
 
 | | **HailandMap** | **NavigationX** | **HailandX** |
 |---|---|---|---|
-| **Dépôt** | `Hailand07/HailandMap_EMC` | `Hailand07/Lynx` | — (non créé) |
+| **Dépôt** | `Hailand07/HailandMap_EMC` | `Hailand07/Lynx` | `Hailand07/HailandX_Scorpion` (créé le 2026-10-12, cadrage seulement) |
 | **Rôle** | **Atelier de construction** : relever, qualifier, valider le cadastre numérique | **Vitrine grand public** : trouver / être trouvé, navigation jusqu'au portail | **E-commerce** : boutiques de vendeurs, commandes, livraison |
-| **Utilisateurs** | Agents recenseurs, géomètres, modérateurs, admin, État/communes | Résidents, livreurs, particuliers, urgences (à terme) | Vendeurs, clients, livreurs |
+| **Utilisateurs** | Agents recenseurs, géomètres, modérateurs, admin, État/communes | Résidents, particuliers, urgences (à terme) | Vendeurs, acheteurs ; livreurs (application Flotte, §18) |
 | **Rapport à la donnée** | **Écrit** le cadastre (`buildings`, `zones`, `validations`…) | **Lit** le cadastre ; seule écriture voulue : **réclamer** un domicile / déposer une demande `en_attente` | Lira le cadastre via le Hailand-Code ; aura ses propres tables |
 | **Stack** | React 19, Vite 6, Tailwind 4, Mapbox GL, Turf, Three, Supabase JS, Gemini | React 19, Vite 6, Tailwind 4, Mapbox GL, Turf, Three, Supabase JS, Gemini | à définir |
 | **État** | Existant, riche (≈ 8 500 lignes dans `App.tsx`) ; **31 relevés réels** en base ; connexion des agents codée | **Refondu** (maquettes v5 validées : carte d'abord, 3 thèmes, parcours d'accueil, recherche, partage, enregistrement en 3 étapes) ; reste à brancher la base pour les déclarations | **Rien** : aucune table de commerce en base |
@@ -426,7 +427,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 3. **Respecter le contrat** (§6.2) : propriété des tables, génération des codes, statuts, rôles. Si la fonctionnalité exige de le changer, **le proposer au fondateur d'abord** (§9) — jamais en silence.
 4. **Écrire la fonctionnalité** ; toute évolution de schéma passe par une **migration SQL versionnée**, relue, appliquée **seulement après accord explicite et sauvegarde**.
 5. **Mettre à jour les fichiers dans le même commit** : fiche du projet (état, flux, problèmes résolus ou ajoutés + journal), ce document si l'écosystème est touché (+ augmenter la révision), `CLAUDE.md` si une règle de travail change.
-6. **Synchroniser l'autre dépôt** : si la session n'a accès qu'à un dépôt, noter la modification à reporter dans le §13 ; la prochaine session qui a accès à l'autre dépôt la reporte puis vide la ligne.
+6. **Synchroniser les autres dépôts** (Lynx, HailandMap_EMC, HailandX_Scorpion) : si la session n'a pas accès à l'un d'eux, noter la modification à reporter dans le §13 ; la prochaine session qui y a accès la reporte puis vide la ligne.
 7. **Fin de session** : mettre à jour le §14 (ce qui est fait, décidé, bloqué, prochaine étape).
 8. **Vérifier** : `npm run lint`, build, puis `npm run check:docs -- --staged` (contrôle automatique : code modifié ⇒ fiche du projet + ligne de journal ; `ECOSYSTEME_HAILAND.md` modifié ⇒ révision augmentée ; aucun secret dans les `.md`). Un hook de commit (`git config core.hooksPath .githooks`) et un workflow GitHub (`.github/workflows/docs-check.yml`, sur les PR) font la même vérification. Dérogation : `[docs: n/a]` dans le message de commit (changement sans effet documentaire). Puis commit en français, format conventionnel.
 
@@ -434,7 +435,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ---
 
-## 13. Synchronisation en attente entre les deux dépôts
+## 13. Synchronisation en attente entre les dépôts
 
 | Date | Modification à reporter | Dépôt à mettre à jour | Fait |
 |---|---|---|---|
@@ -444,7 +445,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-12 (révision 52).**
+**Dernière mise à jour de cette section : 2026-10-12 (révision 53).**
+
+- **Décidé / cadré (2026-10-12, HailandX)** : le fondateur a détaillé HailandX (vitrine globale « la rue », liens sociaux, Flotte avec QR, vendeur niveau 3, acheteur niveau 1 minimum) et nommé **Scorpion** la fonction de localisation commune. Dépôt `Hailand07/HailandX_Scorpion` créé (vide jusque-là) : cadrage et plan dans `HAILANDX.md`, résumé au **§18**. **Rien n'est codé, aucune table créée.** **Prochaine étape** : le fondateur tranche les décisions de `HAILANDX.md` §11 (nom et domaine, fiche commune et offres, remise par scan + code, flotte séparée, Next.js, fournisseur SMS…), puis phase 0 = maquettes des écrans clés à valider.
 
 - **Décidé / constaté (2026-10-12)** : la localisation ne marchait pas parce que le lien était **ouvert depuis WhatsApp** (navigateur intégré, localisation bloquée). NavigationX et HailandMap affichent maintenant un avertissement dès l'ouverture (ouvrir dans Safari, copier le lien). 💡 À retenir pour les liens partagés par WhatsApp (stratégie §17 : vendeurs, livreurs, lien de partage sans compte).
 
@@ -688,6 +691,59 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 
 ---
 
+## 18. HailandX, Flotte Hailand et Scorpion 📄💡 (fondateur, 2026-10-12 — **cadrage, rien n'est codé**)
+
+Détail complet : `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`). Résumé :
+
+### 18.1 Vocabulaire
+- **Scorpion** 📄 : nom donné par le fondateur à la **fonction de localisation et d'adresse** de l'écosystème. C'est celle de NavigationX : récupération GPS par mesures multiples, identification du bâtiment sur la vue satellite, confirmation ou désignation au doigt, niveaux 1/2/3, rattachement officiel. Elle est **commune** à NavigationX, HailandX et la Flotte.
+- **Flotte Hailand** 📄 : les livreurs Hailand ; **toute commande HailandX devient une mission** de livraison.
+
+### 18.2 Ce que le fondateur veut 📄
+- **Application HailandX = vitrine globale** (« la rue commerçante ») :
+  - on fait défiler les produits ; le fil montre **un échantillon par catégorie et par vendeur** ;
+  - on entre dans la boutique d'un vendeur pour tout voir ;
+  - le même produit peut être vendu par plusieurs vendeurs ; **les mieux notés et les plus fiables sont mis en avant** ;
+  - panier, commande, détails : toutes les fonctions de base.
+- **Liens pour les réseaux sociaux** (TikTok, Facebook, WhatsApp) : lien vers un produit ou une sélection (mis en avant, avec le reste de la boutique visible) et lien vers la boutique. On regarde partout, on achète dans HailandX (modèle « Spotify »).
+- **Flotte** : chaque commande est proposée à un livreur (mission : retrait, destination). **Code QR** scanné par le livreur au retrait (l'acheteur est prévenu), puis par l'acheteur à la réception (confirmation, déblocage du paiement numérique).
+- **Adresses** : **vendeur obligatoirement au niveau 3** ; **acheteur au minimum au niveau 1** (dans l'application comme depuis un lien social), toujours avec Scorpion.
+- Application **très esthétique, épurée, fluide, simple**, digne d'une grande entreprise.
+
+### 18.3 Propositions principales 💡 (à valider, voir `HAILANDX.md` §3 et §11)
+1. **Fiche produit commune + offres des vendeurs** (comparaison prix / confiance / délai sur une seule fiche).
+2. **Indice de confiance** affiché en badges, avec **avis vérifiés par la flotte** (seul un acheteur dont la remise est confirmée peut noter).
+3. Fil : diversité, mise en avant temporaire des nouveaux vendeurs, **délai de livraison estimé** grâce aux vendeurs localisés au niveau 3.
+4. **Un code QR par colis** (un colis par vendeur et par commande). À la remise : scan par l'acheteur **depuis son compte**, avec **repli par code à 4 chiffres** ; codes signés par le serveur ; contrôle de proximité ; journal des scans.
+5. **Paiement** : à la livraison d'abord (réconciliation quotidienne de l'argent liquide des livreurs) ; paiement numérique bloqué jusqu'à la remise ⚠️ cadre légal à vérifier (BCRG, partenaire agréé).
+6. **Commande sans géolocalisation possible** (navigateur intégré de WhatsApp) : adresse Hailand existante, ou maison touchée sur la vue satellite.
+7. **Vendeur** : il prépare sa boutique dès l'inscription ; une **demande de certification prioritaire** part vers HailandMap ; **la vente s'ouvre au niveau 3**.
+8. **Flotte = application séparée « Hailand Flotte »**, dans le dépôt HailandX_Scorpion (outil professionnel), qui réutilise Scorpion et le guidage de NavigationX ; application Android native seulement si nécessaire plus tard.
+9. **Scorpion extrait en module partagé** (`packages/scorpion`) ; les adresses restent dans `declarations` (une adresse créée dans HailandX existe aussi dans NavigationX, compte unique).
+10. **Architecture** : monorepo (`apps/hailandx`, `apps/flotte`, `packages/scorpion`, `packages/ui`, `packages/commerce`). **Next.js** pour HailandX : rendu serveur, nécessaire aux **aperçus riches** des liens dans WhatsApp, TikTok et Facebook, et rapide en 3G.
+
+### 18.4 Données 💡 (noms provisoires, rien n'est créé)
+- Tables proposées : `shops`, `shop_members`, `catalog_products`, `offers`, `offer_variants`, `categories`, `share_links`, `carts`, `cart_items`, `orders`, `parcels`, `order_items`, `couriers`, `delivery_events`, `payments`, `payouts`, `cash_settlements`, `reviews`, `shop_scores`, `disputes`.
+- `deliveries` ✅ existe déjà ; elle est à relier à `parcels`.
+- HailandX est **propriétaire** de ces tables et **lit seulement** `buildings`, `declarations`, `building_units` (contrat §6.2).
+- Migration relue, **appliquée seulement avec l'accord explicite du fondateur**.
+
+### 18.5 Plan de travail 💡 (chaque phase validée par le fondateur)
+| Phase | Contenu |
+|---|---|
+| 0 | Cadrage, maquettes des écrans clés, décisions |
+| 1 | Fondations : monorepo, design, connexion par téléphone (⚠️ fournisseur SMS réel), Scorpion partagé, tables, stockage des images |
+| 2 | Vendeur : inscription, Scorpion, certification prioritaire, boutique, produits, liens partagés |
+| 3 | Acheteur : fil, recherche, boutique, fiche et offres, panier multi-vendeurs, commande, suivi |
+| 4 | Flotte : application livreur, missions, QR et code de remise, guidage, argent liquide |
+| 5 | Confiance : avis vérifiés, indice, classement, litiges, console d'administration |
+| 6 | Paiement numérique (Orange Money, puis paiement bloqué jusqu'à la remise) ⚠️ |
+| 7 | Croissance : abonnement, mise en avant payante, promotions, langues locales, API |
+
+Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouverture large (§17).
+
+---
+
 ## 11. Journal des mises à jour
 
 | Date | Changement |
@@ -733,3 +789,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-12 | Révision 50 : HailandMap — application ancrée à la zone visible sur téléphone (en-tête non coupé par la barre du navigateur). |
 | 2026-10-12 | Révision 51 : localisation sur iPhone (bouton réactivé après refus, aide guidée, repli en précision réduite) dans NavigationX et HailandMap. |
 | 2026-10-12 | Révision 52 : cause confirmée de la localisation défaillante sur iPhone (lien ouvert depuis WhatsApp) ; avertissement dès l'ouverture dans NavigationX et HailandMap. |
+| 2026-10-12 | Révision 53 : §18 — HailandX, Flotte Hailand et Scorpion (vision détaillée du fondateur, propositions, plan en 8 phases) ; troisième dépôt `Hailand07/HailandX_Scorpion` ; ce document est désormais copié dans trois dépôts. |
