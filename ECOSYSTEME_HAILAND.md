@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 50** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 51** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -444,7 +444,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-12 (révision 50).**
+**Dernière mise à jour de cette section : 2026-10-12 (révision 51).**
+
+- **Fait (2026-10-12, localisation sur iPhone)** : NavigationX — le bouton « Me localiser » restait grisé après un refus et aucune erreur n'était montrée ; aide guidée (réglages iPhone, navigateur intégré à WhatsApp/Facebook), délai de 20 s et repli en précision réduite. HailandMap — le bouton GPS reprend le même repli et les mêmes consignes. Voir `NAVIGATIONX.md`. **À confirmer** sur un vrai iPhone : le lien a-t-il été ouvert depuis WhatsApp ou dans Safari ?
 
 - **Fait (2026-10-12, HailandMap sur téléphone, suite)** : sur Samsung Internet l'en-tête et le haut des outils étaient coupés sous la barre d'adresse (hauteur `100vh`/`100dvh` supérieure à la zone visible) ; l'application est maintenant ancrée à la zone visible (`fixed inset-0`). Voir `HAILANDMAP.md`. **À confirmer** sur le vrai téléphone après déploiement.
 
@@ -727,3 +729,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-12 | Révision 48 : 3 administrateurs officiels ajoutés dans `agents` (5 admins), accord du fondateur (§4.9). |
 | 2026-10-12 | Révision 49 : HailandMap — enregistrement complet d'un bâtiment et d'une concession sur téléphone (voir `HAILANDMAP.md`). |
 | 2026-10-12 | Révision 50 : HailandMap — application ancrée à la zone visible sur téléphone (en-tête non coupé par la barre du navigateur). |
+| 2026-10-12 | Révision 51 : localisation sur iPhone (bouton réactivé après refus, aide guidée, repli en précision réduite) dans NavigationX et HailandMap. |

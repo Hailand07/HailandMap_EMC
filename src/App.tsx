@@ -11,6 +11,7 @@ import {
   } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { actorId } from './lib/actor';
+import { describeGeoError, getPositionWithFallback } from './lib/geoDiagnostic';
 import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
@@ -2159,8 +2160,9 @@ export default function App() {
 
     setIsRecentering(true);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+    // Précision maximale d'abord, repli automatique en précision réduite (iPhone en intérieur), puis consignes précises en cas d'échec.
+    getPositionWithFallback()
+      .then((position) => {
         const { latitude, longitude, heading } = position.coords;
         const validHeading = (heading !== null && typeof heading === 'number' && !isNaN(heading)) ? heading : 0;
 
@@ -2190,33 +2192,17 @@ export default function App() {
           title: 'Position actualisée',
           message: `Carte recentrée sur votre position GPS (${latitude.toFixed(5)}, ${longitude.toFixed(5)}).`
         });
-      },
-      (error) => {
+      })
+      .catch((error: { code?: number; message?: string }) => {
         setIsRecentering(false);
         console.warn("Erreur d'acquisition GPS:", error);
-
-        let errorMessage = `Impossible d'obtenir la position GPS (${error.message}).`;
-        if (error.code === error.PERMISSION_DENIED || error.code === 1) {
-          errorMessage = "Accès à la géolocalisation refusé. Veuillez autoriser l'accès GPS dans les paramètres de votre navigateur.";
-        } else if (error.code === error.POSITION_UNAVAILABLE || error.code === 2) {
-          errorMessage = "Signal GPS indisponible. Vérifiez vos paramètres réseau ou de localisation.";
-        } else if (error.code === error.TIMEOUT || error.code === 3) {
-          errorMessage = "Délai d'acquisition GPS dépassé. Veuillez réessayer.";
-        }
-
-
+        const help = describeGeoError(Number(error?.code) || 3);
         setMapNotification({
           type: 'warning',
-          title: 'Erreur Géolocalisation',
-          message: errorMessage
+          title: help.title,
+          message: `${help.message} ${help.steps.slice(0, help.inAppBrowser ? 1 : 3).join(' ')}`
         });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
+      });
   }, [isRecentering, currentStyle]);
 
   // Gestionnaire pour le mode interactif de sélection d'entrée (verrouillage / snapping mur de cour)
