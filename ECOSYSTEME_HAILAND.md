@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 53** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 54** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -705,7 +705,7 @@ Détail complet : `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`). Résum�
   - on entre dans la boutique d'un vendeur pour tout voir ;
   - le même produit peut être vendu par plusieurs vendeurs ; **les mieux notés et les plus fiables sont mis en avant** ;
   - panier, commande, détails : toutes les fonctions de base.
-- **Liens pour les réseaux sociaux** (TikTok, Facebook, WhatsApp) : lien vers un produit ou une sélection (mis en avant, avec le reste de la boutique visible) et lien vers la boutique. On regarde partout, on achète dans HailandX (modèle « Spotify »).
+- **Liens pour les réseaux sociaux** (TikTok, Facebook, WhatsApp) : lien vers un produit ou une sélection (mis en avant, avec le reste de la boutique visible) et lien vers la boutique. On regarde partout, on achète dans HailandX : modèle **Shopify** (chaque vendeur a sa boutique en ligne et ses liens, diffusés sur ses réseaux ; HailandX encaisse et livre).
 - **Flotte** : chaque commande est proposée à un livreur (mission : retrait, destination). **Code QR** scanné par le livreur au retrait (l'acheteur est prévenu), puis par l'acheteur à la réception (confirmation, déblocage du paiement numérique).
 - **Adresses** : **vendeur obligatoirement au niveau 3** ; **acheteur au minimum au niveau 1** (dans l'application comme depuis un lien social), toujours avec Scorpion.
 - Application **très esthétique, épurée, fluide, simple**, digne d'une grande entreprise.
@@ -790,3 +790,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-12 | Révision 51 : localisation sur iPhone (bouton réactivé après refus, aide guidée, repli en précision réduite) dans NavigationX et HailandMap. |
 | 2026-10-12 | Révision 52 : cause confirmée de la localisation défaillante sur iPhone (lien ouvert depuis WhatsApp) ; avertissement dès l'ouverture dans NavigationX et HailandMap. |
 | 2026-10-12 | Révision 53 : §18 — HailandX, Flotte Hailand et Scorpion (vision détaillée du fondateur, propositions, plan en 8 phases) ; troisième dépôt `Hailand07/HailandX_Scorpion` ; ce document est désormais copié dans trois dépôts. |
+| 2026-10-12 | Révision 54 : §18 — rectification du fondateur : le modèle de référence de HailandX est Shopify (et non Spotify). |
