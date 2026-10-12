@@ -282,6 +282,11 @@ async function main() {
       await page.waitForTimeout(6000);
       const box = async (sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; }, sel);
       const overlap = (x, y) => x && y && x.l < y.r && x.r > y.l && x.t < y.b && x.b > y.t;
+      // Application ancrée à la zone visible : l'en-tête est entièrement visible et la page ne peut pas défiler sous la barre du navigateur
+      await page.evaluate(() => window.scrollTo(0, 120));
+      const head = await box('header');
+      const docScroll = await page.evaluate(() => ({ sh: document.documentElement.scrollHeight, ih: window.innerHeight, y: window.scrollY }));
+      check('mobile : l’en-tête est entièrement visible (page non décalable sous la barre du navigateur)', head && head.t === 0 && docScroll.y === 0 && docScroll.sh <= docScroll.ih + 1, JSON.stringify({ head, docScroll }));
       await page.getByRole('radio', { name: 'Satellite' }).tap();
       await page.waitForSelector('[aria-label="Réglages du satellite"]', { timeout: 15000 });
       const opts = await box('[aria-label="Réglages du satellite"]');

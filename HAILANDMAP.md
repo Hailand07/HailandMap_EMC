@@ -285,6 +285,9 @@ Constat (parcours joué sur un écran de téléphone, captures à chaque étape)
 - **Bug corrigé (aussi sur ordinateur)** : poser l'entrée ou le portail était **annulé au moindre déplacement de la carte** (l'effet de nettoyage des formulaires dépendait de fonctions recréées à chaque affichage et vidait le mode de pose) ; il ne s'exécute plus qu'à la fermeture (`useDirectBuildingForm`, `useCourtyardManager`).
 - Tests : `tests/e2e/run.mjs` §6 joue un bâtiment direct puis une concession complets sur téléphone (tâches sur la carte, tracé au doigt, « Défaire », pied visible, envoi vérifié).
 
+### Interface masquée par la barre du navigateur sur téléphone (2026-10-12) ✅ — capture Samsung Internet du fondateur
+Constat (capture du 12/10 sur Samsung Internet, barre d'adresse en haut et barre d'outils en bas) : l'en-tête de HailandMap et le haut de la colonne d'outils étaient **coupés sous la barre d'adresse**. Cause : l'application avait la hauteur `h-screen h-dvh` ; sur ce navigateur `100vh` / `100dvh` dépassent la zone réellement visible, la page devenait plus haute que l'écran et le navigateur la décalait vers le haut. Correction : l'application est **ancrée à la zone visible** (`fixed inset-0`), le panneau de l'assistant se dimensionne en pourcentage de cette zone (et non en `dvh`), et le défilement/rebond du document est neutralisé (`overscroll-behavior: none`). Test de bout en bout : l'en-tête est entièrement visible et la page ne peut pas défiler sous la barre du navigateur. ⚠️ À confirmer sur le vrai téléphone après déploiement.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -346,3 +349,4 @@ Constat (parcours joué sur un écran de téléphone, captures à chaque étape)
 | 2026-10-12 | Un agent = son propre atelier (atelier reconstruit par compte, liste de masquage par agent). |
 | 2026-10-12 | 3 administrateurs officiels ajoutés dans `agents` (5 admins) : ils accèdent à HailandMap. |
 | 2026-10-12 | Enregistrement complet sur téléphone : panneau à trois hauteurs, tâches sur la carte (entrée, portail, tracé) avec barre réduite, en-tête compact, cibles tactiles, correction de l'annulation de la pose au déplacement de la carte ; test de bout en bout bâtiment + concession à 390 × 844. |
+| 2026-10-12 | Téléphone (Samsung Internet) : l'application est ancrée à la zone visible (fixed inset-0), l'en-tête n'est plus coupé sous la barre d'adresse ; panneau de l'assistant en pourcentage de la zone visible. |

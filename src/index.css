@@ -124,8 +124,8 @@
 .hx-sheet-taskbar { display: none; }
 @media (max-width: 767px) {
   .hx-sheet { position: fixed; inset-inline: 0; bottom: 0; z-index: 45; width: auto; height: auto; border-left: 0; border-top: 1px solid var(--color-hx-line); border-radius: 16px 16px 0 0; box-shadow: 0 -12px 32px rgba(0,0,0,.45); padding-bottom: env(safe-area-inset-bottom); transition: height .22s ease; }
-  .hx-sheet[data-mode='half'] { height: 54dvh; }
-  .hx-sheet[data-mode='full'] { height: calc(100dvh - 48px); }
+  .hx-sheet[data-mode='half'] { height: 54%; }
+  .hx-sheet[data-mode='full'] { height: calc(100% - 48px); }
   .hx-sheet[data-mode='peek'] { height: auto; }
   .hx-sheet[data-mode='peek'] .hx-sheet-body,
   .hx-sheet[data-mode='peek'] .hx-sheet-banner { display: none; }
@@ -138,3 +138,5 @@
   .hx-sheet input, .hx-sheet textarea { font-size: 16px; } /* évite le zoom automatique à la saisie sur iPhone */
 }
 body[data-sheet-task='true'] .mapboxgl-marker { pointer-events: none; }
+/* Page figée : jamais de défilement du document (sur téléphone, le navigateur ne doit pas décaler l'application sous sa barre d'adresse). */
+html, body { overscroll-behavior: none; }

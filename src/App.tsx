@@ -2446,9 +2446,10 @@ export default function App() {
   const conflictCount = buildings.filter((b) => b.status === 'conteste').length;
 
 
-  // h-dvh : hauteur réellement visible sur mobile (la barre du navigateur ne cache plus le bas de l'écran) ; h-screen en repli.
+  // Application ancrée à la zone réellement visible (fixed inset-0) : sur téléphone (Samsung Internet…), 100vh / 100dvh peuvent dépasser la zone
+  // visible et le navigateur décalait alors toute l'application sous sa barre d'adresse (en-tête et haut des outils coupés).
   return (
-    <div className="flex flex-col h-screen h-dvh w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
       <AtelierTopBar
           view={activeAdminView}
           adminName={currentAdmin?.full_name ?? 'Agent'}
