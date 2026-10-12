@@ -4,8 +4,8 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 46** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
-> **Dernière mise à jour :** 2026-10-08 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
+> **Révision : 48** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
 
@@ -22,6 +22,7 @@
 | Ajouter une **fonctionnalité** | §12 (procédure), puis la fiche du projet concerné |
 | Savoir ce qui **reste à synchroniser** entre dépôts | §13 |
 | **Rattachement des personnes, certification officielle, HailandX** | §16 |
+| **Comptes, administrateurs, un compte = son application** | §4.9 |
 | **Stratégie de déploiement**, partenariats, niveau 3 payant, positionnement envers l'État | §17 |
 
 ---
@@ -242,6 +243,11 @@ Migration `migrations/2026-10-04_declarations.sql` (dépôt Lynx), **appliquée 
 
 ---
 
+### 4.9 Comptes : une application par compte, administrateurs officiels ✅ codé et appliqué (2026-10-12)
+- **Administrateurs officiels ✅ (2026-10-12, accord explicite du fondateur, 3 lignes insérées dans `agents`)** : `agents` compte maintenant **5 admins actifs** — le fondateur (e-mail et téléphone) + **Elhaj Oumar Diogo Diallo** (…0419), **Mamadou Alimou Bah** (…1001), **Mamadou Hady Diallo** (…0166), comptes téléphone dont l'identifiant a été lu dans `auth.users` par numéro. Ils entrent donc dans HailandMap avec les droits d'administrateur (`is_admin()`). Pour ajouter quelqu'un : `insert into public.agents (id, full_name, role) values ('<id>', '<nom>', 'admin')`. Les codes de connexion de test restent dans la configuration Supabase, **jamais dans les dépôts**. ⚠️ Codes de test faciles à deviner + droits d'administrateur sur la production : à remplacer par de vrais SMS (fournisseur SMS) ou des codes plus longs avant tout usage réel.
+- **Constat avant ajout (2026-10-12, lecture seule)** : `auth.users` = 10 comptes (6 téléphone, 4 e-mail) ; `agents` ne contenait que 2 lignes, toutes deux au fondateur : les 3 administrateurs verraient « Accès non autorisé ».
+- **Règle** : *un compte = sa propre application*. **NavigationX** : toutes les données locales (adresses, favoris, lieux récents, avis d'arrivée, avis « bâtiment certifié » vus, demande de vérification, avatar, profil) sont rangées par compte (`hx.u.<compte>.<nom>`, module `src/lib/accountScope.ts`) ; un invité a sa propre portée (`invite`) et ne voit jamais un compte ; l'application est **reconstruite à chaque changement de compte** (`AccountBoundary`, clé = compte) ; les anciennes clés globales sans propriétaire sont purgées. **HailandMap** : l'atelier est reconstruit par agent (`AgentGate`, clé = compte) et la liste de masquage est rangée par agent (`hailandmap.u.<compte>.hidden_buildings`). Plusieurs comptes sur le même téléphone ne se voient donc plus. Le thème et le réglage jour/nuit restent propres à l'appareil.
+
 ## 5. Flux de données
 
 ### 5.1 Production du cadastre (HailandMap → base) ✅
@@ -438,7 +444,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-08 (révision 46).**
+**Dernière mise à jour de cette section : 2026-10-12 (révision 48).**
+
+- **Fait (2026-10-12, comptes)** : isolation par compte dans NavigationX et HailandMap, et **3 administrateurs officiels ajoutés dans `agents`** (5 admins au total, §4.9). **Prochaine étape** : le fondateur vérifie que chacun entre dans HailandMap avec son numéro ; renforcer les codes de connexion (SMS réels) ; reste possible : sélecteur de comptes sans rechargement, lier un numéro à un compte e-mail.
 
 - **Fait (2026-10-08, conseil, aucun code)** : le fondateur a demandé comment déployer l'écosystème (partenariats secours / banques / entreprises, niveau 3 payant et plaque, inscription de vendeurs avant lancement, positionnement envers l'État). Avis consigné au **§17**. **Prochaine étape** : le fondateur tranche les décisions du §17.8 ; produit éventuel : lien de partage sans compte (§17.7).
 
@@ -711,3 +719,5 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-06 | Révision 44 : décision 5 du §16.6 (rattachement à un bâtiment certifié sur confirmation visuelle, appliqué en base) ; enregistrement guidé de NavigationX (§14). |
 | 2026-10-06 | Révision 45 : §14 — enregistrement guidé de NavigationX terminé (phase F, tests de bout en bout). |
 | 2026-10-08 | Révision 46 : §17 — stratégie de déploiement, partenariats (secours, banques, entreprises), niveau 3 payant et plaque, vendeurs avant lancement, positionnement envers l'État (avis, rien de codé). |
+| 2026-10-12 | Révision 47 : §4.9 — comptes isolés (une application par compte dans NavigationX et HailandMap), constat des administrateurs absents de `agents` (ajout en attente de confirmation). |
+| 2026-10-12 | Révision 48 : 3 administrateurs officiels ajoutés dans `agents` (5 admins), accord du fondateur (§4.9). |

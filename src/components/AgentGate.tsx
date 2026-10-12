@@ -344,9 +344,6 @@ export default function AgentGate({ children }: { children: React.ReactNode }) {
   if (!access) return <Splash progress={progress} />;
   if (access.state === 'denied') return <DeniedScreen access={access} userId={session.user.id} onSignOut={logout} />;
 
-  return (
-    <>
-      {children}
-    </>
-  );
+  // Une instance de l'atelier PAR agent : en changeant de compte, tout l'état en mémoire repart de zéro (rien ne passe d'un compte à l'autre).
+  return <React.Fragment key={session.user.id}>{children}</React.Fragment>;
 }

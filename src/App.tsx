@@ -66,6 +66,9 @@ import { handleMapLoad, handleMapClick, handleMapMouseMove } from './map/handler
  * Simplification de polygone via l'algorithme classique de Douglas-Peucker
  * Réduit le bruit de crénelage de pixels pour donner un rendu géométrique propre (droites de toitures).
  */
+/** Liste de masquage de CET agent (`hailandmap.u.<compte>.hidden_buildings`) : chaque compte a son propre atelier sur l'appareil. */
+const hiddenListKey = () => `hailandmap.u.${actorId()}.hidden_buildings`;
+
 export default function App() {
   // Notifications algorithmiques de détourage ou de superposition
   const [mapNotification, setMapNotification] = useState<{
@@ -186,6 +189,7 @@ export default function App() {
     try {
       // Les anciens tracés 3D manuels gardés dans le navigateur ne sont plus lus (fonction retirée) ; on les efface.
       localStorage.removeItem('hailandmap_custom_3d_buildings');
+      localStorage.removeItem('hailandmap_hidden_buildings_list'); // ancienne liste globale, sans propriétaire
     } catch (e) {}
     return [];
   });
@@ -209,7 +213,7 @@ export default function App() {
   // Masquage dynamique de polygones / bâtiments
   const [hiddenBuildingsList, setHiddenBuildingsList] = useState<HiddenBuildingData[]>(() => {
     try {
-      const saved = localStorage.getItem('hailandmap_hidden_buildings_list');
+      const saved = localStorage.getItem(hiddenListKey());
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return [];
@@ -250,7 +254,7 @@ export default function App() {
   useEffect(() => {
     hiddenBuildingsListRef.current = hiddenBuildingsList;
     try {
-      localStorage.setItem('hailandmap_hidden_buildings_list', safeJsonStringify(hiddenBuildingsList, 0));
+      localStorage.setItem(hiddenListKey(), safeJsonStringify(hiddenBuildingsList, 0));
     } catch (e) {}
     if (mapRef.current) {
       applyHiddenBuildingsFilter(mapRef.current, hiddenBuildingsList);

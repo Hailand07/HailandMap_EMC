@@ -272,6 +272,10 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 - **Mobile — pied de la fiche d'enregistrement masqué.** Deux causes : (1) l'assistant (bandeau d'origine + formulaire) dépassait de la hauteur du panneau — le formulaire prenait 100 % de la hauteur *en plus* du bandeau, d'où « Annuler / Suivant » sous la barre des modules ; (2) la hauteur de l'application était `100vh`, plus grande que l'écran réellement visible quand la barre du navigateur est affichée. Corrigé : colonne flexible (le formulaire prend le reste) et unités `dvh` (avec `vh` en repli) pour l'application, l'assistant, la fiche du registre et les réglages.
 - Test : `window.__hxMap` (développement seulement) permet aux tests de bout en bout de piloter la caméra. Vérifié : 60 tests unitaires, `lint`, tests de bout en bout sur téléphone (commandes sans chevauchement, couche de découpe remplie, pied de la fiche au-dessus de la barre des modules). ⚠️ À confirmer sur un vrai téléphone.
 
+### Un agent = son propre atelier (2026-10-12) ✅
+- `AgentGate` reconstruit l'atelier à chaque changement de compte (clé = compte) et la liste de masquage OSM est rangée par agent (`hailandmap.u.<compte>.hidden_buildings`, l'ancienne liste globale est effacée) : plusieurs agents sur le même appareil ne se voient plus.
+- L'accès dépend de la table `agents` : les 3 administrateurs du fondateur n'y étaient pas (voir `ECOSYSTEME_HAILAND.md` §4.9) ; leur ajout attend la confirmation de leurs identifiants.
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -330,3 +334,5 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 | 2026-10-06 | Écosystème révision 45 (§14 : enregistrement guidé de NavigationX terminé) — documentation seule, rien ne change dans HailandMap. |
 | 2026-10-06 | Masquage OSM sans trace (découpe des empreintes exactes + recouvrement du liseré), mobile : réglages du satellite sur une ligne et zoom en dessous, pied de la fiche d'enregistrement visible (colonne flexible, unités `dvh`). |
 | 2026-10-06 | Masquage : la découpe est réappliquée après un changement de fond de carte (Plan → Satellite → Plan recréait la source vide) ; test de bout en bout correspondant. |
+| 2026-10-12 | Un agent = son propre atelier (atelier reconstruit par compte, liste de masquage par agent). |
+| 2026-10-12 | 3 administrateurs officiels ajoutés dans `agents` (5 admins) : ils accèdent à HailandMap. |
