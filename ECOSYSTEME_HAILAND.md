@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 54** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 55** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -447,6 +447,7 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 **Dernière mise à jour de cette section : 2026-10-12 (révision 53).**
 
+- **Décidé (2026-10-12, HailandX, suite)** : le fondateur accepte toutes les propositions (fiche commune et offres, remise par scan + code, boutique avant certification, Flotte séparée, Next.js, comparaison des SMS) ; nom et domaine laissés à Claude (HailandX, Hailand Flotte, Scorpion, `hx.gn`) ; zone pilote plus tard. **Phase 0 en cours** : canevas de maquettes (§18.3 bis) à valider. **Prochaine étape** : reprendre les commentaires du fondateur sur le canevas, puis phase 1 (monorepo, connexion par téléphone, Scorpion partagé, migration des tables avec accord).
 - **Décidé / cadré (2026-10-12, HailandX)** : le fondateur a détaillé HailandX (vitrine globale « la rue », liens sociaux, Flotte avec QR, vendeur niveau 3, acheteur niveau 1 minimum) et nommé **Scorpion** la fonction de localisation commune. Dépôt `Hailand07/HailandX_Scorpion` créé (vide jusque-là) : cadrage et plan dans `HAILANDX.md`, résumé au **§18**. **Rien n'est codé, aucune table créée.** **Prochaine étape** : le fondateur tranche les décisions de `HAILANDX.md` §11 (nom et domaine, fiche commune et offres, remise par scan + code, flotte séparée, Next.js, fournisseur SMS…), puis phase 0 = maquettes des écrans clés à valider.
 
 - **Décidé / constaté (2026-10-12)** : la localisation ne marchait pas parce que le lien était **ouvert depuis WhatsApp** (navigateur intégré, localisation bloquée). NavigationX et HailandMap affichent maintenant un avertissement dès l'ouverture (ouvrir dans Safari, copier le lien). 💡 À retenir pour les liens partagés par WhatsApp (stratégie §17 : vendeurs, livreurs, lien de partage sans compte).
@@ -710,7 +711,7 @@ Détail complet : `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`). Résum�
 - **Adresses** : **vendeur obligatoirement au niveau 3** ; **acheteur au minimum au niveau 1** (dans l'application comme depuis un lien social), toujours avec Scorpion.
 - Application **très esthétique, épurée, fluide, simple**, digne d'une grande entreprise.
 
-### 18.3 Propositions principales 💡 (à valider, voir `HAILANDX.md` §3 et §11)
+### 18.3 Propositions principales ✅ acceptées par le fondateur le 2026-10-12 (voir `HAILANDX.md` §3 et §11 ; zone pilote : plus tard)
 1. **Fiche produit commune + offres des vendeurs** (comparaison prix / confiance / délai sur une seule fiche).
 2. **Indice de confiance** affiché en badges, avec **avis vérifiés par la flotte** (seul un acheteur dont la remise est confirmée peut noter).
 3. Fil : diversité, mise en avant temporaire des nouveaux vendeurs, **délai de livraison estimé** grâce aux vendeurs localisés au niveau 3.
@@ -721,6 +722,11 @@ Détail complet : `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`). Résum�
 8. **Flotte = application séparée « Hailand Flotte »**, dans le dépôt HailandX_Scorpion (outil professionnel), qui réutilise Scorpion et le guidage de NavigationX ; application Android native seulement si nécessaire plus tard.
 9. **Scorpion extrait en module partagé** (`packages/scorpion`) ; les adresses restent dans `declarations` (une adresse créée dans HailandX existe aussi dans NavigationX, compte unique).
 10. **Architecture** : monorepo (`apps/hailandx`, `apps/flotte`, `packages/scorpion`, `packages/ui`, `packages/commerce`). **Next.js** pour HailandX : rendu serveur, nécessaire aux **aperçus riches** des liens dans WhatsApp, TikTok et Facebook, et rapide en 3G.
+
+### 18.3 bis Nom, liens et maquettes 📄 (2026-10-12)
+- Nom et domaine laissés à Claude : **HailandX** (place du marché), **Hailand Flotte** (livreurs), **Scorpion** (localisation) ; liens courts proposés `hx.gn/p/…`, `hx.gn/s/…`, `hx.gn/b/…` ⚠️ domaine à vérifier (repli `hailandx.com`).
+- **Phase 0 en cours** : canevas de maquettes « HailandX — Maquettes » (14 écrans téléphone : acheteur, lien social, vendeur, Flotte ; pages architecture, flux et design) à **valider par le fondateur avant toute exécution**. Lien et contenu : `HAILANDX.md` §11.1.
+- Identité visuelle : même famille que NavigationX (Sora, encre, bleu Hailand `#3346F0`), accent citron `#C8F25A` pour les moments forts et la Flotte.
 
 ### 18.4 Données 💡 (noms provisoires, rien n'est créé)
 - Tables proposées : `shops`, `shop_members`, `catalog_products`, `offers`, `offer_variants`, `categories`, `share_links`, `carts`, `cart_items`, `orders`, `parcels`, `order_items`, `couriers`, `delivery_events`, `payments`, `payouts`, `cash_settlements`, `reviews`, `shop_scores`, `disputes`.
@@ -791,3 +797,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-12 | Révision 52 : cause confirmée de la localisation défaillante sur iPhone (lien ouvert depuis WhatsApp) ; avertissement dès l'ouverture dans NavigationX et HailandMap. |
 | 2026-10-12 | Révision 53 : §18 — HailandX, Flotte Hailand et Scorpion (vision détaillée du fondateur, propositions, plan en 8 phases) ; troisième dépôt `Hailand07/HailandX_Scorpion` ; ce document est désormais copié dans trois dépôts. |
 | 2026-10-12 | Révision 54 : §18 — rectification du fondateur : le modèle de référence de HailandX est Shopify (et non Spotify). |
+| 2026-10-12 | Révision 55 : §18 — propositions HailandX acceptées par le fondateur, nom et liens, phase 0 (canevas de maquettes à valider). |
