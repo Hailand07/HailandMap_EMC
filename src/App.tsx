@@ -2220,6 +2220,22 @@ export default function App() {
   }, [isRecentering, currentStyle]);
 
   // Gestionnaire pour le mode interactif de sélection d'entrée (verrouillage / snapping mur de cour)
+  // Assistant de création ouvert (téléphone : il occupe le bas de l'écran, sans barre des modules ni colonne d'outils).
+  const assistantOpen = activeAdminView === 'carte' && !!clickedCoords && assistantStarted;
+  // Le panneau du bas recouvre une partie de la carte : on décale le centre de la carte pour que le bâtiment reste visible au-dessus.
+  const clickedCoordsForSheetRef = useRef(clickedCoords);
+  clickedCoordsForSheetRef.current = clickedCoords;
+  const onSheetHeight = useCallback((px: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const c = clickedCoordsForSheetRef.current;
+    map.easeTo({
+      padding: { top: 0, left: 0, right: 0, bottom: px },
+      ...(px > 0 && c ? { center: [c.longitude, c.latitude] as [number, number] } : {}),
+      duration: 250,
+    });
+  }, []);
+
   const handleEntrancePickerModeChange = useCallback((config: EntrancePickerConfig | null) => {
     entrancePickerConfigRef.current = config;
     if (!mapRef.current) return;
@@ -2453,8 +2469,9 @@ export default function App() {
       
 
       {/* CONTAINER MAÎTRE DES VUES (rail des modules en v2) */}
-      <div className="flex min-h-0 flex-1 max-md:pb-14">
+      <div className={`flex min-h-0 flex-1 ${assistantOpen ? '' : 'max-md:pb-14'}`}>
         <ModuleRail
+            hidden={assistantOpen}
             view={activeAdminView}
             onViewChange={(v) => {
               setActiveAdminView(v);
@@ -2539,6 +2556,7 @@ export default function App() {
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" id="mapbox-viewport" />
 
               <AtelierToolbar
+                  hiddenOnPhone={assistantOpen}
                   tool={activeTool}
                   onTool={selectAtelierTool}
                   is3D={currentPitch > 15}
@@ -2570,7 +2588,7 @@ export default function App() {
 
         {/* BOUTON FLOTTANT DISCRET "MASQUER" À CÔTÉ DU CURSEUR LORSQU'UN POLYGONE EST SÉLECTIONNÉ */}
         <AnimatePresence>
-          {selectedPolygonHideAction && (
+          {selectedPolygonHideAction && !assistantOpen && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 3 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2752,7 +2770,7 @@ export default function App() {
         
 
         {activeAdminView === 'carte' && clickedCoords && assistantStarted && (
-          <AssistantAside>
+          <AssistantAside onHeight={onSheetHeight}>
               <RegistrationBanner
                 origin={certification ? 'certification' : clickedCoords.source === 'osm' ? 'osm' : 'nouveau'}
                 declaration={certification}

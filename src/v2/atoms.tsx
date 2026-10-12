@@ -51,7 +51,7 @@ export const Chips: React.FC<{ label: string; value: string; onChange: (v: strin
           role="radio"
           aria-checked={on}
           onClick={() => onChange(o.value)}
-          className={`h-10 rounded-lg border px-3.5 text-[13.5px] transition ${on ? 'border-hx-accent bg-hx-accent-soft text-hx-text' : 'border-hx-line2 text-hx-dim hover:bg-hx-hover/40'}`}
+          className={`h-10 rounded-lg border px-3.5 text-[13.5px] transition max-md:h-11 ${on ? 'border-hx-accent bg-hx-accent-soft text-hx-text' : 'border-hx-line2 text-hx-dim hover:bg-hx-hover/40'}`}
         >
           {o.label}
         </button>
@@ -71,11 +71,11 @@ export const NumberStepper: React.FC<{ label: string; value: number; onChange: (
   <div className="flex items-center justify-between gap-3">
     <span className="text-[13px] font-semibold text-hx-text">{label}</span>
     <div className="flex items-center gap-1 rounded-lg border border-hx-line2 p-[3px]">
-      <button type="button" aria-label={`${label} : moins`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className="h-8 w-9 rounded-md bg-hx-hover text-[17px] text-hx-text transition hover:bg-hx-line2 disabled:opacity-40">
+      <button type="button" aria-label={`${label} : moins`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className="h-8 w-9 rounded-md bg-hx-hover text-[17px] text-hx-text transition hover:bg-hx-line2 disabled:opacity-40 max-md:h-11 max-md:w-12">
         −
       </button>
-      <span className="w-14 text-center font-mono text-[15px] text-hx-text">{format ? format(value) : value}</span>
-      <button type="button" aria-label={`${label} : plus`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))} className="h-8 w-9 rounded-md bg-hx-hover text-[17px] text-hx-text transition hover:bg-hx-line2 disabled:opacity-40">
+      <span className="w-14 text-center max-md:w-16 font-mono text-[15px] text-hx-text">{format ? format(value) : value}</span>
+      <button type="button" aria-label={`${label} : plus`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))} className="h-8 w-9 rounded-md bg-hx-hover text-[17px] text-hx-text transition hover:bg-hx-line2 disabled:opacity-40 max-md:h-11 max-md:w-12">
         +
       </button>
     </div>
@@ -97,13 +97,13 @@ export const TextField: React.FC<{ label: string; optional?: boolean; value: str
     {multiline ? (
       <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className="resize-none rounded-lg border border-hx-line2 bg-hx-base/60 px-3 py-2 text-[14px] text-hx-text outline-none placeholder:text-hx-faint focus:border-hx-accent" />
     ) : (
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-[38px] rounded-lg border border-hx-line2 bg-hx-base/60 px-3 text-[14px] text-hx-text outline-none placeholder:text-hx-faint focus:border-hx-accent" />
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-[38px] rounded-lg border border-hx-line2 bg-hx-base/60 px-3 max-md:h-12 text-[14px] text-hx-text outline-none placeholder:text-hx-faint focus:border-hx-accent" />
     )}
   </label>
 );
 
 export const CheckRow: React.FC<{ label: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, checked, onChange }) => (
-  <label className="flex h-10 items-center gap-2.5 rounded-lg border border-hx-line2 px-3 text-[13.5px] text-hx-text">
+  <label className="flex h-10 items-center gap-2.5 rounded-lg border border-hx-line2 px-3 max-md:h-12 text-[13.5px] text-hx-text">
     <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#3f6fc4]" />
     {label}
   </label>
@@ -117,14 +117,14 @@ export const Note: React.FC<{ tone?: 'info' | 'warn' | 'ok'; children: React.Rea
 );
 
 export const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { hint?: string }> = ({ children, hint, className = '', ...rest }) => (
-  <button {...rest} className={`flex h-10 flex-1 items-center justify-center gap-2.5 rounded-lg bg-hx-accent text-[14px] font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}>
+  <button {...rest} className={`flex h-10 flex-1 items-center justify-center gap-2.5 max-md:h-12 max-md:text-[15px] rounded-lg bg-hx-accent text-[14px] font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}>
     {children}
-    {hint && <span className="font-mono text-[11.5px] opacity-70">{hint}</span>}
+    {hint && <span className="font-mono text-[11.5px] opacity-70 max-md:hidden">{hint}</span>}
   </button>
 );
 
 export const GhostButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, className = '', ...rest }) => (
-  <button {...rest} className={`h-10 rounded-lg border border-hx-line2 bg-hx-hover px-4 text-[13.5px] text-hx-text transition hover:brightness-110 disabled:opacity-40 ${className}`}>
+  <button {...rest} className={`h-10 rounded-lg border border-hx-line2 bg-hx-hover px-4 text-[13.5px] max-md:h-12 max-md:text-[15px] text-hx-text transition hover:brightness-110 disabled:opacity-40 ${className}`}>
     {children}
   </button>
 );

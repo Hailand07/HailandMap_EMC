@@ -276,6 +276,15 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 - `AgentGate` reconstruit l'atelier à chaque changement de compte (clé = compte) et la liste de masquage OSM est rangée par agent (`hailandmap.u.<compte>.hidden_buildings`, l'ancienne liste globale est effacée) : plusieurs agents sur le même appareil ne se voient plus.
 - L'accès dépend de la table `agents` : les 3 administrateurs du fondateur n'y étaient pas (voir `ECOSYSTEME_HAILAND.md` §4.9) ; leur ajout attend la confirmation de leurs identifiants.
 
+### Enregistrement complet sur téléphone (2026-10-12) ✅ — jeu complet d'un bâtiment et d'une concession à 390 × 844
+Constat (parcours joué sur un écran de téléphone, captures à chaque étape) : le panneau de l'assistant prenait 58 % de l'écran, dont ~270 px d'en-tête (bandeau d'origine, titre, 5 étapes nommées, boîte du code) ; la zone de saisie ne faisait que **128 px** ; la carte n'était visible que sur ~250 px, recouverte par la colonne d'outils, et **toucher la carte pour poser l'entrée, le portail ou un bâtiment était presque impossible**. Corrections :
+- **Panneau à trois hauteurs** (`AssistantAside`, poignée à toucher ou à glisser) : *mi-hauteur* à l'étape Structure (le bâtiment reste visible au-dessus, la carte est recentrée au-dessus du panneau), *plein panneau* pour les formulaires (Attributs, Accès, Vérification), *réduit* à volonté.
+- **Tâche sur la carte** (`mapTask` de `AssistantFrame`) : poser l'entrée du bâtiment, le portail de la cour, retenir ou tracer un bâtiment de la concession → le panneau se réduit à **une barre** (consigne + actions : Annuler, Tracé libre / Clic auto, Défaire, Retenir / Valider) et toute la carte est libre ; au geste suivant il rouvre le formulaire. Les repères posés sur la carte et le bouton flottant « Masquer » ne captent plus les touches pendant la tâche.
+- **En-tête compact** sur téléphone : titre, « Étape n sur 5 · nom », code en puce, croix pour quitter, progression fine ; bandeau d'origine sur une ligne (la demande d'un résident se déplie par « Détails de la demande »). La barre des modules et la colonne d'outils sont retirées pendant l'assistant (le pied du panneau, avec « Précédent » / « Suivant » / « Enregistrer et certifier », est toujours entièrement visible).
+- **Confort tactile** : boutons et champs de 44–48 px, texte de saisie à 16 px (pas de zoom automatique sur iPhone), indication « Ctrl Entrée » masquée, `viewport-fit=cover` et `interactive-widget=resizes-content` (le clavier ne recouvre plus le pied du panneau).
+- **Bug corrigé (aussi sur ordinateur)** : poser l'entrée ou le portail était **annulé au moindre déplacement de la carte** (l'effet de nettoyage des formulaires dépendait de fonctions recréées à chaque affichage et vidait le mode de pose) ; il ne s'exécute plus qu'à la fermeture (`useDirectBuildingForm`, `useCourtyardManager`).
+- Tests : `tests/e2e/run.mjs` §6 joue un bâtiment direct puis une concession complets sur téléphone (tâches sur la carte, tracé au doigt, « Défaire », pied visible, envoi vérifié).
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -336,3 +345,4 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 | 2026-10-06 | Masquage : la découpe est réappliquée après un changement de fond de carte (Plan → Satellite → Plan recréait la source vide) ; test de bout en bout correspondant. |
 | 2026-10-12 | Un agent = son propre atelier (atelier reconstruit par compte, liste de masquage par agent). |
 | 2026-10-12 | 3 administrateurs officiels ajoutés dans `agents` (5 admins) : ils accèdent à HailandMap. |
+| 2026-10-12 | Enregistrement complet sur téléphone : panneau à trois hauteurs, tâches sur la carte (entrée, portail, tracé) avec barre réduite, en-tête compact, cibles tactiles, correction de l'annulation de la pose au déplacement de la carte ; test de bout en bout bâtiment + concession à 390 × 844. |

@@ -303,16 +303,116 @@ async function main() {
       if (await create.isVisible({ timeout: 6000 }).catch(() => false)) {
         await create.tap();
         await page.getByRole('button', { name: /^Suivant/ }).waitFor({ timeout: 10000 });
-        const next = await box('aside[aria-label="Assistant de création"] button:last-of-type');
-        const rail = await box('nav[aria-label="Modules"]');
         const nextBtn = await page.getByRole('button', { name: /^Suivant/ }).evaluate((e) => { const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; });
-        check('mobile : le pied de la fiche d’enregistrement n’est pas masqué par la barre des modules', nextBtn.b <= rail.t + 1, JSON.stringify({ nextBtn, rail }));
-        void next;
+        check('mobile : le pied de la fiche d’enregistrement est entièrement visible (barre des modules retirée)', nextBtn.b <= 844 && !(await page.getByRole('navigation', { name: 'Modules' }).isVisible().catch(() => false)), JSON.stringify(nextBtn));
       } else {
         skip('mobile : pied de la fiche d’enregistrement', 'aucun point libre trouvé sous le bâtiment du test');
       }
       check('mobile : aucune erreur de page', errors.length === 0, errors.join(' | ').slice(0, 300));
       await ctx.close();
+    }
+
+    // 6. Mobile (390 × 844) : enregistrement COMPLET d'un bâtiment direct puis d'une concession, étape par étape (tâches sur la carte, pied du panneau)
+    if (!HAS_TOKEN) {
+      skip('mobile : enregistrement complet (bâtiment et concession)', 'jeton Mapbox absent');
+    } else {
+      const mobile = async () => {
+        const writes = [];
+        const errors = [];
+        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+        const page = await ctx.newPage();
+        page.on('pageerror', (e) => errors.push(e.message));
+        await mockSupabase(page, { agent: 'admin', registry: 'one', writes });
+        await login(page);
+        await page.waitForFunction(() => !!window.__hxMap, null, { timeout: 40000 });
+        await page.evaluate(() => window.__hxMap.jumpTo({ center: [-13.6775, 9.53075], zoom: 18.5, pitch: 0, bearing: 0 }));
+        await page.waitForTimeout(6000);
+        const pt = await page.evaluate(() => { const p = window.__hxMap.project([-13.6775, 9.53075]); return [p.x, p.y + 260]; });
+        await page.touchscreen.tap(pt[0], pt[1]);
+        return { writes, errors, ctx, page };
+      };
+      const asideBox = (page) => page.evaluate(() => { const e = document.querySelector('aside[aria-label="Assistant de création"]'); const b = e && e.getBoundingClientRect(); return b && { t: Math.round(b.top), h: Math.round(b.height) }; });
+      const centerOf = (page) => page.evaluate(() => { const m = window.__hxMap; const p = m.project(m.getCenter()); return [p.x, p.y]; });
+
+      // 6a. Bâtiment direct
+      {
+        const { writes, errors, ctx, page } = await mobile();
+        await page.getByRole('button', { name: /Créer la fiche/ }).first().tap();
+        await page.getByRole('button', { name: /^Suivant/ }).waitFor({ timeout: 10000 });
+        const half = await asideBox(page);
+        check('mobile : l’assistant s’ouvre à mi-hauteur, la carte reste visible au-dessus', half && half.t > 300 && half.t < 520, JSON.stringify(half));
+        check('mobile : la barre des modules est retirée pendant l’assistant', !(await page.getByRole('navigation', { name: 'Modules' }).isVisible().catch(() => false)));
+        await page.getByRole('button', { name: /^Suivant/ }).tap();
+        await page.getByRole('button', { name: /^Suivant/ }).tap();
+        const full = await asideBox(page);
+        check('mobile : les formulaires s’ouvrent en plein panneau avec le pied visible', full && full.h > 700 && await page.getByRole('button', { name: /^Suivant/ }).isVisible(), JSON.stringify(full));
+        await page.getByRole('button', { name: /Poser l’entrée sur la carte/ }).tap();
+        await page.waitForTimeout(1200);
+        const bar = await asideBox(page);
+        check('mobile : poser l’entrée réduit le panneau à une barre (la carte est libre)', bar && bar.h < 220, JSON.stringify(bar));
+        await page.touchscreen.tap(150, 250);
+        await page.waitForTimeout(1200);
+        check('mobile : toucher la carte pose l’entrée et rouvre le formulaire', !(await page.getByRole('status').isVisible().catch(() => false)) && await page.getByRole('button', { name: 'Déplacer' }).isVisible().catch(() => false));
+        await page.getByRole('button', { name: /^Suivant/ }).tap();
+        const save = page.getByRole('button', { name: /^Enregistrer et certifier/ });
+        await save.waitFor({ timeout: 8000 });
+        const sb = await save.evaluate((e) => { const r = e.getBoundingClientRect(); return { b: Math.round(r.bottom), h: Math.round(r.height) }; });
+        check('mobile : « Enregistrer et certifier » est entièrement visible et haut de 44 px ou plus', sb.b <= 844 && sb.h >= 44, JSON.stringify(sb));
+        await save.tap();
+        await page.waitForTimeout(3000);
+        const post = writes.find((w) => w.method === 'POST' && w.table === 'buildings');
+        check('mobile : le bâtiment est enregistré (envoi intercepté)', Boolean(post));
+        if (post) {
+          const row = (() => { const b = JSON.parse(post.body); return Array.isArray(b) ? b[0] : b; })();
+          check('mobile : l’entrée posée au doigt est enregistrée', Boolean(row.entry_point_geom), JSON.stringify(row.entry_point_geom));
+        }
+        check('mobile : l’assistant se ferme après l’enregistrement', !(await page.locator('aside[aria-label="Assistant de création"]').isVisible().catch(() => false)));
+        check('mobile : aucune erreur de page (bâtiment)', errors.length === 0, errors.join(' | ').slice(0, 300));
+        await ctx.close();
+      }
+
+      // 6b. Concession : tracé d'un bâtiment au doigt, attributs, portail, enregistrement
+      {
+        const { writes, errors, ctx, page } = await mobile();
+        await page.getByRole('button', { name: /Dans une concession/ }).first().tap();
+        await page.getByRole('button', { name: /Ajouter le premier bâtiment/ }).tap();
+        await page.waitForTimeout(1500);
+        const bar = await asideBox(page);
+        check('mobile : tracer un bâtiment réduit le panneau à une barre', bar && bar.h < 230, JSON.stringify(bar));
+        await page.getByRole('button', { name: 'Tracé libre' }).tap();
+        await page.waitForTimeout(800);
+        const c = await centerOf(page);
+        for (const [dx, dy] of [[-28, -28], [28, -28], [28, 28], [-28, 28]]) { await page.touchscreen.tap(c[0] + dx, c[1] + dy); await page.waitForTimeout(350); }
+        check('mobile : les sommets posés au doigt sont comptés', await page.getByRole('status').getByText(/4 posés/).isVisible().catch(() => false));
+        await page.getByRole('button', { name: 'Défaire' }).tap();
+        check('mobile : « Défaire » retire le dernier sommet', await page.getByRole('status').getByText(/3 posés/).isVisible().catch(() => false));
+        await page.touchscreen.tap(c[0] - 28, c[1] + 28);
+        await page.waitForTimeout(400);
+        await page.getByRole('button', { name: 'Valider' }).tap();
+        await page.waitForTimeout(1500);
+        check('mobile : le bâtiment A est retenu', await page.getByText('Bâtiment A').first().isVisible().catch(() => false));
+        await page.getByRole('button', { name: /^Suivant/ }).tap();
+        await page.getByRole('button', { name: /Bâtiment A/ }).first().tap();
+        await page.getByRole('button', { name: /Enregistrer le bâtiment A/ }).tap();
+        await page.waitForTimeout(800);
+        await page.getByRole('button', { name: /^Suivant/ }).tap();
+        await page.getByRole('button', { name: /Poser le portail sur la carte/ }).tap();
+        await page.waitForTimeout(1200);
+        check('mobile : poser le portail réduit le panneau à une barre', (await asideBox(page)).h < 220);
+        const c2 = await centerOf(page);
+        await page.touchscreen.tap(c2[0] + 30, c2[1] - 10);
+        await page.waitForTimeout(1200);
+        await page.getByRole('button', { name: /^Suivant/ }).tap();
+        const save = page.getByRole('button', { name: /^Enregistrer et certifier/ });
+        await save.waitFor({ timeout: 8000 });
+        check('mobile : « Enregistrer et certifier » est visible (concession)', await save.isVisible());
+        await save.tap();
+        await page.waitForTimeout(3500);
+        const rows = writes.filter((w) => w.method === 'POST' && w.table === 'buildings').flatMap((w) => { const b = JSON.parse(w.body); return Array.isArray(b) ? b : [b]; });
+        check('mobile : la concession et son bâtiment sont enregistrés', rows.some((r) => r.has_courtyard === true) && rows.some((r) => /-RA$/.test(r.hailand_code)), JSON.stringify(rows.map((r) => r.hailand_code)));
+        check('mobile : aucune erreur de page (concession)', errors.length === 0, errors.join(' | ').slice(0, 300));
+        await ctx.close();
+      }
     }
   } finally {
     await browser.close();

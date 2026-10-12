@@ -128,20 +128,17 @@ export function useCourtyardManager({
   const [courtyardEntryPoint, setCourtyardEntryPoint] = useState<{ type: 'Point', coordinates: [number, number] } | null>(null);
   const [isPickingCourtyardEntrance, setIsPickingCourtyardEntrance] = useState<boolean>(false);
 
-  // Nettoyage au démontage
+  // Nettoyage au démontage UNIQUEMENT (les fonctions reçues sont recréées à chaque affichage : un effet qui en dépend annulait la tâche en cours
+  // — pose du portail, tracé d'un bâtiment — au moindre déplacement de la carte).
+  const mapHandlersRef = useRef({ onChildMapClickRegistration, onChildDrawCompleteRegistration, onEntrancePickerModeChange });
+  mapHandlersRef.current = { onChildMapClickRegistration, onChildDrawCompleteRegistration, onEntrancePickerModeChange };
   useEffect(() => {
     return () => {
-      if (onChildMapClickRegistration) {
-        onChildMapClickRegistration(null);
-      }
-      if (onChildDrawCompleteRegistration) {
-        onChildDrawCompleteRegistration(null);
-      }
-      if (onEntrancePickerModeChange) {
-        onEntrancePickerModeChange(null);
-      }
+      mapHandlersRef.current.onChildMapClickRegistration?.(null);
+      mapHandlersRef.current.onChildDrawCompleteRegistration?.(null);
+      mapHandlersRef.current.onEntrancePickerModeChange?.(null);
     };
-  }, [onChildMapClickRegistration, onChildDrawCompleteRegistration, onEntrancePickerModeChange]);
+  }, []);
 
   const handleStartPickCourtyardEntrance = () => {
     setIsPickingCourtyardEntrance(true);

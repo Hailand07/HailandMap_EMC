@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les deux dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans l'autre.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 48** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 49** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -444,7 +444,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-12 (révision 48).**
+**Dernière mise à jour de cette section : 2026-10-12 (révision 49).**
+
+- **Fait (2026-10-12, HailandMap sur téléphone)** : l'enregistrement d'un bâtiment et d'une concession est utilisable sur téléphone (panneau à trois hauteurs, tâches sur la carte avec barre réduite, en-tête compact, cibles tactiles) ; bug corrigé : poser l'entrée / le portail s'annulait au moindre déplacement de la carte (aussi sur ordinateur). Voir `HAILANDMAP.md`. **Prochaine étape** : essai sur un vrai téléphone (clavier, gestes), puis Revue → Demandes et fiche du bâtiment sur téléphone.
 
 - **Fait (2026-10-12, comptes)** : isolation par compte dans NavigationX et HailandMap, et **3 administrateurs officiels ajoutés dans `agents`** (5 admins au total, §4.9). **Prochaine étape** : le fondateur vérifie que chacun entre dans HailandMap avec son numéro ; renforcer les codes de connexion (SMS réels) ; reste possible : sélecteur de comptes sans rechargement, lier un numéro à un compte e-mail.
 
@@ -721,3 +723,4 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 | 2026-10-08 | Révision 46 : §17 — stratégie de déploiement, partenariats (secours, banques, entreprises), niveau 3 payant et plaque, vendeurs avant lancement, positionnement envers l'État (avis, rien de codé). |
 | 2026-10-12 | Révision 47 : §4.9 — comptes isolés (une application par compte dans NavigationX et HailandMap), constat des administrateurs absents de `agents` (ajout en attente de confirmation). |
 | 2026-10-12 | Révision 48 : 3 administrateurs officiels ajoutés dans `agents` (5 admins), accord du fondateur (§4.9). |
+| 2026-10-12 | Révision 49 : HailandMap — enregistrement complet d'un bâtiment et d'une concession sur téléphone (voir `HAILANDMAP.md`). |

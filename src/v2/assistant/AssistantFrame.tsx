@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
+import { X } from 'lucide-react';
 import { GhostButton, PrimaryButton } from '../atoms';
+import { useAssistantSheet } from '../../shell/AtelierShell';
 
 export type AssistantStage = 'structure' | 'attributs' | 'acces' | 'verification';
 
@@ -23,11 +25,27 @@ interface FrameProps {
   /** Lien de sortie de l'assistant. */
   onQuit: () => void;
   note?: React.ReactNode;
+  /**
+   * Tâche à faire SUR LA CARTE (poser un point, retenir ou tracer un bâtiment). Sur téléphone, le panneau se réduit à une barre
+   * (consigne + actions) pour laisser toute la carte ; sur ordinateur, rien ne change.
+   */
+  mapTask?: { text: string; actions: { label: string; onClick: () => void; primary?: boolean; disabled?: boolean }[] } | null;
 }
 
 /** Cadre de l'assistant de création (maquette « Création ») : barre des 5 étapes, code en préparation, corps défilant, actions. */
-export const AssistantFrame: React.FC<FrameProps> = ({ stage, onStage, title, code, children, back, next, onQuit, note }) => {
+export const AssistantFrame: React.FC<FrameProps> = ({ stage, onStage, title, code, children, back, next, onQuit, note, mapTask }) => {
   const current = STAGE_LIST.findIndex((s) => s.id === stage);
+  const sheet = useAssistantSheet();
+  // Téléphone : la structure se règle à mi-hauteur (la carte reste visible), les formulaires s'ouvrent en plein panneau.
+  useEffect(() => {
+    sheet.setMode(stage === 'structure' ? 'half' : 'full');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+  useEffect(() => {
+    sheet.setTask(!!mapTask);
+    return () => sheet.setTask(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!mapTask]);
   // Ctrl + Entrée enregistre à l'étape de vérification.
   useEffect(() => {
     if (stage !== 'verification') return;
@@ -42,7 +60,50 @@ export const AssistantFrame: React.FC<FrameProps> = ({ stage, onStage, title, co
   });
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-3.5 border-b border-hx-line px-[18px] py-4">
+      {mapTask && (
+        <div className="hx-sheet-taskbar flex-col gap-2.5 px-4 pb-3 pt-1" role="status">
+          <div className="text-[14px] font-semibold leading-snug text-hx-text">{mapTask.text}</div>
+          <div className="flex gap-2">
+            {mapTask.actions.map((a) =>
+              a.primary ? (
+                <PrimaryButton key={a.label} type="button" onClick={a.onClick} disabled={a.disabled}>
+                  {a.label}
+                </PrimaryButton>
+              ) : (
+                <GhostButton key={a.label} type="button" onClick={a.onClick} disabled={a.disabled} className="flex-1">
+                  {a.label}
+                </GhostButton>
+              ),
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Téléphone : en-tête compact (étape, code, quitter, progression fine). */}
+      <div className="hx-sheet-header flex flex-col gap-2 border-b border-hx-line px-4 pb-2.5 pt-0.5 md:hidden">
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[15px] font-semibold text-hx-text">{title}</div>
+            <div className="truncate text-[12px] text-hx-dim">
+              Étape {current + 1} sur {STAGE_LIST.length} · {STAGE_LIST[current]?.label}
+            </div>
+          </div>
+          <span className="max-w-[46%] truncate rounded-md bg-hx-card px-2 py-1 font-mono text-[11.5px] text-hx-accent-text">{code.main}</span>
+          <button type="button" onClick={onQuit} aria-label="Quitter l’assistant" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-hx-dim transition hover:bg-hx-hover hover:text-hx-text">
+            <X size={18} />
+          </button>
+        </div>
+        <ol aria-label="Étapes" className="m-0 flex list-none gap-1 p-0">
+          {STAGE_LIST.map((s, i) => (
+            <li key={s.id} aria-current={i === current ? 'step' : undefined} className="flex-1">
+              <span className={`block h-1 rounded-sm ${i <= current ? 'bg-hx-accent' : 'bg-hx-line2'}`} />
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Ordinateur : en-tête complet (barre des 5 étapes nommées, code en préparation). */}
+      <div className="flex flex-col gap-3.5 border-b border-hx-line px-[18px] py-4 max-md:hidden">
         <div className="flex items-center justify-between gap-3">
           <span className="text-[15px] font-semibold text-hx-text">{title}</span>
           <button type="button" onClick={onQuit} className="rounded-md px-2 py-1 text-[12.5px] text-hx-faint transition hover:bg-hx-hover hover:text-hx-text">
@@ -85,9 +146,9 @@ export const AssistantFrame: React.FC<FrameProps> = ({ stage, onStage, title, co
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto p-[18px]">{children}</div>
+      <div className="hx-sheet-body flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto p-[18px] max-md:gap-5 max-md:px-4 max-md:py-4">{children}</div>
 
-      <div className="flex flex-col gap-2 border-t border-hx-line px-[18px] py-3.5">
+      <div className="hx-sheet-footer flex flex-col gap-2 border-t border-hx-line px-[18px] py-3.5 max-md:px-4 max-md:py-3">
         {note}
         <div className="flex gap-2.5">
           <GhostButton type="button" onClick={back.onClick} disabled={back.disabled}>
