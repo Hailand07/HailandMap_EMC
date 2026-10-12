@@ -335,3 +335,4 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 | 2026-10-06 | Masquage OSM sans trace (découpe des empreintes exactes + recouvrement du liseré), mobile : réglages du satellite sur une ligne et zoom en dessous, pied de la fiche d'enregistrement visible (colonne flexible, unités `dvh`). |
 | 2026-10-06 | Masquage : la découpe est réappliquée après un changement de fond de carte (Plan → Satellite → Plan recréait la source vide) ; test de bout en bout correspondant. |
 | 2026-10-12 | Un agent = son propre atelier (atelier reconstruit par compte, liste de masquage par agent). |
+| 2026-10-12 | 3 administrateurs officiels ajoutés dans `agents` (5 admins) : ils accèdent à HailandMap. |
