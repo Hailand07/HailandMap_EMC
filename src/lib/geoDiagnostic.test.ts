@@ -17,6 +17,9 @@ describe('isInAppBrowser', () => {
     expect(isInAppBrowser(WEBVIEW_IOS, false)).toBe(true);
     expect(isInAppBrowser(FACEBOOK_IOS, false)).toBe(true);
   });
+  it('une vue web Android (« ; wv) ») est un navigateur intégré', () => {
+    expect(isInAppBrowser('Mozilla/5.0 (Linux; Android 14; SM-S911B; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/123.0 Mobile Safari/537.36', false)).toBe(true);
+  });
   it('une application installée sur l’écran d’accueil (standalone) n’est pas signalée', () => {
     expect(isInAppBrowser(WEBVIEW_IOS, true)).toBe(false);
   });

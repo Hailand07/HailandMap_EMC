@@ -2,6 +2,7 @@
  * HailandMap — porte d'entrée : écran d'ouverture, connexion de l'agent par code (téléphone ou e-mail),
  * contrôle d'accès, puis l'application.
  */
+import { InAppBrowserNotice } from './InAppBrowserNotice';
 import React, { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { ArrowLeft, ArrowRight, Check, Copy, LogOut, Mail, ShieldAlert, ShieldCheck, Smartphone } from 'lucide-react';
@@ -281,6 +282,15 @@ const SPLASH_MIN_MS = 1400;
 
 /** Affiche l'ouverture puis la connexion tant qu'aucun agent autorisé n'est connecté ; ensuite l'application. */
 export default function AgentGate({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <InAppBrowserNotice />
+      <AgentGateInner>{children}</AgentGateInner>
+    </>
+  );
+}
+
+function AgentGateInner({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [caps, setCaps] = useState<AuthCapabilities>({ email: false, phone: false, known: false });
