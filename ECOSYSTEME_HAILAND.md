@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 58** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 59** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -445,8 +445,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-13 (révision 58).**
+**Dernière mise à jour de cette section : 2026-10-13 (révision 59).**
 
+- **Fait (2026-10-13, HailandX photos et phase 3)** : photos des produits (bucket public `hx-media`, écriture limitée au dossier du compte, réduction côté navigateur) ; acheteur : panier, commande (`fn_place_order`), suivi, code de remise à 4 chiffres, avis vérifié ; vendeur : commandes, « Colis prêt », QR signé. **4 migrations appliquées en production** (accord du fondateur) : catégories, bucket, **téléphone de l'acheteur masqué** (colonne `orders.buyer_phone` non lisible), **vitrine lisible par les visiteurs** (défaut corrigé : `is_admin()` n'est pas exécutable par `anon`, les règles de lecture publiques ne doivent pas l'appeler). Flux complet rejoué sur la vraie base en transaction annulée. **Reste** : application Flotte (phase 4 : missions, scan, remise, téléphone du livreur par fonction), indice de confiance recalculé (phase 5), SMS réel, domaine. Voir `HAILANDX.md` §16.
 - **Fait (2026-10-13, HailandX phase 2)** : vitrine HailandX lue dans la base (repli sur exemples tant qu'aucune boutique n'est ouverte), connexion par téléphone (`/connexion`), espace vendeur (`/vendeur` : boutique, produits, liens à partager, ouverture de la vente au niveau 3) ; 10 catégories de départ créées en production (ajout seulement, accord du fondateur) ; flux vendeur vérifié sur la vraie base en transaction annulée (rien conservé). **Reste** : photos (stockage), modification de produits, extraction de l'enregistrement d'adresse dans Scorpion, liens suivis, test du SMS réel (fournisseur à choisir). Voir `HAILANDX.md` §15.
 - **Fait (2026-10-12, HailandX phase 1)** : maquettes validées par le fondateur ; dépôt HailandX_Scorpion devient un monorepo (apps `hailandx` Next.js et `flotte`, paquets `ui`, `commerce`, `scorpion`), 68 tests de règles métier, build et lint OK ; migration SQL de commerce et de flotte testée sur Postgres embarqué (28 scénarios, RLS comprise) puis **APPLIQUÉE à la base de production le 2026-10-13** (accord explicite du fondateur ; `supabase/migrations/2026-10-12_hailandx_commerce.sql` dans HailandX_Scorpion) ; comparaison des fournisseurs de SMS (HAILANDX.md §7 bis). **En attente du fondateur** : choix du fournisseur de SMS après devis, domaine et projets Vercel, validation des tarifs de livraison provisoires, du plafond d'espèces et de la distance de remise. **Prochaine étape** : connexion par téléphone et lecture réelle des boutiques (phase 2).
 - **Décidé (2026-10-12, HailandX, suite)** : le fondateur accepte toutes les propositions (fiche commune et offres, remise par scan + code, boutique avant certification, Flotte séparée, Next.js, comparaison des SMS) ; nom et domaine laissés à Claude (HailandX, Hailand Flotte, Scorpion, `hx.gn`) ; zone pilote plus tard. **Phase 0 en cours** : canevas de maquettes (§18.3 bis) à valider. **Prochaine étape** : reprendre les commentaires du fondateur sur le canevas, puis phase 1 (monorepo, connexion par téléphone, Scorpion partagé, migration des tables avec accord).
@@ -804,3 +805,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-12 | Révision 56 : §14 — phase 1 de HailandX (monorepo, règles métier testées, migration SQL proposée non appliquée, comparaison SMS). |
 | 2026-10-13 | Révision 57 : §4 base — migration de commerce et de Flotte de HailandX appliquée à la production (14 tables, 14 fonctions), §14 et §18.4 à jour. |
 | 2026-10-13 | Révision 58 : §14 — phase 2 de HailandX commencée (vitrine, connexion par téléphone, espace vendeur, catégories de départ). |
+| 2026-10-13 | Révision 59 : §14 — photos, phase 3 de HailandX, 4 migrations appliquées, vitrine visiteurs corrigée, téléphone acheteur masqué. |
