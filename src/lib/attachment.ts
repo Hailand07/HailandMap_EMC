@@ -9,6 +9,8 @@ import type { UnitInput } from '../registration/units';
  */
 export interface Declaration {
   id: string;
+  /** Nom de la boutique HailandX qui a demandé la certification en priorité (null : demande ordinaire). */
+  priority_shop?: string | null;
   user_id: string;
   detected_level: 1 | 2;
   hailand_code: string;
@@ -55,7 +57,18 @@ const DECL_COLUMNS =
 export async function loadDeclarations(): Promise<Declaration[]> {
   const { data, error } = await supabase.from('declarations').select(DECL_COLUMNS).eq('status', 'active').order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as Declaration[];
+  const list = (data ?? []) as unknown as Declaration[];
+  // Demandes de certification prioritaires (vendeurs HailandX) : lecture réservée aux agents ; sans effet si la table est illisible.
+  try {
+    const { data: pr } = await supabase.from('certification_priorities').select('declaration_id,shops(name)');
+    const byDecl = new Map<string, string>();
+    for (const r of (pr ?? []) as unknown as { declaration_id: string; shops: { name: string } | { name: string }[] | null }[]) {
+      const shop = Array.isArray(r.shops) ? r.shops[0] : r.shops;
+      byDecl.set(r.declaration_id, shop?.name ?? 'Boutique HailandX');
+    }
+    for (const d of list) d.priority_shop = byDecl.get(d.id) ?? null;
+  } catch { /* priorités indisponibles : la liste reste utilisable */ }
+  return list;
 }
 
 /** Nombre de personnes rattachées officiellement par bâtiment. */
