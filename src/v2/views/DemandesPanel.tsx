@@ -42,7 +42,7 @@ export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error,
   const groups = useMemo(() => {
     const todo = declarations
       .filter((d) => !d.certified_building_id && d.certification_status !== 'refusee')
-      .sort((a, b) => Number(!!b.certification_requested_at) - Number(!!a.certification_requested_at) || b.created_at.localeCompare(a.created_at));
+      .sort((a, b) => Number(!!b.priority_shop) - Number(!!a.priority_shop) || Number(!!b.certification_requested_at) - Number(!!a.certification_requested_at) || b.created_at.localeCompare(a.created_at));
     const refused = declarations.filter((d) => !d.certified_building_id && d.certification_status === 'refusee');
     const linked = declarations.filter((d) => d.certified_building_id);
     return { todo, refused, linked };
@@ -92,6 +92,7 @@ export const DemandesPanel: React.FC<Props> = ({ declarations, buildings, error,
                 </span>
                 <span className="text-hx-faint">{fmtDate(d.created_at)}</span>
               </div>
+              {d.priority_shop && !d.certified_building_id && <div className="w-fit rounded bg-hx-warn/15 px-1.5 py-0.5 text-[11px] font-semibold text-hx-warn">PRIORITAIRE · boutique « {d.priority_shop} »</div>}
               <div className="text-[14px]">{d.declared_label || d.declared_landmark || placeOf(d)}</div>
               <div className="font-mono text-[12px] text-hx-dim">{d.hailand_code}</div>
             </button>
