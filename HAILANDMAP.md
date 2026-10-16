@@ -362,3 +362,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-12 | Avertissement dès l'ouverture dans un navigateur intégré (WhatsApp) : ouvrir dans Safari, copier le lien. |
 | 2026-10-12 | Documentation : HailandX, Flotte et Scorpion cadrés (§18 de l'écosystème) ; demandes de certification « vendeur » prioritaires à prévoir dans Revue → Demandes. |
 | 2026-10-13 | Revue → Demandes : les demandes de certification **prioritaires** (vendeurs HailandX, table `certification_priorities`) passent en tête avec le badge « PRIORITAIRE · boutique … » ; lecture sans effet si la table est illisible. |
+| 2026-10-16 | Nouveau fichier `BASE_DE_DONNEES.md` (explication de chaque table de la base partagée, tables inutilisées, recettes SQL) copié ici ; règle 6 ajoutée à `check:docs` (une table créée dans un `.sql` doit y être décrite) ; écosystème révision 86 — aucun changement de code applicatif dans HailandMap. |

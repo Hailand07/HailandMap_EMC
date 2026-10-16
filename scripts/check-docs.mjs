@@ -8,6 +8,8 @@
  *  2. Si ECOSYSTEME_HAILAND.md change, son numéro « Révision : N » doit augmenter.
  *  3. Aucun secret (clé Supabase secrète, JWT, jeton) ne doit apparaître dans les fichiers .md.
  *  4. Les liens relatifs des .md ([texte](./fichier)) doivent pointer vers des fichiers qui existent.
+ *  6. BASE_DE_DONNEES.md : toute table/vue créée dans un fichier .sql doit y être décrite (nom entre accents graves) ;
+ *     s'il change, sa « Révision : N » doit augmenter (à recopier dans les autres dépôts).
  *  5. (hors --staged) La copie d'ECOSYSTEME_HAILAND.md doit rester synchronisée avec celle de l'autre dépôt
  *     (branche par défaut, lue sur GitHub) : révision plus ancienne ou contenu différent à révision égale = échec.
  *     Réseau indisponible = simple avertissement.
@@ -144,6 +146,34 @@ if (!staged && existsSync(ECO) && !process.env.SKIP_SYNC_CHECK) {
     }
   } catch (e) {
     notes.push(`Synchro avec ${other} non vérifiée (${e.message}).`);
+  }
+}
+
+// --- Règle 6 : BASE_DE_DONNEES.md (une table créée doit y être décrite) --------------------------------
+const DB_DOC = 'BASE_DE_DONNEES.md';
+if (existsSync(DB_DOC)) {
+  const dbText = readFileSync(DB_DOC, 'utf8');
+  const sqlChanged = changed.filter((f) => /\.sql$/.test(f) && !/^supabase\/maintenance\//.test(f));
+  const added = [];
+  for (const f of sqlChanged) {
+    const diff = staged ? tryShell(`git diff --cached -U0 -- "${f}"`) : tryShell(`git diff -U0 ${range} -- "${f}"`);
+    for (const l of (diff || '').split('\n')) {
+      if (!/^\+(?!\+)/.test(l) || /^\+\s*--/.test(l)) continue;
+      const m = /create\s+(?:table|(?:or\s+replace\s+)?view)\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s*(?:\(|as\b)/i.exec(l);
+      if (m) added.push(m[1].toLowerCase());
+    }
+  }
+  if (added.length && !skip) {
+    const missing = [...new Set(added)].filter((n) => !dbText.includes('`' + n + '`'));
+    if (missing.length) errors.push(`${DB_DOC} : table(s) créée(s) mais non décrite(s) : ${missing.join(', ')} (ajouter une section, voir §12 du fichier).`);
+    if (!changed.includes(DB_DOC)) errors.push(`Des tables sont créées (${[...new Set(added)].join(', ')}) mais ${DB_DOC} n'a pas été mis à jour.`);
+  }
+  if (changed.includes(DB_DOC)) {
+    const before = staged ? tryShell(`git show HEAD:${DB_DOC}`) : tryShell(`git show ${range.split('..')[0]}:${DB_DOC}`);
+    const [nr, or] = [revOf(dbText), revOf(before)];
+    if (nr === null) errors.push(`${DB_DOC} : ligne « Révision : N » introuvable.`);
+    else if (or !== null && nr <= or) errors.push(`${DB_DOC} a changé mais sa révision n'a pas augmenté (${or} → ${nr}).`);
+    else notes.push(`${DB_DOC} : révision ${or ?? '?'} → ${nr}. Penser à le recopier dans les deux autres dépôts.`);
   }
 }
 
