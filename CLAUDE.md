@@ -14,6 +14,7 @@ Le dépôt frère est **`Hailand07/Lynx`** (NavigationX, vitrine utilisateurs). 
 3. si `ECOSYSTEME_HAILAND.md` a changé : **augmenter sa révision**, puis le recopier dans les dépôts Lynx et HailandX_Scorpion (hors ligne « Fichiers liés ») ; si un dépôt n'est pas accessible dans la session, ajouter la ligne à reporter dans son **§13** ;
 4. faire ces mises à jour **dans le même commit** que le code ;
 5. **en fin de session**, mettre à jour `ECOSYSTEME_HAILAND.md` **§14** (fait / décidé / bloqué / prochaine étape) — c'est ce qui permet de reprendre sans tout refaire.
+6. si une **table, vue, colonne ou valeur autorisée** de la base change : mettre à jour **`BASE_DE_DONNEES.md`** (explication de chaque table pour le fondateur), **augmenter sa révision** et le recopier dans les 3 dépôts. Contrôle automatique : test `supabase/tests/schema-doc.test.ts` (HailandX_Scorpion) / règle 6 de `npm run check:docs` (Lynx, HailandMap_EMC) — une table créée sans description fait échouer.
 Procédure complète pour une nouvelle fonctionnalité : `ECOSYSTEME_HAILAND.md` **§12**.
 Utiliser la légende ✅ constaté / 📄 documenté / ⚠️ à vérifier / 💡 proposé ; ne jamais présenter une supposition comme un fait.
 
