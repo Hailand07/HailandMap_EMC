@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 88** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 89** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-20 (révision 88).**
+**Dernière mise à jour de cette section : 2026-10-20 (révision 89).**
+
+- **Fait (2026-10-20, plan « Flotte Nuit » étapes 2 à 4 — `HAILANDX.md` §32)** : carte « Hailand Nuit » de Flotte écrite dans le code (Mapbox Streets v8, itinéraire vert lumineux, trajet parcouru éteint, relief sombre) ; parcours refait (hors service, en service, mission proposée, retrait, remise, fin, menu, Mes livraisons, Aide ; panneau à gauche sur ordinateur) ; navigation avancée (bandeau de manœuvre, caméra inclinée avec zoom selon la vitesse, flèche animée orientée, vue d'ensemble, vitesse, progression). Aucune modification de la base. **Prochaine étape** : essai réel de Flotte sur un téléphone en roulant (fondateur), puis retouches.
 
 - **Fait (2026-10-20, plan « Flotte Nuit » étapes 0 et 1 — `HAILANDX.md` §32)** : maquettes v5 validées (logo **Flotte** : carré bleu nuit, itinéraire vert ; logo **HailandX Vendeur** : devanture à auvent verte sur fond sombre) ; logos à source unique (`HailandX_Scorpion/packages/ui/src/marks.ts`), icônes d'onglet et d'installation des 4 applications, écran d'ouverture commun (une fois par onglet, CSS seulement). **Prochaine étape** : 2. carte « Hailand Nuit » dans Flotte, puis 3. parcours et mise en page de Flotte, 4. navigation avancée.
 
