@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 86** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 87** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-16 (révision 86).**
+**Dernière mise à jour de cette section : 2026-10-20 (révision 87).**
+
+- **Décidé (2026-10-20, plan « Flotte Nuit, écrans d'ouverture, logos » — détail `HAILANDX.md` §32)** : carte sombre « Hailand Nuit » (itinéraire vert citron) pour Hailand Flotte seulement ; refonte du parcours et de l'interface de Flotte (téléphone d'abord, version PC seulement propre : Flotte n'est jamais utilisée sur ordinateur) ; navigation avancée ; **écran d'ouverture** commun dans HailandX, HailandX Vendeur, Flotte et Console (NavigationX et HailandMap en ont déjà un) ; **logos à créer pour Hailand Flotte et HailandX Vendeur** (HailandMap, HailandX, Console et NavigationX gardent le leur) + icônes d'installation. Étape 0 (maquettes) en cours. Fait le même jour : jeton Mapbox de Flotte corrigé sur Vercel (un caractère faux), carte de nouveau affichée.
 
 - **Fait (2026-10-16)** : `BASE_DE_DONNEES.md` (révision 1, identique dans les 3 dépôts) explique table par table la base partagée (rôle, qui écrit/lit, colonnes, ce que le fondateur peut modifier à la main, recettes SQL). Tenu à jour automatiquement : test `supabase/tests/schema-doc.test.ts` (HailandX_Scorpion) et règle 6 de `check:docs` (Lynx, HailandMap) refusent une table créée sans description. Tables **inutilisées** repérées (`admin_pays`, `admin_capitals`, `admin_points`, `admin_lines`, `populated_places`, `concessions`, `deliveries`, `facades`) : script de ménage `HailandX_Scorpion/supabase/maintenance/2026-10-16_menage_tables_inutilisees.sql` (sauvegarde puis suppression) — ⏳ à exécuter par le fondateur, puis retirer ces tables du fichier (révision 2). `batiments_3d` + 3 vues `vue_*` : facultatives, gardées.
 
