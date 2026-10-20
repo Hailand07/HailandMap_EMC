@@ -365,3 +365,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-16 | Nouveau fichier `BASE_DE_DONNEES.md` (explication de chaque table de la base partagée, tables inutilisées, recettes SQL) copié ici ; règle 6 ajoutée à `check:docs` (une table créée dans un `.sql` doit y être décrite) ; écosystème révision 86 — aucun changement de code applicatif dans HailandMap. |
 | 2026-10-20 | Écosystème révision 87 : plan « Flotte Nuit, écrans d'ouverture, logos » (dépôt HailandX_Scorpion) — aucun changement de code dans HailandMap. |
 | 2026-10-20 | Écosystème révision 88 : logos, icônes et écrans d'ouverture des applications du dépôt HailandX_Scorpion — aucun changement de code dans HailandMap. |
+| 2026-10-20 | Écosystème révision 89 : Flotte (carte Hailand Nuit, parcours refait, navigation avancée) dans le dépôt HailandX_Scorpion — aucun changement de code dans HailandMap. |
