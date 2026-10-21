@@ -366,3 +366,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-20 | Écosystème révision 87 : plan « Flotte Nuit, écrans d'ouverture, logos » (dépôt HailandX_Scorpion) — aucun changement de code dans HailandMap. |
 | 2026-10-20 | Écosystème révision 88 : logos, icônes et écrans d'ouverture des applications du dépôt HailandX_Scorpion — aucun changement de code dans HailandMap. |
 | 2026-10-20 | Écosystème révision 89 : Flotte (carte Hailand Nuit, parcours refait, navigation avancée) dans le dépôt HailandX_Scorpion — aucun changement de code dans HailandMap. |
+| 2026-10-21 | Écosystème révision 90 et BASE_DE_DONNEES révision 2 : missions Flotte au bâtiment certifié exact (plus d'arrondi du dépôt), bâtiments surlignés, plafond d'espèces réglable (dépôt HailandX_Scorpion) — aucun changement de code dans HailandMap. |

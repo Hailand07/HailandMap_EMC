@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 1** (2026-10-16) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 2** (2026-10-21) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -259,7 +259,7 @@ Une ligne à chaque étape : `parcel_id`, `kind` (`cree`, `prepare`, `propose`, 
 **Un livreur = un compte Hailand + un dossier ici.** **Flotte n'est proposée à personne : l'équipe ajoute les livreurs** (Console → Livreurs → « Ajouter un livreur »).
 `user_id`, `full_name`, `phone`, `vehicle` (`moto`, `velo`, `voiture`, `pied`), `status` (`candidat`, `valide`, `suspendu`), `available` (en service), `cash_balance_gnf` (**espèces encaissées à reverser**), `cash_limit_gnf` (plafond ; défaut 500 000), `last_lat`/`last_lng`/`last_seen_at` (dernière position).
 **Règles** : un livreur règle seulement **sa disponibilité** ; statut, plafond et solde sont réservés à l'équipe (déclencheur).
-**Modifier à la main** : 🟠 relever un plafond : `update couriers set cash_limit_gnf = 800000 where user_id = '…';` ; suspendre : Console (journalisé). Ne touchez pas au solde (utilisez « Espèces reçues » dans la Console).
+**Modifier à la main** : 🟠 relever un plafond : **Hailand Console → Livreurs → Plafond d'espèces → Modifier** (fondateur, motif obligatoire, journalisé) ; à défaut `update couriers set cash_limit_gnf = 800000 where user_id = '…';` ; suspendre : Console (journalisé). Ne touchez pas au solde (utilisez « Espèces reçues » dans la Console).
 
 ### `courier_invitations` — livreurs invités (0 ligne) 🔴
 Quand l'équipe ajoute un livreur **dont le numéro n'a pas encore de compte Hailand** : `phone` (format `2246XXXXXXXX`), `full_name`, `vehicle`, `invited_by`, `accepted_at`, `user_id`. À sa **première connexion à Flotte**, l'invitation devient un livreur validé (`fn_flotte_rejoindre`). Lecture : équipe seulement. 🔴 passez par la Console.
@@ -346,7 +346,7 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | **Cadastre (agents)** | `fn_building_propose_change`, `fn_building_decide_revision`, `fn_apply_revision_changes`, `fn_sync_building_units`, `fn_agent_link_declaration`, `fn_agent_refuse_request`, `fn_check_new_contour`, `fn_fix_all_building_centroids` |
 | **Boutique** | `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
 | **Commande** | `fn_place_order`, `fn_pay_start`, `fn_payment_confirm`, `fn_parcel_ready`, `fn_parcel_cancel`, `fn_parcel_tracking`, `fn_my_handover_code`, `fn_parcel_qr` |
-| **Livraison (Flotte)** | `fn_missions_carte`, `fn_missions_proches`, `fn_mission_detail`, `fn_mission_info`, `fn_courier_accept`, `fn_courier_release`, `fn_courier_ping`, `fn_parcel_pickup`, `fn_parcel_handover`, `fn_parcel_handover_proof`, `fn_flotte_rejoindre` |
+| **Livraison (Flotte)** | `fn_missions_carte` (points exacts des bâtiments et contours, depuis le 2026-10-21), `fn_declaration_point`, `fn_declaration_outline`, `fn_console_courier_cash_limit` (Console), `fn_missions_proches`, `fn_mission_detail`, `fn_mission_info`, `fn_courier_accept`, `fn_courier_release`, `fn_courier_ping`, `fn_parcel_pickup`, `fn_parcel_handover`, `fn_parcel_handover_proof`, `fn_flotte_rejoindre` |
 | **Avis et litiges** | `fn_submit_review`, `fn_report_review`, `fn_moderate_review`, `fn_open_dispute`, `fn_dispute_post`, `fn_resolve_dispute` |
 | **Console (équipe)** | `fn_console_overview`, `fn_console_certifications`, `fn_console_certification_decide`, `fn_request_priority_certification`, `fn_console_courier_add`, `fn_console_team`, `fn_console_team_set`, `fn_console_setting_update`, `fn_console_journal`, `fn_courier_cash_settle`, `fn_shop_payout`, `fn_refunds_due`, `fn_refund_paid` |
 | **Automatiques (déclencheurs)** | `notify_*` (notifications), `shop_score_after_*`, `parcel_money_after` (grand livre), `trg_fn_*` (codes, centroïdes, rattachement des adresses), `offers_require_open_shop`, `couriers_guard_before`, `shops_guard_before` |
@@ -375,7 +375,7 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 
 **8. Ajouter un quartier** : les `id`, `code` et `commune_id` doivent suivre les conventions existantes (regardez une ligne voisine : `select * from quartiers where commune_id = '…' limit 3;`). Après l'ajout, les codes Hailand de ce quartier se créeront tout seuls (numéro d'ordre attribué à la première adresse). Demandez-moi si vous hésitez : le contour (`geom`) est nécessaire pour que les adresses y soient reconnues.
 
-**9. Relever le plafond d'espèces d'un livreur** : `update couriers set cash_limit_gnf = 800000 where user_id = '<id>';`
+**9. Relever le plafond d'espèces d'un livreur** : de préférence dans Hailand Console (Livreurs → Plafond d'espèces) ; sinon `update couriers set cash_limit_gnf = 800000 where user_id = '<id>';`. Une mission payable à la livraison n'est acceptée que si espèces en main + montant à encaisser ≤ plafond (500 000 GNF par défaut).
 
 **10. Changer la commission, la part du livreur ou le mode de paiement** : **Console → Paramètres** (fondateur). Pas en SQL.
 
@@ -408,3 +408,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | Date | Révision | Changement |
 |---|---|---|
 | 2026-10-16 | 1 | Création : toutes les tables utilisées, tables inutilisées, recettes, fonctions. |
+| 2026-10-21 | 2 | Flotte : points exacts des bâtiments et contours (`fn_missions_carte`, `fn_mission_detail`), plafond d'espèces réglable dans la Console. |
