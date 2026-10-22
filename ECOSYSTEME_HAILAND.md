@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 91** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 92** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-21 (révision 91).**
+**Dernière mise à jour de cette section : 2026-10-22 (révision 92).**
+
+- **Fait (2026-10-22, fiche produit détaillée — `HAILANDX.md` §33)** : la page produit de HailandX affiche désormais galerie, « En bref », points forts, description, caractéristiques propres à la catégorie (fiche type des 10 catégories, `packages/commerce/src/fiche.ts`), mot du vendeur, livraison et garanties, carte du vendeur ; HailandX Vendeur fait remplir ces informations (indicateur « Complète à N % »). **Règle** : seule la boutique qui a créé une fiche commune (ou l'équipe) la modifie (`fn_product_update_details`) ; les autres vendeurs écrivent dans leur offre (`offers.description`, `offers.condition`). Migration `2026-10-26_hailandx_fiche_produit.sql` ✅ appliquée en production avec l'accord du fondateur. **Prochaine étape** : les vendeurs complètent les 3 fiches existantes ; essai en ligne ; puis API Orange Money (via le contact du fondateur) et essais avec les autres administrateurs (carnet de tests partagé). 💡 Plus tard : filtres de recherche par caractéristique, questions-réponses sur la fiche.
 
 - **Décidé et codé (2026-10-21, essai réel de Flotte — `HAILANDX.md` §32)** : **règle** — les points de retrait et de dépôt d'une mission sont **le bâtiment certifié lui-même** (plus d'arrondi du dépôt à ≈ 300 m avant l'acceptation ; téléphone, code, étage, porte et repère restent cachés jusqu'à l'acceptation) ; bâtiments **surlignés** (retrait ambre, dépôt vert) ; itinéraire par les routes sur la mission proposée ; refus au-delà du plafond d'espèces expliqué exactement et plafond réglable par le fondateur dans la Console. ✅ Migration `HailandX_Scorpion/supabase/migrations/2026-10-25_flotte_batiments_exacts.sql` appliquée en production le 2026-10-21 (accord du fondateur) et vérifiée (retrait et dépôt à 0 m de leurs bâtiments certifiés). ⚠️ À décider : plafond d'espèces par défaut (500 000 GNF).
 
@@ -863,3 +865,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-14 | Révision 83 : §14 — phase 5 « Compte Hailand » (livreurs recrutés par la console, candidature publique fermée, notification « adresse certifiée » par déclencheur sur `declarations`) ; essai réel de la phase 4. |
 | 2026-10-14 | Révision 84 : migration de la phase 5 appliquée en production (`courier_invitations`, `fn_console_courier_add`, `fn_flotte_rejoindre`, déclencheur `declarations_certified_notify`, candidature publique fermée) ; limite de déploiements Vercel atteinte (§14). |
 | 2026-10-16 | Révision 85 : §14 — seconde remise à zéro des comptes préparée (script + test) ; constat de déploiement de la phase 5. |
+| 2026-10-22 | Révision 92 : §14 — fiche produit détaillée de HailandX (règle : seul le créateur d'une fiche commune ou l'équipe la modifie), migration appliquée — impacte : HailandX / Vendeur. |

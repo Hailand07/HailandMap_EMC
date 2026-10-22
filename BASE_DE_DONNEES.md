@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 3** (2026-10-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 4** (2026-10-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -410,4 +410,5 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 |---|---|---|
 | 2026-10-16 | 1 | Création : toutes les tables utilisées, tables inutilisées, recettes, fonctions. |
 | 2026-10-21 | 2 | Flotte : points exacts des bâtiments et contours (`fn_missions_carte`, `fn_mission_detail`), plafond d'espèces réglable dans la Console. |
-| 2026-10-22 | 3 | Fiche produit détaillée : forme de `catalog_products.attributes`, limites de taille (`description`, `attributes`, `offers.description`), `fn_product_update_details` (migration `2026-10-26_hailandx_fiche_produit.sql`, ⚠️ à appliquer avec l'accord du fondateur). |
+| 2026-10-22 | 3 | Fiche produit détaillée : forme de `catalog_products.attributes`, limites de taille (`description`, `attributes`, `offers.description`), `fn_product_update_details` (migration `2026-10-26_hailandx_fiche_produit.sql`). |
+| 2026-10-22 | 4 | Migration `2026-10-26_hailandx_fiche_produit.sql` appliquée en production. |
