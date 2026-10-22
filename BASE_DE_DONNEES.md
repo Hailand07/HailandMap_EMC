@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 4** (2026-10-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 5** (2026-10-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -196,6 +196,12 @@ Des **vues** (tables calculées, en lecture seule) : `v_declarations_niveau` ajo
 **Fiche détaillée (depuis le 2026-10-22)** : `description` (≤ 4 000 caractères) et `attributes` = objet JSON (≤ 16 Ko) rempli selon la **fiche type de la catégorie** (`packages/commerce/src/fiche.ts`) : `{"marque": "Samsung", "stockage": "128", "double_sim": "oui", …, "points_forts": ["…", "…"]}` (nombres sans unité, l'unité est dans la fiche type ; 5 points forts au plus). Affichée sur la page produit de HailandX (« En bref », points forts, description, caractéristiques).
 **Qui l'écrit** : un membre d'une boutique (création) ; **son créateur ou l'équipe la complète ensuite** par `fn_product_update_details` ; l'équipe (statut). **Modifier à la main** : 🟠 corriger une faute dans `description` : possible ; `attributes` : gardez la forme ci-dessus (clés de la fiche type). Passer un doublon en `a_fusionner`/`retire` : oui ; ne supprimez pas une fiche ayant des offres.
 
+### `product_questions` — questions-réponses sur les produits 🟠
+**À quoi ça sert** : un acheteur pose une question publique sur une fiche produit (« le chargeur est-il fourni ? ») ; une boutique qui vend ce produit répond, et la réponse s'affiche pour tout le monde sur HailandX (`HAILANDX.md` §35).
+**Colonnes** : `product_id`, `author_id` (auteur, **jamais affiché**), `question` (5 à 500 caractères), `answer` (2 à 1 000), `answer_shop_id` (boutique qui a répondu), `answered_by`, `answered_at`, `hidden` + `hidden_reason` (masquée par l'équipe), `created_at`.
+**Qui l'écrit** : uniquement par fonctions — `fn_ask_question` (compte connecté, 5 questions par 24 h), `fn_answer_question` (membre d'une boutique qui vend le produit ; une seule boutique répond, elle peut corriger sa réponse), `fn_moderate_question` (équipe, inscrit au journal). **Qui la lit** : tout le monde (questions non masquées, sans l'auteur) ; l'espace vendeur par `fn_shop_questions`.
+**Modifier à la main** : 🟠 masquer une question : **Console → Litiges, avis, questions** (journalisé) plutôt qu'à la main ; ne changez pas `author_id`.
+
 ### `shops` — les boutiques (0 ligne) 🟠
 **À quoi ça sert** : une boutique d'un vendeur, **liée à une adresse** (`declaration_id`) : c'est cette adresse que le livreur visite pour récupérer les colis.
 **Colonnes** : `slug` (adresse web, 3 à 40 caractères, minuscules/chiffres/tirets), `name`, `tagline`, `category_id`, `owner_id` (propriétaire), `declaration_id` (adresse), `status`, `logo_path`, `cover_path`, `whatsapp` (format `+224…`, 8 à 15 chiffres).
@@ -345,7 +351,7 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | **Compte** | `fn_compte_resume` (« Déjà sur ce compte »), `fn_passage_creer` / `fn_passage_consommer` (passage entre applications), `fn_account_delete_check` + `fn_delete_my_account` (suppression de compte) |
 | **Adresses / codes** | `fn_resolve_admin_address` (quartier d'un point), `fn_resolve_hailand_code`, `fn_declaration_level`, `fn_find_certified_building`, `fn_admin_ordinal`, `fn_get_building_navigation_entry` |
 | **Cadastre (agents)** | `fn_building_propose_change`, `fn_building_decide_revision`, `fn_apply_revision_changes`, `fn_sync_building_units`, `fn_agent_link_declaration`, `fn_agent_refuse_request`, `fn_check_new_contour`, `fn_fix_all_building_centroids` |
-| **Boutique** | `fn_product_update_details` (compléter la fiche d'un produit : son créateur ou l'équipe), `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
+| **Boutique** | `fn_ask_question`, `fn_answer_question`, `fn_shop_questions`, `fn_moderate_question` (questions-réponses), `fn_bought_together` (« souvent achetés ensemble » : seulement des nombres, à partir de 2 commandes), `fn_product_update_details` (compléter la fiche d'un produit : son créateur ou l'équipe), `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
 | **Commande** | `fn_place_order`, `fn_pay_start`, `fn_payment_confirm`, `fn_parcel_ready`, `fn_parcel_cancel`, `fn_parcel_tracking`, `fn_my_handover_code`, `fn_parcel_qr` |
 | **Livraison (Flotte)** | `fn_missions_carte` (points exacts des bâtiments et contours, depuis le 2026-10-21), `fn_declaration_point`, `fn_declaration_outline`, `fn_console_courier_cash_limit` (Console), `fn_missions_proches`, `fn_mission_detail`, `fn_mission_info`, `fn_courier_accept`, `fn_courier_release`, `fn_courier_ping`, `fn_parcel_pickup`, `fn_parcel_handover`, `fn_parcel_handover_proof`, `fn_flotte_rejoindre` |
 | **Avis et litiges** | `fn_submit_review`, `fn_report_review`, `fn_moderate_review`, `fn_open_dispute`, `fn_dispute_post`, `fn_resolve_dispute` |
@@ -412,3 +418,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-21 | 2 | Flotte : points exacts des bâtiments et contours (`fn_missions_carte`, `fn_mission_detail`), plafond d'espèces réglable dans la Console. |
 | 2026-10-22 | 3 | Fiche produit détaillée : forme de `catalog_products.attributes`, limites de taille (`description`, `attributes`, `offers.description`), `fn_product_update_details` (migration `2026-10-26_hailandx_fiche_produit.sql`). |
 | 2026-10-22 | 4 | Migration `2026-10-26_hailandx_fiche_produit.sql` appliquée en production. |
+| 2026-10-22 | 5 | Table `product_questions` (questions-réponses) et fonctions associées, `fn_bought_together` (migration `2026-10-27_hailandx_questions_achats.sql`, ⚠️ à appliquer avec l'accord du fondateur). |

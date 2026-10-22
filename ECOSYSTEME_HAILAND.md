@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 93** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 94** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-22 (révision 93).**
+**Dernière mise à jour de cette section : 2026-10-22 (révision 94).**
+
+- **Fait (2026-10-22, `HAILANDX.md` §35)** : filtres de catégorie (marque, prix, état), « Vus récemment » (gardé sur le téléphone), « Souvent achetés ensemble » (nombres agrégés, à partir de 2 commandes), questions-réponses publiques sur les produits (HailandX ; réponses dans HailandX Vendeur ; modération dans la Console). **Base** : nouvelle table `product_questions` + 5 fonctions, migration `2026-10-27_hailandx_questions_achats.sql` ⚠️ **à appliquer avec l'accord du fondateur**. **Recommandé** : passer Next.js de 16.4.0 à la dernière version corrective 16.4.x (l'outil de build signale une faille de sécurité connue).
 
 - **Décidé et codé (2026-10-22, `HAILANDX.md` §34)** : **règle** — HailandX met **tous les produits** en ligne, rangés par catégorie (rangées sur l'accueil, grille triable par catégorie), et recommande des **produits similaires** (même catégorie et même nature) en bas de chaque produit ; l'ancienne règle « un échantillon par vendeur et par catégorie » est abandonnée. **Fait** : catalogue de démonstration de **50 produits** dans Djigo Shop (`demo-…`, photos externes dummyjson / Wikimedia Commons ; retrait : `HailandX_Scorpion/supabase/maintenance/2026-10-22_catalogue_demo_djigo.md`). **Bloqué / à faire par le fondateur** : supprimer la fonction neutralisée `demo-photos` (Supabase → Edge Functions). **Prochaine étape** : retirer ou remplacer la démonstration avant l'ouverture publique.
 
@@ -869,3 +871,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-16 | Révision 85 : §14 — seconde remise à zéro des comptes préparée (script + test) ; constat de déploiement de la phase 5. |
 | 2026-10-22 | Révision 92 : §14 — fiche produit détaillée de HailandX (règle : seul le créateur d'une fiche commune ou l'équipe la modifie), migration appliquée — impacte : HailandX / Vendeur. |
 | 2026-10-22 | Révision 93 : tous les produits en ligne par catégorie (fin de la règle des échantillons), produits similaires, catalogue de démonstration Djigo Shop (§14, §18.2) — impacte : HailandX. |
+| 2026-10-22 | Révision 94 : §14 — filtres, vus récemment, souvent achetés ensemble, questions-réponses ; table `product_questions` (base partagée) — impacte : HailandX. |
