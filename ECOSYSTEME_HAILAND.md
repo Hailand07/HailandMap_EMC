@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 92** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 93** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-22 (révision 92).**
+**Dernière mise à jour de cette section : 2026-10-22 (révision 93).**
+
+- **Décidé et codé (2026-10-22, `HAILANDX.md` §34)** : **règle** — HailandX met **tous les produits** en ligne, rangés par catégorie (rangées sur l'accueil, grille triable par catégorie), et recommande des **produits similaires** (même catégorie et même nature) en bas de chaque produit ; l'ancienne règle « un échantillon par vendeur et par catégorie » est abandonnée. **Fait** : catalogue de démonstration de **50 produits** dans Djigo Shop (`demo-…`, photos externes dummyjson / Wikimedia Commons ; retrait : `HailandX_Scorpion/supabase/maintenance/2026-10-22_catalogue_demo_djigo.md`). **Bloqué / à faire par le fondateur** : supprimer la fonction neutralisée `demo-photos` (Supabase → Edge Functions). **Prochaine étape** : retirer ou remplacer la démonstration avant l'ouverture publique.
 
 - **Fait (2026-10-22, fiche produit détaillée — `HAILANDX.md` §33)** : la page produit de HailandX affiche désormais galerie, « En bref », points forts, description, caractéristiques propres à la catégorie (fiche type des 10 catégories, `packages/commerce/src/fiche.ts`), mot du vendeur, livraison et garanties, carte du vendeur ; HailandX Vendeur fait remplir ces informations (indicateur « Complète à N % »). **Règle** : seule la boutique qui a créé une fiche commune (ou l'équipe) la modifie (`fn_product_update_details`) ; les autres vendeurs écrivent dans leur offre (`offers.description`, `offers.condition`). Migration `2026-10-26_hailandx_fiche_produit.sql` ✅ appliquée en production avec l'accord du fondateur. **Prochaine étape** : les vendeurs complètent les 3 fiches existantes ; essai en ligne ; puis API Orange Money (via le contact du fondateur) et essais avec les autres administrateurs (carnet de tests partagé). 💡 Plus tard : filtres de recherche par caractéristique, questions-réponses sur la fiche.
 
@@ -741,7 +743,7 @@ Détail complet : `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`). Résum�
 
 ### 18.2 Ce que le fondateur veut 📄
 - **Application HailandX = vitrine globale** (« la rue commerçante ») :
-  - on fait défiler les produits ; le fil montre **un échantillon par catégorie et par vendeur** ;
+  - on fait défiler les produits ; ~~un échantillon par catégorie et par vendeur~~ → **depuis le 2026-10-22 : tous les produits, rangés par catégorie, avec « Produits similaires » sur chaque produit** (`HAILANDX.md` §34) ;
   - on entre dans la boutique d'un vendeur pour tout voir ;
   - le même produit peut être vendu par plusieurs vendeurs ; **les mieux notés et les plus fiables sont mis en avant** ;
   - panier, commande, détails : toutes les fonctions de base.
@@ -866,3 +868,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-14 | Révision 84 : migration de la phase 5 appliquée en production (`courier_invitations`, `fn_console_courier_add`, `fn_flotte_rejoindre`, déclencheur `declarations_certified_notify`, candidature publique fermée) ; limite de déploiements Vercel atteinte (§14). |
 | 2026-10-16 | Révision 85 : §14 — seconde remise à zéro des comptes préparée (script + test) ; constat de déploiement de la phase 5. |
 | 2026-10-22 | Révision 92 : §14 — fiche produit détaillée de HailandX (règle : seul le créateur d'une fiche commune ou l'équipe la modifie), migration appliquée — impacte : HailandX / Vendeur. |
+| 2026-10-22 | Révision 93 : tous les produits en ligne par catégorie (fin de la règle des échantillons), produits similaires, catalogue de démonstration Djigo Shop (§14, §18.2) — impacte : HailandX. |
