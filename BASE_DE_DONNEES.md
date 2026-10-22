@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 2** (2026-10-21) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 3** (2026-10-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -193,7 +193,8 @@ Des **vues** (tables calculées, en lecture seule) : `v_declarations_niveau` ajo
 ### `catalog_products` — fiche produit commune (0 ligne) 🟠
 **À quoi ça sert** : un **produit** (« Pagne wax 6 yards ») partagé par plusieurs vendeurs ; chaque vendeur y accroche **sa propre offre** (prix, état). Évite les doublons.
 **Colonnes** : `slug` (nom de l'adresse web), `name`, `category_id`, `description`, `attributes` (jsonb), `photo_paths` (chemins des photos dans le stockage), `created_by`, `status` (`actif`, `a_fusionner`, `retire`), `merged_into` (fiche absorbante).
-**Qui l'écrit** : un membre d'une boutique (création) ; l'équipe (statut). **Modifier à la main** : 🟠 passer un doublon en `a_fusionner`/`retire` : oui ; ne supprimez pas une fiche ayant des offres.
+**Fiche détaillée (depuis le 2026-10-22)** : `description` (≤ 4 000 caractères) et `attributes` = objet JSON (≤ 16 Ko) rempli selon la **fiche type de la catégorie** (`packages/commerce/src/fiche.ts`) : `{"marque": "Samsung", "stockage": "128", "double_sim": "oui", …, "points_forts": ["…", "…"]}` (nombres sans unité, l'unité est dans la fiche type ; 5 points forts au plus). Affichée sur la page produit de HailandX (« En bref », points forts, description, caractéristiques).
+**Qui l'écrit** : un membre d'une boutique (création) ; **son créateur ou l'équipe la complète ensuite** par `fn_product_update_details` ; l'équipe (statut). **Modifier à la main** : 🟠 corriger une faute dans `description` : possible ; `attributes` : gardez la forme ci-dessus (clés de la fiche type). Passer un doublon en `a_fusionner`/`retire` : oui ; ne supprimez pas une fiche ayant des offres.
 
 ### `shops` — les boutiques (0 ligne) 🟠
 **À quoi ça sert** : une boutique d'un vendeur, **liée à une adresse** (`declaration_id`) : c'est cette adresse que le livreur visite pour récupérer les colis.
@@ -216,7 +217,7 @@ Les rayons d'une boutique (« Pagnes », « Bijoux »…) : `shop_id`, `name` (2
 
 ### `offers` — les offres (0 ligne) 🟠
 **À quoi ça sert** : « telle boutique vend tel produit à tel prix ». **Un produit du catalogue peut avoir plusieurs offres** (une par boutique).
-**Colonnes** : `shop_id`, `product_id`, `price_gnf` (**entier > 0**), `condition` (`neuf`, `occasion`), `description`, `photo_paths`, `active` (false = retirée de la vente), `section_id` (rayon).
+**Colonnes** : `shop_id`, `product_id`, `price_gnf` (**entier > 0**), `condition` (`neuf`, `occasion`), `description` (« Le mot du vendeur » : garantie, échange, retrait… ≤ 1 000 caractères ; propre à la boutique, la fiche commune n'est pas touchée), `photo_paths`, `active` (false = retirée de la vente), `section_id` (rayon).
 **Règle** : une offre ne peut être créée/active que si la boutique est **ouverte**. **Modifier à la main** : 🟠 changer un prix : possible (les commandes passées gardent leur prix : voir `order_items`). Préférez `active = false` à la suppression.
 
 ### `offer_variants` — tailles, couleurs, stock 🟠
@@ -344,7 +345,7 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | **Compte** | `fn_compte_resume` (« Déjà sur ce compte »), `fn_passage_creer` / `fn_passage_consommer` (passage entre applications), `fn_account_delete_check` + `fn_delete_my_account` (suppression de compte) |
 | **Adresses / codes** | `fn_resolve_admin_address` (quartier d'un point), `fn_resolve_hailand_code`, `fn_declaration_level`, `fn_find_certified_building`, `fn_admin_ordinal`, `fn_get_building_navigation_entry` |
 | **Cadastre (agents)** | `fn_building_propose_change`, `fn_building_decide_revision`, `fn_apply_revision_changes`, `fn_sync_building_units`, `fn_agent_link_declaration`, `fn_agent_refuse_request`, `fn_check_new_contour`, `fn_fix_all_building_centroids` |
-| **Boutique** | `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
+| **Boutique** | `fn_product_update_details` (compléter la fiche d'un produit : son créateur ou l'équipe), `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
 | **Commande** | `fn_place_order`, `fn_pay_start`, `fn_payment_confirm`, `fn_parcel_ready`, `fn_parcel_cancel`, `fn_parcel_tracking`, `fn_my_handover_code`, `fn_parcel_qr` |
 | **Livraison (Flotte)** | `fn_missions_carte` (points exacts des bâtiments et contours, depuis le 2026-10-21), `fn_declaration_point`, `fn_declaration_outline`, `fn_console_courier_cash_limit` (Console), `fn_missions_proches`, `fn_mission_detail`, `fn_mission_info`, `fn_courier_accept`, `fn_courier_release`, `fn_courier_ping`, `fn_parcel_pickup`, `fn_parcel_handover`, `fn_parcel_handover_proof`, `fn_flotte_rejoindre` |
 | **Avis et litiges** | `fn_submit_review`, `fn_report_review`, `fn_moderate_review`, `fn_open_dispute`, `fn_dispute_post`, `fn_resolve_dispute` |
@@ -409,3 +410,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 |---|---|---|
 | 2026-10-16 | 1 | Création : toutes les tables utilisées, tables inutilisées, recettes, fonctions. |
 | 2026-10-21 | 2 | Flotte : points exacts des bâtiments et contours (`fn_missions_carte`, `fn_mission_detail`), plafond d'espèces réglable dans la Console. |
+| 2026-10-22 | 3 | Fiche produit détaillée : forme de `catalog_products.attributes`, limites de taille (`description`, `attributes`, `offers.description`), `fn_product_update_details` (migration `2026-10-26_hailandx_fiche_produit.sql`, ⚠️ à appliquer avec l'accord du fondateur). |
