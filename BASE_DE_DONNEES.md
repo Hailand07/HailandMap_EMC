@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 8** (2026-10-23) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 10** (2026-10-23) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -204,13 +204,14 @@ Des **vues** (tables calculées, en lecture seule) : `v_declarations_niveau` ajo
 
 ### `shops` — les boutiques (0 ligne) 🟠
 **À quoi ça sert** : une boutique d'un vendeur, **liée à une adresse** (`declaration_id`) : c'est cette adresse que le livreur visite pour récupérer les colis.
-**Colonnes** : `slug` (adresse web, 3 à 40 caractères, minuscules/chiffres/tirets), `name`, `tagline`, `category_id`, `owner_id` (propriétaire), `declaration_id` (adresse), `status`, `logo_path`, `cover_path`, `whatsapp` (format `+224…`, 8 à 15 chiffres).
+**Colonnes** : `slug` (adresse web, 3 à 40 caractères, minuscules/chiffres/tirets), `name`, `tagline`, `category_id`, `owner_id` (propriétaire), `declaration_id` (adresse), `status`, `logo_path`, `cover_path`, `whatsapp` (format `+224…`, 8 à 15 chiffres). **Boutique en ligne** (depuis le 2026-10-23) : `hours` (horaires, ex. `{"lun": ["08:00", "20:00"], "dim": null}` ; null ou absent = fermé), `vacation_until` (dernier jour de congé, inclus : **commandes refusées** jusque-là, vitrine visible), `vacation_note` (≤ 140 caractères), `policy` (échanges et garantie, ≤ 600, affichée sur chaque produit).
+**Qui la modifie** : le **propriétaire** seulement (et l'équipe Hailand) ; un employé ne peut pas.
 **Statuts** : `preparation` (en cours d'ouverture) → `bientot` → `ouverte` (en vente) ; `suspendue` (coupée par l'équipe, invisible du public).
 **Règles automatiques** : on ne peut pas ouvrir la boutique (`fn_shop_open`) sans adresse certifiée ; le vendeur ne peut pas se mettre `ouverte` lui-même ; changer d'adresse referme la vente.
 **Modifier à la main** : 🟠 **suspendre/réactiver : Console → Boutiques** (journalisé). Corriger un nom ou un logo : possible. ⚠️ ne supprimez pas une boutique ayant des commandes.
 
 ### `shop_members` — qui travaille dans la boutique 🔴
-`shop_id`, `user_id`, `role` (`proprietaire`, `employe`). Remplie automatiquement à la création de la boutique (le propriétaire y est ajouté). Sert de **règle d'accès** : seuls les membres gèrent la boutique. 🔴 ne pas modifier.
+`shop_id`, `user_id`, `role` (`proprietaire`, `employe`). Remplie automatiquement à la création de la boutique (le propriétaire y est ajouté). Sert de **règle d'accès** : seuls les membres gèrent la boutique. **Équipe** (depuis le 2026-10-23) : le propriétaire ajoute jusqu'à 5 `employe` par numéro de téléphone (`fn_shop_member_add`, compte Hailand existant) et les retire (`fn_shop_member_remove`) ; un employé prépare les commandes, gère produits, marketing et questions, mais **ne voit pas l'argent** et ne modifie ni la boutique ni l'équipe. 🔴 ne pas modifier à la main.
 
 ### `shop_sections` — rayons de la boutique 🟢
 Les rayons d'une boutique (« Pagnes », « Bijoux »…) : `shop_id`, `name` (2 à 40 car.), `position`. Gérés par le vendeur. 🟢 modifiable, sans enjeu.
@@ -223,7 +224,7 @@ Les rayons d'une boutique (« Pagnes », « Bijoux »…) : `shop_id`, `name` (2
 
 ### `offers` — les offres (0 ligne) 🟠
 **À quoi ça sert** : « telle boutique vend tel produit à tel prix ». **Un produit du catalogue peut avoir plusieurs offres** (une par boutique).
-**Colonnes** : `shop_id`, `product_id`, `price_gnf` (**entier > 0**), `condition` (`neuf`, `occasion`), `description` (« Le mot du vendeur » : garantie, échange, retrait… ≤ 1 000 caractères ; propre à la boutique, la fiche commune n'est pas touchée), `photo_paths`, `active` (false = retirée de la vente), `section_id` (rayon), `compare_at_gnf` (**prix barré**, depuis le 2026-10-23 : l'ancien prix, toujours **supérieur** au prix de vente ; vide = pas de promotion).
+**Colonnes** : `shop_id`, `product_id`, `price_gnf` (**entier > 0**), `condition` (`neuf`, `occasion`), `description` (« Le mot du vendeur » : garantie, échange, retrait… ≤ 1 000 caractères ; propre à la boutique, la fiche commune n'est pas touchée), `photo_paths`, `active` (false = retirée de la vente), `section_id` (rayon), `featured` (mis en avant en tête de la vitrine), `compare_at_gnf` (**prix barré**, depuis le 2026-10-23 : l'ancien prix, toujours **supérieur** au prix de vente ; vide = pas de promotion).
 **Règle** : une offre ne peut être créée/active que si la boutique est **ouverte**. **Modifier à la main** : 🟠 changer un prix : possible (les commandes passées gardent leur prix : voir `order_items`). Préférez `active = false` à la suppression.
 
 ### `offer_variants` — tailles, couleurs, stock 🟠
@@ -286,7 +287,7 @@ Quand l'équipe ajoute un livreur **dont le numéro n'a pas encore de compte Hai
 Un paiement par commande en ligne : `order_id`, `provider` (`simulation` ou `orange_money`), `provider_ref`, `amount_gnf`, `refunded_gnf`, `status` (`initie`, `paye`, `echoue`, `rembourse`), `paid_at`. Écrit par `fn_pay_start`/`fn_payment_confirm` (confirmation signée par Orange Money). Lecture : l'acheteur, l'équipe. 🔴
 
 ### `ledger_entries` — le grand livre (0 ligne) 🔴 (argent)
-**Chaque mouvement d'argent** : `account` (`escrow` séquestre, `shop`, `courier`, `platform` Hailand, `buyer`), `account_id`, `parcel_id`, `order_id`, `kind` (type d'opération : encaissement, commission, versement…), `amount_gnf`. **Alimentée automatiquement** quand un colis est remis (commission, part du livreur, net vendeur). Ne se modifie **jamais** (on ajoute des écritures de correction, on n'efface pas). Console → Argent la résume (à verser aux boutiques, à rembourser). 🔴
+**Chaque mouvement d'argent** : `account` (`escrow` séquestre, `shop`, `courier`, `platform` Hailand, `buyer`), `account_id`, `parcel_id`, `order_id`, `kind` (type d'opération : encaissement, commission, versement…), `amount_gnf`. **Alimentée automatiquement** quand un colis est remis (commission, part du livreur, net vendeur). Ne se modifie **jamais** (on ajoute des écritures de correction, on n'efface pas). Lecture des écritures d'une boutique : son **propriétaire** seulement (pas les employés). Console → Argent la résume (à verser aux boutiques, à rembourser). 🔴
 
 ---
 
@@ -355,11 +356,11 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 
 | Famille | Fonctions |
 |---|---|
-| **Droits** | `is_admin`, `is_agent`, `fn_is_fondateur`, `fn_console_role`, `fn_is_shop_member`, `fn_is_order_buyer`, `fn_is_order_party` |
+| **Droits** | `is_admin`, `is_agent`, `fn_is_fondateur`, `fn_console_role`, `fn_is_shop_member`, `fn_is_shop_owner` (propriétaire de la boutique), `fn_is_order_buyer`, `fn_is_order_party` |
 | **Compte** | `fn_compte_resume` (« Déjà sur ce compte »), `fn_passage_creer` / `fn_passage_consommer` (passage entre applications), `fn_account_delete_check` + `fn_delete_my_account` (suppression de compte) |
 | **Adresses / codes** | `fn_resolve_admin_address` (quartier d'un point), `fn_resolve_hailand_code`, `fn_declaration_level`, `fn_find_certified_building`, `fn_admin_ordinal`, `fn_get_building_navigation_entry` |
 | **Cadastre (agents)** | `fn_building_propose_change`, `fn_building_decide_revision`, `fn_apply_revision_changes`, `fn_sync_building_units`, `fn_agent_link_declaration`, `fn_agent_refuse_request`, `fn_check_new_contour`, `fn_fix_all_building_centroids` |
-| **Boutique** | `fn_ask_question`, `fn_answer_question`, `fn_shop_questions`, `fn_moderate_question` (questions-réponses), `fn_bought_together` (« souvent achetés ensemble » : seulement des nombres, à partir de 2 commandes), `fn_product_update_details` (compléter la fiche d'un produit : son créateur ou l'équipe), `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
+| **Boutique** | `fn_shop_clients` (clients pseudonymes de la boutique), `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove` (équipe), `fn_ask_question`, `fn_answer_question`, `fn_shop_questions`, `fn_moderate_question` (questions-réponses), `fn_bought_together` (« souvent achetés ensemble » : seulement des nombres, à partir de 2 commandes), `fn_product_update_details` (compléter la fiche d'un produit : son créateur ou l'équipe), `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
 | **Commande** | `fn_place_order` (avec code promo facultatif), `fn_promo_check` (réduction d'un code avant de commander), `fn_seller_parcel` (fiche d'un colis pour le vendeur : client pseudonyme, sans téléphone ni adresse exacte), `fn_pay_start`, `fn_payment_confirm`, `fn_parcel_ready`, `fn_parcel_cancel`, `fn_parcel_tracking`, `fn_my_handover_code`, `fn_parcel_qr` |
 | **Livraison (Flotte)** | `fn_missions_carte` (points exacts des bâtiments et contours, depuis le 2026-10-21), `fn_declaration_point`, `fn_declaration_outline`, `fn_console_courier_cash_limit` (Console), `fn_missions_proches`, `fn_mission_detail`, `fn_mission_info`, `fn_courier_accept`, `fn_courier_release`, `fn_courier_ping`, `fn_parcel_pickup`, `fn_parcel_handover`, `fn_parcel_handover_proof`, `fn_flotte_rejoindre` |
 | **Avis et litiges** | `fn_submit_review`, `fn_report_review`, `fn_moderate_review`, `fn_open_dispute`, `fn_dispute_post`, `fn_resolve_dispute` |
@@ -430,3 +431,5 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-22 | 6 | Migration `2026-10-27_hailandx_questions_achats.sql` appliquée en production. |
 | 2026-10-23 | 7 | HailandX Vendeur « niveau Shopify » : tables `promo_codes` et `promo_uses`, colonnes `offers.compare_at_gnf` (prix barré) et `parcels.discount_gnf` / `promo_code` / `cancel_reason` / `cancelled_by`, fonctions `fn_seller_parcel`, `fn_promo_check`, `fn_place_order` (code promo) et `fn_parcel_cancel` (motif obligatoire pour le vendeur) — migration `2026-10-28_hailandx_vendeur_commandes_marketing.sql`. |
 | 2026-10-23 | 8 | Migration `2026-10-28_hailandx_vendeur_commandes_marketing.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |
+| 2026-10-23 | 9 | Boutique en ligne (`shops.hours`, `vacation_until`, `vacation_note`, `policy` ; `offers.featured`), clients (`fn_shop_clients`), équipe (`fn_is_shop_owner`, `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove`) ; seuls les propriétaires modifient la boutique et voient l'argent ; `fn_place_order` refuse pendant les congés — migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql`. |
+| 2026-10-23 | 10 | Migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |

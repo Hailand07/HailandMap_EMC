@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 98** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 100** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-23 (révision 98).**
+**Dernière mise à jour de cette section : 2026-10-23 (révision 100).**
+
+- **Fait (2026-10-23, `HAILANDX.md` §37, fin du plan côté code)** : accueil « Bien démarrer » et conseil du jour ; sélection groupée et duplication de produits ; **Clients** pseudonymes ; **Boutique en ligne** (horaires, mode vacances, échanges et garantie, produits mis en avant) visible sur HailandX ; statistiques (plus vendus, clic → commande par réseau) ; **Équipe** (employés ajoutés par numéro). **Base partagée** : migration `HailandX_Scorpion/supabase/migrations/2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql` — colonnes `shops.hours`, `vacation_until`, `vacation_note`, `policy`, `offers.featured` ; fonctions `fn_is_shop_owner`, `fn_shop_clients`, `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove` ; `fn_place_order` refuse pendant les congés. **Règle** : seul le **propriétaire** d'une boutique modifie la boutique et voit son argent (politiques `shops_update` et `ledger_read` resserrées) ; un employé gère commandes, produits, marketing. ✅ **Migration appliquée en production le 2026-10-23** (accord du fondateur) et vérifiée. **Prochaine étape** : fusion de la PR, puis essais en ligne (vendeur, employé, acheteur) ; plus tard, comptage des visites des pages produit, appel par numéro masqué (fournisseur à choisir).
 
 - **Fait (2026-10-23, `HAILANDX.md` §37)** : plan « HailandX Vendeur niveau Shopify » **validé** (maquettes v6). Codé : barre du bas Accueil · Commandes · Produits · Marketing · Menu ; **Commandes** (recherche, fiche d'une commande avec client pseudonyme, suivi, QR, **annulation avec motif obligatoire** transmis au client) ; **Marketing** (codes promo, promotions à prix barré, visuel prêt à publier avec lien suivi, affiche QR) ; HailandX affiche le prix barré et accepte un code promo à la commande. **Base partagée** : migration `HailandX_Scorpion/supabase/migrations/2026-10-28_hailandx_vendeur_commandes_marketing.sql` — tables `promo_codes`, `promo_uses` ; colonnes `offers.compare_at_gnf`, `parcels.discount_gnf`, `promo_code`, `cancel_reason`, `cancelled_by` ; fonctions `fn_seller_parcel`, `fn_promo_check` ; `fn_place_order` et `fn_parcel_cancel` remplacées (paramètre facultatif en plus). **Règle** : le vendeur ne voit jamais le numéro ni l'adresse exacte du client (pseudonyme « Client 7F3A », quartier, niveau) ; une réduction de code promo est prise sur la part du vendeur, la commission se calcule après. ✅ **Migration appliquée en production le 2026-10-23** (accord du fondateur) et vérifiée. **Bloqué** : appel par numéro masqué : il faut un fournisseur de téléphonie (à décider). **Prochaine étape** : accueil (guide de démarrage), Clients, Boutique en ligne (horaires, vacances), Équipe.
 
@@ -880,3 +882,5 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-22 | Révision 96 : §14 — panier refait, partage par produit, plan HailandX Vendeur niveau Shopify proposé — impacte : HailandX. |
 | 2026-10-23 | Révision 97 : §14 — HailandX Vendeur : Commandes et Marketing ; codes promo, prix barré, motif d'annulation (base partagée : `promo_codes`, `promo_uses`, colonnes `offers` / `parcels`) — impacte : HailandX. |
 | 2026-10-23 | Révision 98 : §14 — migration HailandX Vendeur (codes promo, prix barré, motif d'annulation) appliquée en production — impacte : HailandX. |
+| 2026-10-23 | Révision 99 : §14 — fin du plan HailandX Vendeur : boutique en ligne, clients, équipe (base partagée : colonnes `shops` / `offers`, fonctions d'équipe et de clients, politiques propriétaire) — impacte : HailandX. |
+| 2026-10-23 | Révision 100 : §14 — migration boutique en ligne, clients, équipe appliquée en production — impacte : HailandX. |
