@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 103** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 104** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-23 (révision 103).**
+**Dernière mise à jour de cette section : 2026-10-23 (révision 104).**
+
+- **Fait (2026-10-23, `HAILANDX.md` §39)** : **concurrence par les prix** — un produit vendu par plusieurs boutiques n'a plus qu'une carte (« dès … · N vendeurs ») ; page produit « Meilleur prix », « Moins cher chez … » et comparateur trié par prix ; offre recommandée 45 % confiance / 40 % prix / 15 % délai ; repère de prix (meilleur prix, prix habituel, alerte au-delà de +15 %) dans HailandX Vendeur. **Données** : 25 offres de démonstration pour HailandShop (+224 612 74 63 42) sur les fiches de Djigo Shop, accord du fondateur. **Chargement « HX » commun** (H puis X tracés au milieu de l'écran) dans les 4 applications du monorepo, copié dans NavigationX et HailandMap — les trois copies se modifient ensemble. Aucune migration. **Prochaine étape** : le fondateur essaie en ligne (accueil, fiche Jordan 1, miel chez HailandShop dans Vendeur) ; avant l'ouverture, retirer les offres et fiches de démonstration.
 
 - **En attente (2026-10-23, §19)** : plan « Urgences et Hailand Secours » **approuvé**, maquettes v7 faites (étape 0) ; **le fondateur demandera lui-même quand appliquer la suite** — ne rien coder ni créer en base avant sa demande. Point de départ le moment venu : étape 1 (annuaire des secours vérifiés, nouvelle table à faire valider).
 

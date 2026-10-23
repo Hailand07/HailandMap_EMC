@@ -3,6 +3,7 @@ import type { Building, Profile } from '../../types';
 import { getActor } from '../../lib/actor';
 import { decideRevision, FIELD_LABELS, fmtValue, loadPendingRevisions, revisionErrorMessage, type Revision } from '../../lib/revisions';
 import { fmtDate, natureOf } from '../common/status';
+import { Chargement } from '../../components/Chargement';
 
 interface Props {
   buildings: Building[];
@@ -122,7 +123,7 @@ export const ModificationsPanel: React.FC<Props> = ({ buildings, profiles, onOpe
           </div>
         </aside>
       ) : (
-        <div className="flex flex-1 items-center justify-center text-[14px] text-hx-faint">{list ? 'Aucune modification à examiner.' : 'Chargement…'}</div>
+        list ? <div className="flex flex-1 items-center justify-center text-[14px] text-hx-faint">Aucune modification à examiner.</div> : <Chargement />
       )}
     </div>
   );
