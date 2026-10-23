@@ -42,6 +42,7 @@ import {
   fetchInteractiveQuartiersWith3DCount,
   searchAdministrativeEntities
 } from '../lib/interactiveMapService';
+import { Chargement } from './Chargement';
 
 export interface SelectedTerritoryPayload {
   id: string;
@@ -483,10 +484,7 @@ export const InteractiveTerritoryTree: React.FC<InteractiveTerritoryTreeProps> =
 
       {/* 3. ARBORESCENCE EN CASOLETTE / ACCORDÉONS */}
       {loadingRegions ? (
-        <div className="flex items-center justify-center gap-2 py-6 text-xs text-slate-400">
-          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-          <span>Chargement de la hiérarchie territoriale...</span>
-        </div>
+        <Chargement enLigne texte="Chargement de la hiérarchie territoriale" />
       ) : (
         <div className="space-y-1.5 overflow-y-auto max-h-[460px] pr-1 no-scrollbar">
           {regions.map((region) => {

@@ -140,3 +140,17 @@
 body[data-sheet-task='true'] .mapboxgl-marker { pointer-events: none; }
 /* Page figée : jamais de défilement du document (sur téléphone, le navigateur ne doit pas décaler l'application sous sa barre d'adresse). */
 html, body { overscroll-behavior: none; }
+
+/* Chargement HX commun (Chargement.tsx ; copies dans NavigationX et HailandMap_EMC) : traits tracés puis effacés, en boucle. */
+.hx-chargement { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: none; }
+.hx-chargement-ligne { position: static; inset: auto; min-height: 160px; }
+.hx-chargement-logo { border-radius: 20px; animation: hx-respire 1.9s ease-in-out infinite; box-shadow: 0 10px 30px rgba(18, 20, 28, .18); }
+.hx-chargement .hx-trait { stroke-dasharray: 1; stroke-dashoffset: 1; animation: hx-trace 1.9s cubic-bezier(.6, 0, .3, 1) infinite both; }
+.hx-chargement-texte { font-size: 13px; font-weight: 700; color: inherit; opacity: .7; letter-spacing: .01em; text-align: center; padding: 0 24px; }
+@keyframes hx-trace { 0% { stroke-dashoffset: 1; opacity: 1; } 30% { stroke-dashoffset: 0; } 72% { stroke-dashoffset: 0; opacity: 1; } 92%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes hx-respire { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .hx-chargement-logo { animation: none; }
+  .hx-chargement .hx-trait { stroke-dashoffset: 0; animation: hx-clignote 1.6s ease-in-out infinite; }
+}
+@keyframes hx-clignote { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
