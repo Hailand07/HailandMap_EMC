@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 96** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 97** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-22 (révision 96).**
+**Dernière mise à jour de cette section : 2026-10-23 (révision 97).**
+
+- **Fait (2026-10-23, `HAILANDX.md` §37)** : plan « HailandX Vendeur niveau Shopify » **validé** (maquettes v6). Codé : barre du bas Accueil · Commandes · Produits · Marketing · Menu ; **Commandes** (recherche, fiche d'une commande avec client pseudonyme, suivi, QR, **annulation avec motif obligatoire** transmis au client) ; **Marketing** (codes promo, promotions à prix barré, visuel prêt à publier avec lien suivi, affiche QR) ; HailandX affiche le prix barré et accepte un code promo à la commande. **Base partagée** : migration `HailandX_Scorpion/supabase/migrations/2026-10-28_hailandx_vendeur_commandes_marketing.sql` — tables `promo_codes`, `promo_uses` ; colonnes `offers.compare_at_gnf`, `parcels.discount_gnf`, `promo_code`, `cancel_reason`, `cancelled_by` ; fonctions `fn_seller_parcel`, `fn_promo_check` ; `fn_place_order` et `fn_parcel_cancel` remplacées (paramètre facultatif en plus). **Règle** : le vendeur ne voit jamais le numéro ni l'adresse exacte du client (pseudonyme « Client 7F3A », quartier, niveau) ; une réduction de code promo est prise sur la part du vendeur, la commission se calcule après. **Bloqué** : ⏳ migration à appliquer (accord du fondateur) **avant** de fusionner la PR ; appel par numéro masqué : il faut un fournisseur de téléphonie (à décider). **Prochaine étape** : accueil (guide de démarrage), Clients, Boutique en ligne (horaires, vacances), Équipe.
 
 - **Fait (2026-10-22, `HAILANDX.md` §36)** : panier de HailandX refait ; lien direct suivi vers chaque produit dans HailandX Vendeur (et `/s/<code>` ouvre l'offre de la boutique qui partage) ; tableau de bord vendeur sans doublon. **Proposé, à valider (§37)** : plan « HailandX Vendeur niveau Shopify » (maquettes d'abord ; clients, marketing avec codes promo, détail de commande, boutique en ligne, équipe).
 
@@ -876,3 +878,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-22 | Révision 94 : §14 — filtres, vus récemment, souvent achetés ensemble, questions-réponses ; table `product_questions` (base partagée) — impacte : HailandX. |
 | 2026-10-22 | Révision 95 : §14 — migration des questions-réponses appliquée (table `product_questions` en production) — impacte : HailandX. |
 | 2026-10-22 | Révision 96 : §14 — panier refait, partage par produit, plan HailandX Vendeur niveau Shopify proposé — impacte : HailandX. |
+| 2026-10-23 | Révision 97 : §14 — HailandX Vendeur : Commandes et Marketing ; codes promo, prix barré, motif d'annulation (base partagée : `promo_codes`, `promo_uses`, colonnes `offers` / `parcels`) — impacte : HailandX. |
