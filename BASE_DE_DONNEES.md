@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 9** (2026-10-23) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 10** (2026-10-23) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -431,4 +431,5 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-22 | 6 | Migration `2026-10-27_hailandx_questions_achats.sql` appliquée en production. |
 | 2026-10-23 | 7 | HailandX Vendeur « niveau Shopify » : tables `promo_codes` et `promo_uses`, colonnes `offers.compare_at_gnf` (prix barré) et `parcels.discount_gnf` / `promo_code` / `cancel_reason` / `cancelled_by`, fonctions `fn_seller_parcel`, `fn_promo_check`, `fn_place_order` (code promo) et `fn_parcel_cancel` (motif obligatoire pour le vendeur) — migration `2026-10-28_hailandx_vendeur_commandes_marketing.sql`. |
 | 2026-10-23 | 8 | Migration `2026-10-28_hailandx_vendeur_commandes_marketing.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |
-| 2026-10-23 | 9 | Boutique en ligne (`shops.hours`, `vacation_until`, `vacation_note`, `policy` ; `offers.featured`), clients (`fn_shop_clients`), équipe (`fn_is_shop_owner`, `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove`) ; seuls les propriétaires modifient la boutique et voient l'argent ; `fn_place_order` refuse pendant les congés — migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql`, **pas encore appliquée**. |
+| 2026-10-23 | 9 | Boutique en ligne (`shops.hours`, `vacation_until`, `vacation_note`, `policy` ; `offers.featured`), clients (`fn_shop_clients`), équipe (`fn_is_shop_owner`, `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove`) ; seuls les propriétaires modifient la boutique et voient l'argent ; `fn_place_order` refuse pendant les congés — migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql`. |
+| 2026-10-23 | 10 | Migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |
