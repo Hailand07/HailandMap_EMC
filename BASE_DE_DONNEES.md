@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 6** (2026-10-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 7** (2026-10-23) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -223,7 +223,7 @@ Les rayons d'une boutique (« Pagnes », « Bijoux »…) : `shop_id`, `name` (2
 
 ### `offers` — les offres (0 ligne) 🟠
 **À quoi ça sert** : « telle boutique vend tel produit à tel prix ». **Un produit du catalogue peut avoir plusieurs offres** (une par boutique).
-**Colonnes** : `shop_id`, `product_id`, `price_gnf` (**entier > 0**), `condition` (`neuf`, `occasion`), `description` (« Le mot du vendeur » : garantie, échange, retrait… ≤ 1 000 caractères ; propre à la boutique, la fiche commune n'est pas touchée), `photo_paths`, `active` (false = retirée de la vente), `section_id` (rayon).
+**Colonnes** : `shop_id`, `product_id`, `price_gnf` (**entier > 0**), `condition` (`neuf`, `occasion`), `description` (« Le mot du vendeur » : garantie, échange, retrait… ≤ 1 000 caractères ; propre à la boutique, la fiche commune n'est pas touchée), `photo_paths`, `active` (false = retirée de la vente), `section_id` (rayon), `compare_at_gnf` (**prix barré**, depuis le 2026-10-23 : l'ancien prix, toujours **supérieur** au prix de vente ; vide = pas de promotion).
 **Règle** : une offre ne peut être créée/active que si la boutique est **ouverte**. **Modifier à la main** : 🟠 changer un prix : possible (les commandes passées gardent leur prix : voir `order_items`). Préférez `active = false` à la suppression.
 
 ### `offer_variants` — tailles, couleurs, stock 🟠
@@ -231,6 +231,14 @@ Les rayons d'une boutique (« Pagnes », « Bijoux »…) : `shop_id`, `name` (2
 
 ### `share_links` — liens partagés (TikTok, WhatsApp…) 🔴
 Les liens courts qu'un vendeur diffuse : `code` (dans l'adresse `/s/code`), `shop_id`, `kind` (`produit`, `selection`, `boutique`), `offer_ids`, `source` (`tiktok`, `whatsapp`, `facebook`, `autre`), `clicks`, `orders_count`. Les compteurs sont mis à jour par les fonctions `fn_open_share_link`/`fn_place_order`. 🔴 ne pas modifier les compteurs.
+
+### `promo_codes` — codes promo des boutiques 🟠
+**À quoi ça sert** : un vendeur crée un code (« KADI10 ») que ses clients tapent au paiement pour une réduction **sur les articles de sa boutique** (HailandX Vendeur → Marketing → Codes promo ; `HAILANDX.md` §37). La réduction est prise **sur la part du vendeur** ; la commission Hailand se calcule après réduction.
+**Colonnes** : `shop_id`, `code` (3 à 20 majuscules ou chiffres, unique dans la boutique), `kind` (`pourcentage` 1 à 90, ou `montant` en GNF), `value`, `min_subtotal_gnf` (achat minimum), `max_uses` (vide = sans limite), `once_per_buyer`, `starts_at`, `ends_at`, `active`, `created_by`.
+**Qui l'écrit / la lit** : les membres de la boutique (et l'équipe) seulement ; un acheteur ne voit jamais la liste, il vérifie un code par `fn_promo_check`. **Modifier à la main** : 🟠 désactiver un code (`active = false`) : oui ; ne changez pas `value` d'un code déjà utilisé (les colis gardent la réduction obtenue).
+
+### `promo_uses` — utilisations des codes promo 🔴
+Une ligne par colis réduit : `promo_id`, `parcel_id`, `buyer_id` (jamais montré au vendeur), `discount_gnf`. **Écrite uniquement par `fn_place_order`** ; un colis annulé ne compte plus dans les limites d'utilisation. 🔴
 
 ### `product_favorites` — favoris des acheteurs 🟢
 `user_id`, `product_id`. Géré par `fn_toggle_favorite`. Privé à chacun. Sans enjeu.
@@ -255,7 +263,7 @@ Un vendeur signale un avis : `review_id`, `shop_id`, `reported_by`, `reason` (`f
 
 ### `parcels` — colis (0 ligne) 🔴 (cœur de la livraison)
 **Un colis = les articles d'UNE boutique dans UNE commande.** C'est lui que le livreur voit et remet.
-`order_id`, `shop_id`, `courier_id`, `status`, `subtotal_gnf`, `delivery_fee_gnf`, `distance_km`, `cod_amount_gnf` (somme à encaisser si paiement à la livraison), `qr_nonce` + `handover_code` (**secrets** : QR du colis et code de remise donné à l'acheteur ; non lisibles directement, seulement par fonction), `handover_failures` (essais ratés : 5 verrouillent le colis), dates `ready_at`, `picked_up_at`, `delivered_at`.
+`order_id`, `shop_id`, `courier_id`, `status`, `subtotal_gnf`, `delivery_fee_gnf`, `distance_km`, `cod_amount_gnf` (somme à encaisser si paiement à la livraison), `qr_nonce` + `handover_code` (**secrets** : QR du colis et code de remise donné à l'acheteur ; non lisibles directement, seulement par fonction), `handover_failures` (essais ratés : 5 verrouillent le colis), dates `ready_at`, `picked_up_at`, `delivered_at`. Depuis le 2026-10-23 : `discount_gnf` + `promo_code` (réduction d'un code promo, **déjà retirée** de `subtotal_gnf`), `cancel_reason` (motif d'annulation, **obligatoire quand le vendeur annule**, montré au client) et `cancelled_by` (`vendeur`, `acheteur`, `equipe`).
 **Statuts (dans l'ordre)** : `attente_vendeur` → `prepare` → `mission_proposee` → `accepte` → `retire` → `remis` ; ou `annule` ; ou `litige`.
 **Modifier à la main** : 🔴 jamais (argent, stock et score en dépendent). Un colis bloqué : Console → vue d'ensemble (« colis bloqués »).
 
@@ -352,7 +360,7 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | **Adresses / codes** | `fn_resolve_admin_address` (quartier d'un point), `fn_resolve_hailand_code`, `fn_declaration_level`, `fn_find_certified_building`, `fn_admin_ordinal`, `fn_get_building_navigation_entry` |
 | **Cadastre (agents)** | `fn_building_propose_change`, `fn_building_decide_revision`, `fn_apply_revision_changes`, `fn_sync_building_units`, `fn_agent_link_declaration`, `fn_agent_refuse_request`, `fn_check_new_contour`, `fn_fix_all_building_centroids` |
 | **Boutique** | `fn_ask_question`, `fn_answer_question`, `fn_shop_questions`, `fn_moderate_question` (questions-réponses), `fn_bought_together` (« souvent achetés ensemble » : seulement des nombres, à partir de 2 commandes), `fn_product_update_details` (compléter la fiche d'un produit : son créateur ou l'équipe), `fn_shop_open`, `fn_shop_sales`, `fn_shop_sources`, `fn_shops_nearby`, `fn_follow_shop`, `fn_shop_followers`, `fn_toggle_favorite`, `fn_open_share_link`, `fn_resolve_share_link`, `fn_refresh_shop_score` |
-| **Commande** | `fn_place_order`, `fn_pay_start`, `fn_payment_confirm`, `fn_parcel_ready`, `fn_parcel_cancel`, `fn_parcel_tracking`, `fn_my_handover_code`, `fn_parcel_qr` |
+| **Commande** | `fn_place_order` (avec code promo facultatif), `fn_promo_check` (réduction d'un code avant de commander), `fn_seller_parcel` (fiche d'un colis pour le vendeur : client pseudonyme, sans téléphone ni adresse exacte), `fn_pay_start`, `fn_payment_confirm`, `fn_parcel_ready`, `fn_parcel_cancel`, `fn_parcel_tracking`, `fn_my_handover_code`, `fn_parcel_qr` |
 | **Livraison (Flotte)** | `fn_missions_carte` (points exacts des bâtiments et contours, depuis le 2026-10-21), `fn_declaration_point`, `fn_declaration_outline`, `fn_console_courier_cash_limit` (Console), `fn_missions_proches`, `fn_mission_detail`, `fn_mission_info`, `fn_courier_accept`, `fn_courier_release`, `fn_courier_ping`, `fn_parcel_pickup`, `fn_parcel_handover`, `fn_parcel_handover_proof`, `fn_flotte_rejoindre` |
 | **Avis et litiges** | `fn_submit_review`, `fn_report_review`, `fn_moderate_review`, `fn_open_dispute`, `fn_dispute_post`, `fn_resolve_dispute` |
 | **Console (équipe)** | `fn_console_overview`, `fn_console_certifications`, `fn_console_certification_decide`, `fn_request_priority_certification`, `fn_console_courier_add`, `fn_console_team`, `fn_console_team_set`, `fn_console_setting_update`, `fn_console_journal`, `fn_courier_cash_settle`, `fn_shop_payout`, `fn_refunds_due`, `fn_refund_paid` |
@@ -420,3 +428,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-22 | 4 | Migration `2026-10-26_hailandx_fiche_produit.sql` appliquée en production. |
 | 2026-10-22 | 5 | Table `product_questions` (questions-réponses) et fonctions associées, `fn_bought_together` (migration `2026-10-27_hailandx_questions_achats.sql`). |
 | 2026-10-22 | 6 | Migration `2026-10-27_hailandx_questions_achats.sql` appliquée en production. |
+| 2026-10-23 | 7 | HailandX Vendeur « niveau Shopify » : tables `promo_codes` et `promo_uses`, colonnes `offers.compare_at_gnf` (prix barré) et `parcels.discount_gnf` / `promo_code` / `cancel_reason` / `cancelled_by`, fonctions `fn_seller_parcel`, `fn_promo_check`, `fn_place_order` (code promo) et `fn_parcel_cancel` (motif obligatoire pour le vendeur) — migration `2026-10-28_hailandx_vendeur_commandes_marketing.sql`, **pas encore appliquée**. |
