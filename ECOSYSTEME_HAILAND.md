@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 101** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 102** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-23 (révision 101).**
+**Dernière mise à jour de cette section : 2026-10-23 (révision 102).**
+
+- **Décidé (2026-10-23, §19)** : **urgences et « Hailand Secours »** — NavigationX garde les habitants et reçoit une couche Urgence (SOS, secours proches, envoyer ma position) ; nouvelle application **Hailand Secours** (Centrale sur ordinateur, Équipage sur téléphone) pour les services vérifiés ; les secours voient toujours les bâtiments certifiés, jamais les personnes hors alerte (journalisé). **En cours** : étape 0 (maquettes v7). **Prochaine étape** : validation des maquettes, puis étape 1 (annuaire vérifié, nouvelle table à valider).
 
 - **Décidé (2026-10-23, `HAILANDX.md` §38)** : vidéos publicitaires automatiques des produits — prototype validé (`HailandX_Scorpion/tools/videos-pub`), **intégration reportée** par le fondateur (« on y va par étape »). À la reprise : décider de la taille de l'équipe (licence Remotion), de l'hébergement du rendu et du quota par vendeur ; une migration (table des demandes de vidéo) sera nécessaire. Aucune modification de la base pour l'instant.
 
@@ -802,6 +804,37 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 
 ---
 
+## 19. Urgences et « Hailand Secours » 📄💡 (fondateur, 2026-10-23 — **plan validé, étape 0 (maquettes) en cours, rien n'est codé ni créé en base**)
+
+**Demande du fondateur** : permettre à un habitant d'envoyer son code Hailand aux pompiers, ambulances, services de sécurité et d'intervention, pour qu'ils viennent **jusqu'à la porte** ; voir sur la carte les services les plus proches ; donner aux services une carte des domiciles certifiés. Précise et prolonge §15.6 et §17.2.
+
+### 19.1 Décisions (validées le 2026-10-23)
+1. **NavigationX reste l'application des habitants** : on n'en fait pas une refonte, on ajoute une **couche « Urgence »** (bouton SOS, secours proches, « Envoyer ma position »).
+2. **Nouvelle application « Hailand Secours »** pour les services, comme Flotte pour les livreurs : une **Centrale** (ordinateur : alertes, envoi d'une équipe, saisie d'un code reçu par téléphone) et un écran **Équipage** (téléphone, dans le véhicule : guidage jusqu'au bâtiment, statuts). Réservée aux comptes des organisations vérifiées par l'équipe Hailand.
+3. **Ce que voient les secours** :
+   - **toujours** : les **bâtiments** certifiés (forme, entrée, étages, logements, code Hailand) — données du cadastre, sans nom ;
+   - **jamais hors alerte** : qui habite où, noms, numéros. Ces données ne sont transmises **que pour l'alerte en cours**, envoyée par la personne (ou avec son accord), pour une durée limitée, et **inscrites au journal**.
+4. **Jamais payant pour l'habitant** (rappel §17.3) ; **l'appel téléphonique reste toujours proposé** (l'application ne remplace jamais l'appel) ; **seuls des numéros vérifiés** par l'équipe sont affichés.
+5. **Partenaires** : d'abord des **privés** (ambulances et cliniques privées, gardiennage, assureurs santé), puis **un pilote public dans une seule commune**, mesuré par « temps pour trouver l'adresse, avant / après » (§17.2).
+
+### 19.2 Comment une urgence se passe (quatre canaux)
+1. **Par téléphone, sans application** : l'habitant donne son code au service ; l'opérateur le saisit dans la Centrale ; l'équipe est guidée jusqu'à la porte. Premier pilote.
+2. **« Envoyer ma position »** (NavigationX) : lien + code partagés par WhatsApp/SMS à n'importe quel service, même non partenaire ; ouverture sans compte, guidage jusqu'à la porte.
+3. **SOS** (NavigationX) : type (incendie, santé, sécurité, accident) → adresse (domicile certifié ou position actuelle) → alerte au partenaire le plus proche → suivi « secours en route » (position de l'équipe, temps d'arrivée).
+4. **Plus tard** : code par **SMS** sans internet (accord des opérateurs nécessaire).
+
+### 19.3 Plan
+| Étape | Contenu | État |
+|---|---|---|
+| 0. Maquettes | NavigationX (carte + SOS, secours proches, SOS, suivi, envoyer ma position) ; Hailand Secours Centrale (PC) et Équipage (téléphone) | en cours (2026-10-23) |
+| 1. Annuaire vérifié | Services sur la carte de NavigationX, « les plus proches », Appeler, itinéraire ; ajoutés et vérifiés par l'équipe (Console) — **nouvelle table des lieux/institutions** (migration à valider) | à faire |
+| 2. Envoyer ma position | Lien et code partageables, sans compte | à faire |
+| 3. Hailand Secours | Centrale + Équipage, saisie de code, envoi d'équipe, guidage, statuts, journal ; 1–2 partenaires privés pilotes | à faire |
+| 4. SOS direct et suivi | Alerte depuis NavigationX, suivi en direct ; pilote public ; SMS | à faire |
+
+### 19.4 Risques
+Fausses alertes (compte vérifié, limites, rappel de confirmation, sanctions) ; responsabilité (Hailand transmet et guide, il n'est pas le service de secours) ; réseau faible (carte de la zone gardée sur le téléphone de l'équipage) ; ⚠️ loi guinéenne sur la protection des données personnelles à vérifier avant tout lancement ; ⚠️ numéros d'urgence officiels à confirmer auprès des autorités (décision ouverte §9, point 18).
+
 ## 11. Journal des mises à jour
 
 | Date | Changement |
@@ -887,3 +920,4 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 | 2026-10-23 | Révision 99 : §14 — fin du plan HailandX Vendeur : boutique en ligne, clients, équipe (base partagée : colonnes `shops` / `offers`, fonctions d'équipe et de clients, politiques propriétaire) — impacte : HailandX. |
 | 2026-10-23 | Révision 100 : §14 — migration boutique en ligne, clients, équipe appliquée en production — impacte : HailandX. |
 | 2026-10-23 | Révision 101 : §14 — vidéos publicitaires automatiques : prototype gardé, intégration reportée — impacte : HailandX. |
+| 2026-10-23 | Révision 102 : §19 — urgences et application « Hailand Secours » (plan validé, règles de visibilité, quatre canaux, étapes) ; §14 — impacte : NavigationX / HailandMap / HailandX. |
