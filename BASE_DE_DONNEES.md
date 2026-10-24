@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 11** (2026-10-24) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 12** (2026-10-24) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -434,3 +434,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-23 | 9 | Boutique en ligne (`shops.hours`, `vacation_until`, `vacation_note`, `policy` ; `offers.featured`), clients (`fn_shop_clients`), équipe (`fn_is_shop_owner`, `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove`) ; seuls les propriétaires modifient la boutique et voient l'argent ; `fn_place_order` refuse pendant les congés — migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql`. |
 | 2026-10-23 | 10 | Migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |
 | 2026-10-24 | 11 | Corrections de la simulation (`2026-10-30_hailandx_corrections_simulation.sql`) : colonne `disputes.refund_gnf` ; compte `courier_cash` et nouveaux types d'écritures dans `ledger_entries` ; `couriers.cash_limit_gnf` par défaut 15 000 000 ; fonctions `fn_delivery_quote`, `fn_parcel_cancel(…, p_restock)`, `fn_resolve_dispute(…, p_refund_gnf)`, `fn_shop_sales` (+ `delivered_gnf`). |
+| 2026-10-24 | 12 | Migration `2026-10-30_hailandx_corrections_simulation.sql` appliquée en production (partie 1 par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. Ancienne fonction gardée sans droits : `fn_parcel_cancel_ancienne` (à supprimer plus tard). |

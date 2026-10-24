@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 106** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 107** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-24 (révision 106).**
+**Dernière mise à jour de cette section : 2026-10-24 (révision 107).**
 
-- **Fait, ⏳ à appliquer (2026-10-24, `HAILANDX.md` §41)** : corrections A1 à A14 de la simulation, accord du fondateur. Code et tests prêts (HailandX_Scorpion : migration `2026-10-30_hailandx_corrections_simulation.sql`, 322 vérifications ; NavigationX : bâtiment à toucher sur la carte quand la position dépasse ±50 m). **Bloqué** : l'application de la migration attend la confirmation du fondateur (question du connecteur Supabase restée sans réponse) — **l'appliquer avant de fusionner** les PR. Décisions : plafond d'espèces 15 M (aussi par défaut) ; un frais de livraison par boutique, affiché avant de commander ; rôle administrateur des comptes vendeurs gardé. `BASE_DE_DONNEES.md` révision 11.
+- **Fait (2026-10-24, `HAILANDX.md` §41)** : corrections A1 à A14 de la simulation, accord du fondateur ; migration `2026-10-30_hailandx_corrections_simulation.sql` **appliquée en production et vérifiée** (partie 1 par Claude, le reste par le fondateur dans l'éditeur SQL : les questions de confirmation du connecteur Supabase expirent au bout de 60 s — pour les migrations qui retirent un objet, passer directement par l'éditeur SQL). NavigationX : bâtiment à toucher sur la carte au-delà de ±50 m. Décisions : plafond d'espèces 15 M (aussi par défaut) ; un frais de livraison par boutique, affiché avant de commander ; rôle administrateur des comptes vendeurs gardé. `BASE_DE_DONNEES.md` révision 12. **Prochaine étape** : le fondateur fusionne les PR et essaie en ligne (commande sur 2 boutiques, annulation, litige partiel dans la Console).
 
 - **Fait (2026-10-23, `HAILANDX.md` §40)** : **simulation complète acheteur ↔ vendeur en production** (accord du fondateur ; acheteurs 610 01 04 19 et 623 77 01 66, adresses enregistrées par le fondateur dans NavigationX) : 12 commandes en espèces, livraisons, avis, litige, annulations, codes promo, versements — données décrites et retirables (`HailandX_Scorpion/supabase/maintenance/2026-10-23_simulation_achats.md`). **Constaté** : les 4 comptes d'essai sont administrateurs (`agents`) ; adresses NavigationX acceptées à 500 m de précision. **En attente d'accord** : corrections A1 (annulation attribuée à l'équipe) et A2 (notifications de litige du vendeur dans la mauvaise application) en priorité, puis A3 à A14.
 
