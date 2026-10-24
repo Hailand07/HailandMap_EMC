@@ -45,6 +45,7 @@ import {
   
 } from './lib/interactiveMapEngine';
 import { calculateDistance, calculatePolygonArea, generateSquarePolygon } from './map/geometry';
+import { createDrawEditor, type DrawEditor, type DrawPhase, type DrawStatus } from './map/draw/editor';
 import { generate200mGridGeoJSON, detect200mZoneFromCoords } from './map/grid';
 import { BUILDING_TYPE_3D_COLORS, createCourtyardWall3DEntities, generate3DEntitiesFromBuildingList } from './map/buildings3d';
 import { DEFAULT_MAPBOX_TOKEN, CUSTOM_STYLE_URL,  } from './map/constants';
@@ -182,6 +183,12 @@ export default function App() {
   // États pour le dessin personnalisé de zone libre
   const [isDrawMode, setIsDrawMode] = useState(false);
   const [drawPoints, setDrawPoints] = useState<[number, number][]>([]);
+  // Tracé façon OpenStreetMap (src/map/draw/editor.ts) : « tracer » puis « ajuster » le contour fermé.
+  const [drawPhase, setDrawPhase] = useState<DrawPhase>('drawing');
+  const drawPhaseRef = useRef<DrawPhase>('drawing');
+  const [drawStatus, setDrawStatus] = useState<DrawStatus | null>(null);
+  const drawEditorRef = useRef<DrawEditor | null>(null);
+  const finishDrawRef = useRef<() => void>(() => {});
   const childMapClickHandlerRef = useRef<((lng: number, lat: number, geom?: any, area?: number) => void) | null>(null);
   const childDrawCompleteHandlerRef = useRef<((points?: [number, number][]) => void) | null>(null);
 
@@ -480,15 +487,19 @@ export default function App() {
     drawPointsRef.current = drawPoints;
   }, [drawPoints]);
 
-  // Désactiver le zoom double-clic de Mapbox pendant le dessin pour permettre la fermeture rapide par double-clic
+  // Le contrôleur de tracé s'active avec le mode tracé (il coupe aussi le zoom au double-clic) et repart en phase « tracer ».
   useEffect(() => {
-    if (!mapRef.current) return;
-    if (isDrawMode) {
-      mapRef.current.doubleClickZoom.disable();
-    } else {
-      mapRef.current.doubleClickZoom.enable();
-    }
+    const ed = drawEditorRef.current;
+    if (!ed) return;
+    drawPhaseRef.current = 'drawing';
+    setDrawPhase('drawing');
+    if (isDrawMode) ed.enable(); else { ed.disable(); setDrawStatus(null); }
   }, [isDrawMode]);
+  // Points vidés de l'extérieur (validation, annulation, nouvel enfant de cour) : on recommence un tracé.
+  useEffect(() => {
+    if (drawPoints.length === 0 && drawPhaseRef.current !== 'drawing') { drawPhaseRef.current = 'drawing'; setDrawPhase('drawing'); }
+    drawEditorRef.current?.render();
+  }, [drawPoints]);
 
   // États de configuration Mapbox
   const [accessToken, setAccessToken] = useState(() => {
@@ -810,6 +821,18 @@ export default function App() {
       // Événement clic sur la carte
       map.on('click', (e) => handleMapClick(e, ctx));
 
+      // Tracé de contour façon OpenStreetMap : le contrôleur écoute lui-même la carte quand le mode tracé est actif.
+      drawEditorRef.current = createDrawEditor(map, {
+        getPoints: () => drawPointsRef.current,
+        setPoints: (pts) => { drawPointsRef.current = pts; setDrawPoints(pts); },
+        getPhase: () => drawPhaseRef.current,
+        setPhase: (ph) => { drawPhaseRef.current = ph; setDrawPhase(ph); },
+        tone: () => (selectionTargetNatureRef.current === 'courtyard' && !childDrawCompleteHandlerRef.current ? 'courtyard' : 'building'),
+        finish: () => finishDrawRef.current(),
+        notify: (message) => setMapNotification({ type: 'info', title: 'Tracé', message }),
+      }, setDrawStatus);
+      if (isDrawModeRef.current) drawEditorRef.current.enable();
+
       // Événement déplacement de souris (curseur interactif sur toutes les structures 3D OSM, perso et custom)
       map.on('mousemove', (e) => handleMapMouseMove(e, ctx));
 
@@ -833,16 +856,10 @@ export default function App() {
         }
       });
 
-      // Double-clic pour finaliser et refermer le tracé OSM directement
-      map.on('dblclick', (e) => {
-        if (isDrawModeRef.current && drawPointsRef.current.length >= 3) {
-          e.preventDefault();
-          handleFinalizeCustomDrawRef.current?.();
-          return;
-        }
-      });
 
       return () => {
+        drawEditorRef.current?.destroy();
+        drawEditorRef.current = null;
         map.remove();
         mapRef.current = null;
         markerRef.current = null;
@@ -1288,147 +1305,12 @@ export default function App() {
     }
   }, [selectedBuilding]);
 
-  // Fonction de rendu dynamique du contour élastique et des sommets style OpenStreetMap
-  const renderDrawRubberbandPreview = useCallback((cursorLng?: number, cursorLat?: number, screenPoint?: mapboxgl.Point) => {
-    if (!mapRef.current) return;
-    if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) return;
-
-    try {
-      const drawSource = mapRef.current.getSource('draw-source') as mapboxgl.GeoJSONSource;
-      if (!drawSource) return;
-
-      if (!isDrawModeRef.current) {
-        drawSource.setData({
-          type: 'FeatureCollection',
-          features: []
-        });
-        return;
-      }
-
-      const points = drawPointsRef.current;
-      if (points.length === 0) {
-        drawSource.setData({
-          type: 'FeatureCollection',
-          features: []
-        });
-        return;
-      }
-
-      let activeCursorCoord: [number, number] | null = null;
-      if (cursorLng !== undefined && cursorLat !== undefined && !isNaN(cursorLng) && !isNaN(cursorLat)) {
-        activeCursorCoord = [cursorLng, cursorLat];
-      } else if (lastMouseCoordRef.current) {
-        activeCursorCoord = [lastMouseCoordRef.current.lng, lastMouseCoordRef.current.lat];
-        if (!screenPoint) {
-          screenPoint = lastMouseCoordRef.current.point;
-        }
-      }
-
-      let isNearFirstPoint = false;
-      if (points.length >= 3 && activeCursorCoord && screenPoint && mapRef.current) {
-        try {
-          const p0Screen = mapRef.current.project(points[0]);
-          const dx = p0Screen.x - screenPoint.x;
-          const dy = p0Screen.y - screenPoint.y;
-          const distPx = Math.sqrt(dx * dx + dy * dy);
-          if (distPx < 18) {
-            isNearFirstPoint = true;
-            activeCursorCoord = [points[0][0], points[0][1]];
-            if (mapRef.current.getCanvas()) {
-              mapRef.current.getCanvas().style.cursor = 'pointer';
-            }
-          } else if (mapRef.current.getCanvas()) {
-            mapRef.current.getCanvas().style.cursor = 'crosshair';
-          }
-        } catch (err) {}
-      }
-
-      const features: any[] = [];
-
-      // 1. Sommets posés : uniquement les vrais points cliqués (petits cercles blancs nets sans contour noir)
-      points.forEach((pt, idx) => {
-        features.push({
-          type: 'Feature',
-          properties: {
-            index: idx,
-            isClosingTarget: idx === 0 && isNearFirstPoint
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: pt
-          }
-        });
-      });
-
-      // STRICTEMENT AUCUN POINT SOUS LE CURSEUR (comme sur OpenStreetMap : uniquement la ligne élastique)
-
-      // 2. Polygone élastique intérieur translucide (effet élastique en direct OSM)
-      if (points.length >= 2 && activeCursorCoord && !isNearFirstPoint) {
-        features.push({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[...points, activeCursorCoord, points[0]]]
-          }
-        });
-      } else if (points.length >= 3) {
-        features.push({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[...points, points[0]]]
-          }
-        });
-      }
-
-      // 3. Ligne élastique fine continue qui suit le curseur en temps réel
-      if (points.length === 1 && activeCursorCoord) {
-        features.push({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [points[0], activeCursorCoord]
-          }
-        });
-      } else if (points.length >= 2) {
-        let lineCoords: [number, number][];
-        if (activeCursorCoord && !isNearFirstPoint) {
-          lineCoords = [...points, activeCursorCoord, points[0]];
-        } else {
-          lineCoords = [...points, points[0]];
-        }
-        features.push({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: lineCoords
-          }
-        });
-      }
-
-      drawSource.setData({
-        type: 'FeatureCollection',
-        features
-      });
-    } catch (err) {
-      console.warn("Erreur affichage tracé élastique OSM:", err);
-    }
-  }, []);
+  // Rendu du tracé : délégué au contrôleur (src/map/draw/editor.ts).
+  const renderDrawRubberbandPreview = useCallback((..._args: unknown[]) => { drawEditorRef.current?.render(); }, []);
 
   useEffect(() => {
     renderDrawRubberbandPreviewRef.current = renderDrawRubberbandPreview;
   }, [renderDrawRubberbandPreview]);
-
-  // Synchronisation de la délimitation libre OSM lors du changement de points
-  useEffect(() => {
-    if (isDrawMode) {
-      renderDrawRubberbandPreview();
-    }
-  }, [drawPoints, isDrawMode, renderDrawRubberbandPreview]);
 
   // Nettoyage de la source de dessin lorsque les modes sont quittés
   useEffect(() => {
@@ -1640,6 +1522,13 @@ export default function App() {
 
   useEffect(() => {
     handleFinalizeCustomDrawRef.current = handleFinalizeCustomDraw;
+    // Valider le contour fermé : l'assistant de cour le prend s'il attend un bâtiment enfant, sinon la fiche normale.
+    finishDrawRef.current = () => {
+      const pts = drawPointsRef.current;
+      if (pts.length < 3) return;
+      if (childDrawCompleteHandlerRef.current) { childDrawCompleteHandlerRef.current(pts); return; }
+      handleFinalizeCustomDraw();
+    };
   }, [handleFinalizeCustomDraw]);
 
   // Gérer le changement de style
@@ -2410,10 +2299,12 @@ export default function App() {
   useEffect(() => {
     if (activeAdminView !== 'carte') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (paletteOpen) return;
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      // Tracé en cours : ses raccourcis passent d'abord (Retour arrière, Entrée, Échap, Espace, Q, O, Ctrl+Z…).
+      if (isDrawMode && drawEditorRef.current?.handleKey(e)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
       if (t) {
         e.preventDefault();
@@ -2556,10 +2447,21 @@ export default function App() {
                   drawing={
                     isDrawMode
                       ? {
+                          phase: drawPhase,
                           points: drawPoints.length,
-                          areaM2: drawPoints.length >= 3 ? Math.round(calculatePolygonArea([[...drawPoints, drawPoints[0]]])) : null,
-                          onFinish: handleFinalizeCustomDraw,
-                          onUndo: () => setDrawPoints((prev) => prev.slice(0, -1)),
+                          areaM2: drawStatus?.areaM2 ?? null,
+                          perimeterM: drawStatus?.perimeterM ?? null,
+                          unsquareDeg: drawStatus?.unsquareDeg ?? null,
+                          canSquare: !!drawStatus?.canSquare,
+                          crossed: !!drawStatus?.crossed,
+                          canUndo: !!drawStatus?.canUndo,
+                          canRedo: !!drawStatus?.canRedo,
+                          onClose: () => drawEditorRef.current?.closeRing(),
+                          onFinish: () => drawEditorRef.current?.validate(),
+                          onSquare: () => drawEditorRef.current?.square(),
+                          onCircle: () => drawEditorRef.current?.circle(),
+                          onUndo: () => drawEditorRef.current?.undo(),
+                          onRedo: () => drawEditorRef.current?.redo(),
                           onQuit: quitFreeDraw,
                         }
                       : null

@@ -212,34 +212,17 @@ interface ToolbarProps {
   is3D: boolean;
   onToggle3D: () => void;
   /** Tracé libre en cours : sommets posés et actions. */
-  drawing: { points: number; areaM2: number | null; onFinish: () => void; onUndo: () => void; onQuit: () => void } | null;
+  drawing: {
+    phase: 'drawing' | 'editing'; points: number; areaM2: number | null; perimeterM: number | null;
+    unsquareDeg: number | null; canSquare: boolean; crossed: boolean; canUndo: boolean; canRedo: boolean;
+    onClose: () => void; onFinish: () => void; onSquare: () => void; onCircle: () => void; onUndo: () => void; onRedo: () => void; onQuit: () => void;
+  } | null;
 }
 
 /** Dock d'outils en bas de la carte (Atelier v2) : outils avec nom et raccourci, vue à plat / en perspective, actions du tracé libre. Sur téléphone : colonne à gauche. */
 export const AtelierToolbar: React.FC<ToolbarProps> = ({ hiddenOnPhone, tool, onTool, is3D, onToggle3D, drawing }) => (
   <div className={`${hiddenOnPhone ? 'max-md:hidden ' : ''}pointer-events-none absolute bottom-4 left-1/2 z-30 flex max-w-[96%] -translate-x-1/2 flex-col items-center gap-2 max-md:bottom-auto max-md:left-3 max-md:top-3 max-md:max-w-none max-md:translate-x-0 max-md:items-start`}>
-    {drawing && (
-      <div className="pointer-events-auto flex flex-wrap items-center gap-3 rounded-xl border border-hx-line2 bg-hx-panel px-3.5 py-2 text-[12.5px] text-hx-dim shadow-[0_8px_24px_rgba(0,0,0,0.35)] max-md:fixed max-md:inset-x-3 max-md:bottom-[68px]">
-        <span>
-          <b className="font-mono text-hx-text">{drawing.points}</b> sommet{drawing.points > 1 ? 's' : ''}
-          {drawing.areaM2 !== null && <span className="ml-2 font-mono text-hx-faint">{drawing.areaM2} m²</span>}
-        </span>
-        <button
-          type="button"
-          onClick={drawing.onFinish}
-          disabled={drawing.points < 3}
-          className="h-8 rounded-lg bg-hx-accent px-3 text-[12.5px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Valider le tracé
-        </button>
-        <button type="button" onClick={drawing.onUndo} disabled={drawing.points === 0} className="h-8 rounded-lg border border-hx-line2 px-3 transition hover:bg-hx-hover disabled:opacity-40">
-          Annuler le dernier
-        </button>
-        <button type="button" onClick={drawing.onQuit} className="h-8 rounded-lg px-2 text-hx-faint transition hover:text-hx-text">
-          Quitter
-        </button>
-      </div>
-    )}
+    {drawing && <DrawBar d={drawing} />}
     <div role="toolbar" aria-label="Outils" className="pointer-events-auto flex items-stretch gap-1 rounded-[14px] border border-hx-line2 bg-hx-panel p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.4)] max-md:flex-col max-md:rounded-[14px] max-md:p-1">
       {TOOLS.map((t) => {
         const on = tool === t.id;
@@ -361,5 +344,49 @@ export const AssistantAside: React.FC<AssistantProps> = ({ children, onHeight })
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </aside>
     </SheetContext.Provider>
+  );
+};
+
+const kbd = 'ml-1.5 rounded border border-hx-line2 px-1 font-mono text-[10.5px] text-hx-faint';
+const ghost = 'h-8 rounded-lg border border-hx-line2 px-2.5 transition hover:bg-hx-hover disabled:opacity-40';
+
+/** Barre du tracé façon OpenStreetMap : « tracer » (un clic par angle) puis « ajuster » le contour fermé (équerrer, arrondir, valider). */
+const DrawBar: React.FC<{ d: NonNullable<ToolbarProps['drawing']> }> = ({ d }) => {
+  const editing = d.phase === 'editing';
+  return (
+    <div className="pointer-events-auto flex max-w-[min(860px,96vw)] flex-col gap-1.5 rounded-xl border border-hx-line2 bg-hx-panel px-3.5 py-2 text-[12.5px] text-hx-dim shadow-[0_8px_24px_rgba(0,0,0,0.35)] max-md:fixed max-md:inset-x-3 max-md:bottom-[68px]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1">
+          <b className="text-hx-text">{editing ? 'Ajuster' : 'Tracer'}</b>
+          <span className="ml-2 font-mono text-hx-text">{d.points}</span> sommet{d.points > 1 ? 's' : ''}
+          {d.areaM2 !== null && <span className="ml-2 font-mono text-hx-faint">{d.areaM2.toLocaleString('fr-FR')} m²</span>}
+          {d.perimeterM !== null && <span className="ml-2 font-mono text-hx-faint">· {d.perimeterM.toLocaleString('fr-FR')} m de tour</span>}
+        </span>
+        {!editing && (
+          <button type="button" onClick={d.onClose} disabled={d.points < 3} className="h-8 rounded-lg bg-hx-accent px-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40">
+            Fermer le contour<span className="ml-1.5 font-mono text-[10.5px] text-white/70">Entrée</span>
+          </button>
+        )}
+        {editing && (
+          <>
+            <button type="button" onClick={d.onSquare} disabled={!d.canSquare} title="Rendre les coins droits (équerrer)" className={`${ghost} ${d.canSquare ? 'border-hx-warn/60 text-hx-text' : ''}`}>Équerrer<span className={kbd}>Q</span></button>
+            <button type="button" onClick={d.onCircle} title="Transformer en cercle (château d'eau, case ronde…)" className={ghost}>Arrondir<span className={kbd}>O</span></button>
+            <button type="button" onClick={d.onFinish} disabled={d.crossed} className="h-8 rounded-lg bg-hx-accent px-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40">
+              Valider le contour<span className="ml-1.5 font-mono text-[10.5px] text-white/70">Entrée</span>
+            </button>
+          </>
+        )}
+        <button type="button" onClick={d.onUndo} disabled={!d.canUndo} className={ghost}>Annuler<span className={kbd}>{editing ? 'Ctrl Z' : '⌫'}</span></button>
+        {editing && <button type="button" onClick={d.onRedo} disabled={!d.canRedo} className={ghost}>Rétablir</button>}
+        <button type="button" onClick={d.onQuit} className="h-8 rounded-lg px-2 text-hx-faint transition hover:text-hx-text">Quitter</button>
+      </div>
+      {d.crossed && <p role="alert" className="text-[12px] text-hx-warn">Le contour se croise lui-même : déplacez un sommet.</p>}
+      {!d.crossed && editing && d.unsquareDeg !== null && <p className="text-[12px] text-hx-warn">Coins pas tout à fait droits (jusqu’à {d.unsquareDeg.toFixed(0)}°) — « Équerrer » les rend droits.</p>}
+      <p className="text-[11.5px] leading-snug text-hx-faint">
+        {editing
+          ? 'Glissez un sommet pour le déplacer · glissez le petit rond au milieu d’un mur pour ajouter un angle · clic droit sur un sommet pour le retirer · glissez la surface pour tout déplacer.'
+          : 'Un clic par angle · les sommets et murs voisins aimantent le tracé (Alt pour couper) · Maj : angle droit · Espace : poser un point · cliquez le premier point ou double-cliquez pour fermer.'}
+      </p>
+    </div>
   );
 };

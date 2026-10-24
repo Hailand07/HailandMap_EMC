@@ -48,7 +48,7 @@ src/
     registryExports.ts               # exports CSV / GeoJSON et attestation du registre
     guineaBoundariesData.ts (6,4 Mo) / guineaOfflineData.ts (1,4 Mo)  # frontières et référentiel embarqués dans le bundle
   registration/                      # logique de l'enregistrement (sans interface) : useDirectBuildingForm, useChildBuildingForm, useCourtyardManager, floorDoors, levels
-  map/                               # code de carte sans état : constantes, géométrie, grille 200 m, volumes 3D, couches Mapbox (`layers.ts`)
+  map/                               # code de carte sans état : constantes, géométrie, grille 200 m, volumes 3D, couches Mapbox (`layers.ts`) ; `draw/` : tracé des contours façon OpenStreetMap
   hooks/useRegistry.ts               # le registre : chargement Supabase (sans données de démonstration), décisions de la Revue
   shell/                             # coque de l'Atelier (+ SettingsModal) : barre du haut, rail des modules, dock d'outils, contrôles de la carte, barre d'état
   components/
@@ -223,7 +223,7 @@ Assistant (v2/assistant) ── choix : [Cour / Concession]  ou  [Bâtiment dire
 
 ### Phase 1 codée (2026-10-04) ✅ — Atelier : barre d'outils et raccourcis (v2)
 - **Barre d'outils** flottante en haut de la carte (`AtelierToolbar`, v2 seulement) : Carreau 200 m (**V**), Bâtiment (**B**), Concession (**C**), Tracé libre (**P**), bascule 2D/3D. Chaque outil **ne fait que régler les états existants** (`isSelectionMode`, `clickSelectionTarget`, `selectionTargetNature`, `isDrawMode`) : l'outil actif en est déduit, aucun nouvel état, aucune logique d'enregistrement modifiée.
-- Pendant le tracé libre : barre contextuelle (sommets, surface, Valider le tracé, Annuler le dernier, Quitter ; **Échap** quitte) reprenant `handleFinalizeCustomDraw` et le retrait du dernier sommet.
+- Pendant le tracé libre (**remplacé le 2026-10-24** par le tracé façon OpenStreetMap, voir plus bas) : barre contextuelle (sommets, surface, Valider le tracé, Annuler le dernier, Quitter ; **Échap** quitte) reprenant `handleFinalizeCustomDraw` et le retrait du dernier sommet.
 - Le bloc « Mode sélection de zone » du panneau gauche est masqué en v2 (remplacé par la barre) ; recherche et Carte interactive restent. La barre d'état affiche le zoom et le conseil de l'outil actif.
 - Les panneaux de droite (fiche bâtiment, carreau) restent ceux de la v1, au nouveau thème : l'inspecteur et l'assistant en 5 étapes arrivent en phase 2. Vérifié en capture et par raccourcis clavier ; la v1 reste inchangée par défaut.
 
@@ -290,6 +290,15 @@ Constat (capture du 12/10 sur Samsung Internet, barre d'adresse en haut et barre
 
 ### Bouton GPS sur iPhone (2026-10-12) ✅
 Le bouton « Recentrer sur ma position » essayait une seule fois en haute précision (10 s) et affichait un message générique. Il reprend maintenant le repli de NavigationX : haute précision (15 s), puis précision réduite (réseau, Wi-Fi), et en cas d'échec des consignes précises (réglages iPhone, navigateur intégré à WhatsApp/Facebook : `src/lib/geoDiagnostic.ts`, copie de celle de NavigationX). ⚠️ Non essayé sur un vrai iPhone. **Cause confirmée sur NavigationX : lien ouvert depuis WhatsApp** ; HailandMap affiche donc aussi un avertissement dès l'ouverture dans un navigateur intégré (`InAppBrowserNotice` : ouvrir dans Safari, copier le lien) — les administrateurs reçoivent les liens par WhatsApp.
+
+### Tracé des contours façon OpenStreetMap (2026-10-24) ✅ — demande du fondateur : « pareil que sur OSM… fluide, esthétique, avec les aides et automatismes »
+Étude du dépôt public de l'éditeur **iD** d'OpenStreetMap (`openstreetmap/iD`, licence ISC : copie et modification permises en gardant la mention de copyright, reprise en tête de `src/map/draw/shape.ts`) : `behavior/draw.js`, `behavior/draw_way.js`, `actions/orthogonalize.ts`, `actions/circularize.ts`, `geo/ortho.ts`, `svg/vertices.js`, feuilles `20_map.css`, `25_areas.css`, `70_fills.css`.
+- **Code** : `src/map/draw/shape.ts` (géométrie pure, en pixels d'écran comme iD : équerrage adapté d'iD — seuil 13°, points presque alignés retirés, triangle rectangle —, cercle, aire, croisement, aide angle droit, longueurs ; 8 tests), `src/map/draw/editor.ts` (contrôleur : il écoute la carte quand le mode tracé est actif ; l'état reste `drawPoints` dans `App.tsx`), `src/map/draw/layers.ts` (couches `draw-*`). Les anciens gestionnaires de tracé de `handleMapClick` / `handleMapMouseMove` / double-clic d'`App.tsx` sont retirés.
+- **Aspect (repris d'iD)** : surface translucide qui suit le curseur, **bande intérieure** de la couleur du bâtiment le long des murs (« remplissage partiel »), contour rouge brique `#e06e5f` (bâtiment) ou ocre (enceinte de concession) sur un liseré sombre, **sommets** blancs à liseré gris, **milieux des murs** (petits ronds gris), **halo orange** `#f6634f` au survol, sur la cible d'aimantation et sur le premier point quand on peut fermer, **longueur** du segment en cours puis de chaque mur.
+- **Tracer** : un clic par angle ; **aimantation** sur les sommets puis les murs des bâtiments affichés (OSM, enregistrés, cours) et du contour lui-même (10 px / 8 px, **Alt** la coupe) ; **Maj** = angle droit ou parallèle au mur précédent ; **Retour arrière** retire le dernier point ; **Espace** pose un point sous le curseur ; fermer : clic sur le premier ou le dernier point, double-clic, **Entrée** ou **Échap**.
+- **Ajuster** (contour fermé, avant validation) : glisser un sommet (avec aimantation), glisser un milieu de mur pour **ajouter un angle**, **clic droit** (ou Suppr au survol) pour retirer un sommet, glisser la surface pour **tout déplacer**, **Q = Équerrer** (proposé automatiquement si des coins sont à moins de 13° de l'angle droit, avec l'écart affiché), **O = Arrondir** (20 sommets : château d'eau, case ronde), **Ctrl+Z / Ctrl+Maj+Z**, **Entrée = Valider**. Un contour qui **se croise lui-même** est refusé (message). La barre affiche sommets, surface et tour.
+- Même outil partout : tracé libre, enceinte de concession, bâtiments d'une cour (assistant) et « Retracer le contour » d'une fiche.
+- **Vérifié** : `tests/e2e/draw.mjs` + `tests/e2e/draw.html` (banc sans base ni jeton : tracer, fermer, équerrer, ajouter un angle, annuler, aimanter sur un bâtiment voisin, retirer, arrondir, valider — 11 vérifications ✅). ⚠️ Sans jeton Mapbox dans la session, Mapbox GL ne dessine pas : l'aspect a été contrôlé sur le même banc avec MapLibre (copie locale non commitée). À essayer par le fondateur sur la vraie carte satellite.
 
 ### HailandX et la Flotte : ce qui concernera HailandMap (2026-10-12) 💡
 - Les **vendeurs** HailandX devront être au **niveau 3** pour vendre : leur inscription enverra une **demande de certification « vendeur », prioritaire**, dans Revue → Demandes. À prévoir : un marqueur de priorité et un filtre.
@@ -374,6 +383,7 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-24 | Écosystème révision 107, BASE_DE_DONNEES révision 12 : migration des corrections HailandX appliquée en production. |
 | 2026-10-24 | Écosystème révision 108 : plan HailandPay et Syli (argent de test) dans HailandX — aucun changement de code dans HailandMap. |
 | 2026-10-24 | Écosystème révision 109, BASE_DE_DONNEES révision 13 : base HailandPay (portefeuilles en Syli) dans HailandX — aucun changement de code dans HailandMap. |
-| 2026-10-24 | Écosystème révision 110 : écrans HailandPay (HailandX, Vendeur, Flotte, Console) — aucun changement de code dans NavigationX. |
+| 2026-10-24 | Écosystème révision 110 : écrans HailandPay (HailandX, Vendeur, Flotte, Console) — aucun changement de code dans HailandMap. |
 | 2026-10-24 | Écosystème révision 111 : essai complet HailandPay en Syli (HailandX) — aucun changement de code dans HailandMap. |
 | 2026-10-24 | Écosystème révision 112 : corrections HailandPay H1 à H5 (HailandX) — aucun changement de code dans HailandMap. |
+| 2026-10-24 | Tracé des contours façon OpenStreetMap (éditeur iD, licence ISC) : surface élastique, bande intérieure, sommets et milieux de murs, halo, aimantation sur les bâtiments voisins, angle droit (Maj), phase « ajuster » (glisser, ajouter, retirer, déplacer), équerrer (Q, adapté d'iD), arrondir (O), annuler / rétablir, longueurs, contour croisé refusé ; `src/map/draw/` (8 tests) et banc `tests/e2e/draw.mjs` (11 vérifications). Écosystème révision 113. |
