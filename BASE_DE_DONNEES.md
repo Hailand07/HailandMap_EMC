@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 10** (2026-10-23) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 12** (2026-10-24) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -281,13 +281,13 @@ Une ligne à chaque étape : `parcel_id`, `kind` (`cree`, `prepare`, `propose`, 
 Quand l'équipe ajoute un livreur **dont le numéro n'a pas encore de compte Hailand** : `phone` (format `2246XXXXXXXX`), `full_name`, `vehicle`, `invited_by`, `accepted_at`, `user_id`. À sa **première connexion à Flotte**, l'invitation devient un livreur validé (`fn_flotte_rejoindre`). Lecture : équipe seulement. 🔴 passez par la Console.
 
 ### `disputes` et `dispute_messages` — litiges et échanges 🔴
-`disputes` : un colis contesté (`parcel_id`, `opened_by`, `reason` : `non_recu`, `endommage`, `different`, `autre` ; `details`), `status` (`ouvert`, `resolu`), `resolution` (`acheteur` ou `vendeur` : en faveur de qui), `note`, `resolved_by`. `dispute_messages` : le fil d'échanges (`author_role` : `acheteur`, `vendeur`, `livreur`, `equipe`). Ouverts par `fn_open_dispute`, traités dans la Console (`fn_resolve_dispute` : décision confirmée + remboursement ou paiement). 🔴
+`disputes` : un colis contesté (`parcel_id`, `opened_by`, `reason` : `non_recu`, `endommage`, `different`, `autre` ; `details`), `status` (`ouvert`, `resolu`), `resolution` (`acheteur` ou `vendeur` : en faveur de qui), `refund_gnf` (somme rendue à l'acheteur : tout le colis, ou une partie — le colis reste alors livré), `note`, `resolved_by`. `dispute_messages` : le fil d'échanges (`author_role` : `acheteur`, `vendeur`, `livreur`, `equipe`). Ouverts par `fn_open_dispute`, traités dans la Console (`fn_resolve_dispute` : décision confirmée + remboursement ou paiement). 🔴
 
 ### `payments` — paiements (0 ligne) 🔴
 Un paiement par commande en ligne : `order_id`, `provider` (`simulation` ou `orange_money`), `provider_ref`, `amount_gnf`, `refunded_gnf`, `status` (`initie`, `paye`, `echoue`, `rembourse`), `paid_at`. Écrit par `fn_pay_start`/`fn_payment_confirm` (confirmation signée par Orange Money). Lecture : l'acheteur, l'équipe. 🔴
 
 ### `ledger_entries` — le grand livre (0 ligne) 🔴 (argent)
-**Chaque mouvement d'argent** : `account` (`escrow` séquestre, `shop`, `courier`, `platform` Hailand, `buyer`), `account_id`, `parcel_id`, `order_id`, `kind` (type d'opération : encaissement, commission, versement…), `amount_gnf`. **Alimentée automatiquement** quand un colis est remis (commission, part du livreur, net vendeur). Ne se modifie **jamais** (on ajoute des écritures de correction, on n'efface pas). Lecture des écritures d'une boutique : son **propriétaire** seulement (pas les employés). Console → Argent la résume (à verser aux boutiques, à rembourser). 🔴
+**Chaque mouvement d'argent** : `account` (`escrow` séquestre, `shop`, `courier` gains du livreur, `courier_cash` **espèces encaissées et pas encore reversées par le livreur**, `platform` Hailand, `buyer`), `account_id`, `parcel_id`, `order_id`, `kind` (type d'opération : encaissement, commission, versement…), `amount_gnf`. **Alimentée automatiquement** quand un colis est remis (commission, part du livreur, net vendeur). Ne se modifie **jamais** (on ajoute des écritures de correction, on n'efface pas). Lecture des écritures d'une boutique : son **propriétaire** seulement (pas les employés). Console → Argent la résume (à verser aux boutiques, à rembourser, espèces chez les livreurs). Types ajoutés le 2026-10-24 : `especes_encaissees` / `especes_reversees` / `solde_ouverture` (compte `courier_cash`), `remboursement_partiel_vendeur` / `remboursement_partiel_commission` (litige remboursé en partie). 🔴
 
 ---
 
@@ -433,3 +433,5 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-23 | 8 | Migration `2026-10-28_hailandx_vendeur_commandes_marketing.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |
 | 2026-10-23 | 9 | Boutique en ligne (`shops.hours`, `vacation_until`, `vacation_note`, `policy` ; `offers.featured`), clients (`fn_shop_clients`), équipe (`fn_is_shop_owner`, `fn_shop_members`, `fn_shop_member_add`, `fn_shop_member_remove`) ; seuls les propriétaires modifient la boutique et voient l'argent ; `fn_place_order` refuse pendant les congés — migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql`. |
 | 2026-10-23 | 10 | Migration `2026-10-29_hailandx_vendeur_boutique_clients_equipe.sql` appliquée en production (colonnes par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. |
+| 2026-10-24 | 11 | Corrections de la simulation (`2026-10-30_hailandx_corrections_simulation.sql`) : colonne `disputes.refund_gnf` ; compte `courier_cash` et nouveaux types d'écritures dans `ledger_entries` ; `couriers.cash_limit_gnf` par défaut 15 000 000 ; fonctions `fn_delivery_quote`, `fn_parcel_cancel(…, p_restock)`, `fn_resolve_dispute(…, p_refund_gnf)`, `fn_shop_sales` (+ `delivered_gnf`). |
+| 2026-10-24 | 12 | Migration `2026-10-30_hailandx_corrections_simulation.sql` appliquée en production (partie 1 par Claude, le reste par le fondateur dans l'éditeur SQL) ; vérifiée. Ancienne fonction gardée sans droits : `fn_parcel_cancel_ancienne` (à supprimer plus tard). |
