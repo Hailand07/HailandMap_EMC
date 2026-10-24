@@ -374,3 +374,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-24 | Écosystème révision 107, BASE_DE_DONNEES révision 12 : migration des corrections HailandX appliquée en production. |
 | 2026-10-24 | Écosystème révision 108 : plan HailandPay et Syli (argent de test) dans HailandX — aucun changement de code dans HailandMap. |
 | 2026-10-24 | Écosystème révision 109, BASE_DE_DONNEES révision 13 : base HailandPay (portefeuilles en Syli) dans HailandX — aucun changement de code dans HailandMap. |
+| 2026-10-24 | Écosystème révision 110 : écrans HailandPay (HailandX, Vendeur, Flotte, Console) — aucun changement de code dans NavigationX. |
