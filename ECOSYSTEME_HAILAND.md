@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 109** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 112** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-24 (révision 109).**
+**Dernière mise à jour de cette section : 2026-10-24 (révision 112).**
 
-- **Fait, ⏳ à appliquer (2026-10-24, `HAILANDX.md` §42 étape 1)** : maquettes v8 **validées** ; base HailandPay écrite et testée (`HailandX_Scorpion/supabase/migrations/2026-10-31_hailandpay.sql`, tables `wallets` et `wallet_movements`, compte `wallet` au grand livre, `hailandpay` comme moyen de paiement). **Bloqué** : le fondateur colle la migration dans l'éditeur SQL de Supabase. **Prochaine étape** : écrans HailandX (portefeuille, recharge, envoi, réception, paiement), puis Vendeur, Flotte, Console. `BASE_DE_DONNEES.md` révision 13.
+- **Fait (2026-10-24, `HAILANDX.md` §42 étapes 1 à 4)** : HailandPay et le Syli **en production** — base appliquée (`wallets`, `wallet_movements`, compte `wallet` au grand livre ; `BASE_DE_DONNEES.md` révision 13) ; écrans HailandX (portefeuille, recharge, envoi, réception, retrait simulé, paiement à la commande), Vendeur, Flotte, Console ; **essai complet joué en production** (accord du fondateur) : montants et équilibre justes, 8 refus attendus ; données gardées, recette de retrait `HailandX_Scorpion/supabase/maintenance/2026-10-24_essai_syli.md`. Corrections H1 à H5 **appliquées en production** (`2026-11-01_hailandpay_corrections_essai.sql`) ; **règle décidée** : un litige tranché pour l'acheteur avec remboursement total rend aussi les **frais de livraison** (repris à la boutique) et **remet les articles en stock**, quel que soit le moyen de paiement. **Prochaine étape** : le fondateur essaie les écrans avec ses comptes ; plus tard, brancher un vrai moyen de paiement.
 
 - **Décidé (2026-10-24, `HAILANDX.md` §42)** : **HailandPay**, l'opérateur de paiement de Hailand, avec le **Syli** comme argent de test (1 Syli = 1 GNF, sans valeur, marqué TEST) : portefeuilles (comptes et boutiques), recharge libre jusqu'à 50 000 000 Syli par compte, crédit par l'équipe avec motif, paiement des commandes bloqué jusqu'à la remise, règlement automatique des boutiques et des livreurs, remboursement immédiat, envois entre comptes par numéro, retrait simulé, contrôle d'équilibre dans la Console. **Étape 0 faite** : plan et maquettes v8 (canevas HailandX — Maquettes). **Prochaine étape** : validation des maquettes par le fondateur, puis base et tests. ⚠️ Argent réel : agrément BCRG probablement nécessaire (à vérifier).
 
