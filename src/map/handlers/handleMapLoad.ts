@@ -4,6 +4,7 @@
  */
 
 import mapboxgl from 'mapbox-gl';
+import { addDrawLayers } from '../draw/layers';
 import {
   setupInteractiveTerritoryLayers,
   applyTerritoriesHighlight,
@@ -308,106 +309,8 @@ export function handleMapLoad(ctx: Record<string, any>) {
           }
         }, building3DBeforeId);
 
-        // Ajouter la source pour l'atelier de dessin manuel de polygone
-        map.addSource('draw-source', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection' as const,
-            features: []
-          }
-        });
-
-        // 1. Remplissage de la zone dessinée en cours de tracé (effet élastique translucide OSM iD areas.js)
-        map.addLayer({
-          id: 'draw-fill',
-          type: 'fill',
-          source: 'draw-source',
-          paint: {
-            'fill-color': '#ffffff',
-            'fill-opacity': 0.24
-          }
-        }, building3DBeforeId);
-
-        // 2. Ligne de contour ultra-fine et discrète (style OpenStreetMap iD editor lines.js - casing)
-        map.addLayer({
-          id: 'draw-line-casing',
-          type: 'line',
-          source: 'draw-source',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#000000',
-            'line-width': 2.2,
-            'line-opacity': 0.18
-          }
-        });
-
-        // 3. Ligne blanche fine continue (1.2px, élégante et pixel-perfect comme sur OSM iD lines.js - stroke)
-        map.addLayer({
-          id: 'draw-line',
-          type: 'line',
-          source: 'draw-source',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#ffffff',
-            'line-width': 1.2,
-            'line-opacity': 1.0
-          }
-        });
-
-        // 4. Ombre douce diffuse des sommets (correspondant exactement à <circle class="shadow"> de vertices.js OSM iD)
-        map.addLayer({
-          id: 'draw-points-shadow',
-          type: 'circle',
-          source: 'draw-source',
-          filter: ['==', '$type', 'Point'],
-          paint: {
-            'circle-radius': [
-              'case',
-              ['boolean', ['get', 'isClosingTarget'], false],
-              7.0,
-              5.5
-            ],
-            'circle-color': '#000000',
-            'circle-opacity': 0.22,
-            'circle-blur': 0.8
-          }
-        });
-
-        // 5. Sommet blanc pur net (correspondant exactement à <circle class="stroke"> de vertices.js OSM iD)
-        map.addLayer({
-          id: 'draw-points',
-          type: 'circle',
-          source: 'draw-source',
-          filter: ['==', '$type', 'Point'],
-          paint: {
-            'circle-radius': [
-              'case',
-              ['boolean', ['get', 'isClosingTarget'], false],
-              4.2,
-              2.8
-            ],
-            'circle-color': '#ffffff',
-            'circle-stroke-color': [
-              'case',
-              ['boolean', ['get', 'isClosingTarget'], false],
-              '#38bdf8',
-              'rgba(0, 0, 0, 0.20)'
-            ],
-            'circle-stroke-width': [
-              'case',
-              ['boolean', ['get', 'isClosingTarget'], false],
-              1.5,
-              0.5
-            ],
-            'circle-opacity': 1.0
-          }
-        });
+        // Atelier de tracé façon éditeur iD d'OpenStreetMap (src/map/draw/layers.ts).
+        addDrawLayers(map);
 
         // Source et couches dédiées pour l'enceinte mère de la cour (DASHED OUTLINE, SANS FOND ORANGE)
         // Reste affichée avec ses pointillés pendant TOUT le processus jusqu'à la validation

@@ -56,28 +56,8 @@ export function handleMapClick(e: any, ctx: Record<string, any>) {
         }
 
         // MODE DESSIN MANUEL ACTIVÉ (Prioritaire pour éviter tout blocage par isSelectionMode) :
-        if (isDrawModeRef.current) {
-          const currentPts = drawPointsRef.current;
-          if (currentPts.length >= 3) {
-            try {
-              const p0Screen = map.project(currentPts[0]);
-              const distPx = Math.hypot(p0Screen.x - e.point.x, p0Screen.y - e.point.y);
-              if (distPx < 20) {
-                if (childDrawCompleteHandlerRef.current) {
-                  childDrawCompleteHandlerRef.current(currentPts);
-                  return;
-                }
-                handleFinalizeCustomDrawRef.current?.();
-                return;
-              }
-            } catch (err) {}
-          }
-          setDrawPoints(prev => {
-            const next = [...prev, [lng, lat]];
-            return next;
-          });
-          return;
-        }
+        // Tracé de contour : le contrôleur src/map/draw/editor.ts gère lui-même les clics (pose, fermeture, aimantation).
+        if (isDrawModeRef.current) return;
 
         // Lire la valeur temps réel de la ref pour éviter le stale closure pattern
         const isSelMode = isSelectionModeRef.current;

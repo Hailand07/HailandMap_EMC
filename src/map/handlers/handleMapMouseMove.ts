@@ -63,22 +63,8 @@ export function handleMapMouseMove(e: any, ctx: Record<string, any>) {
           return;
         }
 
-        if (isDrawModeRef.current) {
-          lastMouseCoordRef.current = { lng: e.lngLat.lng, lat: e.lngLat.lat, point: e.point };
-          if (drawRafRef.current === null) {
-            drawRafRef.current = requestAnimationFrame(() => {
-              drawRafRef.current = null;
-              if (lastMouseCoordRef.current) {
-                renderDrawRubberbandPreviewRef.current?.(
-                  lastMouseCoordRef.current.lng,
-                  lastMouseCoordRef.current.lat,
-                  lastMouseCoordRef.current.point
-                );
-              }
-            });
-          }
-          return;
-        }
+        // Tracé de contour : survol, aimantation et contour élastique sont gérés par src/map/draw/editor.ts.
+        if (isDrawModeRef.current) return;
 
         try {
           const isCandidate3DBuilding = (f: mapboxgl.MapboxGeoJSONFeature) => {

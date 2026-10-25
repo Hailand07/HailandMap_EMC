@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+tests/e2e/captures/
+tests/e2e/*.local.*
