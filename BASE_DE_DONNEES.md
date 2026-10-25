@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 17** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 19** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -266,6 +266,7 @@ Un vendeur signale un avis : `review_id`, `shop_id`, `reported_by`, `reason` (`f
 **Un colis = les articles d'UNE boutique dans UNE commande.** C'est lui que le livreur voit et remet.
 `order_id`, `shop_id`, `courier_id`, `status`, `subtotal_gnf`, `delivery_fee_gnf`, `distance_km`, `cod_amount_gnf` (somme à encaisser si paiement à la livraison), `qr_nonce` + `handover_code` (**secrets** : QR du colis et code de remise donné à l'acheteur ; non lisibles directement, seulement par fonction), `handover_failures` (essais ratés : 5 verrouillent le colis), dates `ready_at`, `picked_up_at`, `delivered_at`. Depuis le 2026-10-23 : `discount_gnf` + `promo_code` (réduction d'un code promo, **déjà retirée** de `subtotal_gnf`), `cancel_reason` (motif d'annulation, **obligatoire quand le vendeur annule**, montré au client) et `cancelled_by` (`vendeur`, `acheteur`, `equipe`).
 **Statuts (dans l'ordre)** : `attente_vendeur` → `prepare` → `mission_proposee` → `accepte` → `retire` → `remis` ; ou `annule` ; ou `litige`.
+**Annulation tardive (§45)** : `cancel_courier_gnf` (indemnité due au livreur parti), `cancel_provider_gnf` (frais Chap Chap Pay retenus à l'acheteur), `return_courier_id` (livreur qui doit rapporter le colis) et `returned_at` (colis rapporté).
 **Modifier à la main** : 🔴 jamais (argent, stock et score en dépendent). Un colis bloqué : Console → vue d'ensemble (« colis bloqués »).
 
 ### `delivery_events` — historique d'un colis 🔴
@@ -296,17 +297,19 @@ Un paiement par commande payée d'avance : `order_id`, `provider` (`simulation`,
 
 ## 8. Plateforme
 
-### `settings` — réglages (6 lignes) 🟠
+### `settings` — réglages (8 lignes) 🟠
 Réglages modifiables **par le fondateur** dans **Console → Paramètres** (avec un motif, inscrit au journal) :
 | Clé | Valeur actuelle | Sens |
 |---|---|---|
 | `commission_bps` | `800` | commission de Hailand sur les produits : **8 %** (800 centièmes de %) |
-| `courier_share_bps` | `8000` | part des frais de livraison reversée au livreur : **80 %** |
-| `delivery_base_gnf` | `4000` (départ 6000) | frais de livraison : montant fixe de chaque livraison (GNF) |
-| `delivery_per_km_gnf` | `1100` (départ 2100) | frais de livraison : prix par km **à vol d'oiseau** entre la boutique et l'adresse |
+| `courier_share_bps` | `9000` (départ 8000) | part des frais de livraison reversée au livreur : **90 %** |
+| `delivery_base_gnf` | `4500` (départ 6000) | frais de livraison : montant fixe de chaque livraison (GNF) |
+| `delivery_per_km_gnf` | `1500` (départ 2100) | frais de livraison : prix par km **à vol d'oiseau** entre la boutique et l'adresse |
 | `delivery_min_gnf` | `6000` (départ 8000) | frais de livraison : minimum. Calcul : `max(minimum, arrondi à 500 de (fixe + prix/km × km))` (`private.delivery_fee`) |
+| `cancel_fee_accepte_bps` | `5000` | annulation par l'acheteur quand le livreur est parti vers la boutique : **50 %** des frais de livraison retenus pour le livreur |
+| `cancel_fee_retire_bps` | `10000` | annulation par l'acheteur quand le colis est en route : **100 %** des frais de livraison pour le livreur |
 | `payment_mode` | `chapchappay_test` | `simulation` (bouton « Simuler le paiement », équipe seulement), `chapchappay_test` (vraie page Chap Chap Pay avec les **clés de test**, équipe seulement) ou `chapchappay` (ouvert à tous : clés de **production**, compte validé). L'ancienne valeur `orange_money` (aucun fournisseur branché) est ramenée à `simulation` par la migration. |
-**Modifier à la main** : 🟠 **utilisez la Console** (elle vérifie les valeurs et tient le journal). Seules ces six clés existent ; n'en ajoutez pas sans demander.
+**Modifier à la main** : 🟠 **utilisez la Console** (elle vérifie les valeurs et tient le journal). Seules ces huit clés existent ; n'en ajoutez pas sans demander.
 
 ### `notifications` — centre de notifications (0 ligne) 🔴
 Les messages envoyés aux comptes : `user_id`, `kind` (`commande`, `suivi`, `litige`, `avis`, `certification`…), `title`, `body`, `link` (où ouvrir ; **commence par `/vendeur`** pour les notifications de HailandX Vendeur, sinon HailandX), `read_at`. **Créées automatiquement** par des déclencheurs (nouvelle commande, colis remis, avis, litige, **adresse certifiée**…). Chacun ne lit que les siennes. 🔴 ne pas en créer à la main.
