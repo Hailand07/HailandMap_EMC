@@ -387,3 +387,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-10-24 | Écosystème révision 111 : essai complet HailandPay en Syli (HailandX) — aucun changement de code dans HailandMap. |
 | 2026-10-24 | Écosystème révision 112 : corrections HailandPay H1 à H5 (HailandX) — aucun changement de code dans HailandMap. |
 | 2026-10-24 | Tracé des contours façon OpenStreetMap (éditeur iD, licence ISC) : surface élastique, bande intérieure, sommets et milieux de murs, halo, aimantation sur les bâtiments voisins, angle droit (Maj), phase « ajuster » (glisser, ajouter, retirer, déplacer), équerrer (Q, adapté d'iD), arrondir (O), annuler / rétablir, longueurs, contour croisé refusé ; `src/map/draw/` (8 tests) et banc `tests/e2e/draw.mjs` (11 vérifications). Écosystème révision 113. |
+| 2026-10-25 | Écosystème révision 114, BASE_DE_DONNEES révision 14 : paiement en ligne Chap Chap Pay dans HailandX — aucun changement de code dans HailandMap. |
