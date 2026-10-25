@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 15** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 16** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -296,14 +296,17 @@ Un paiement par commande payée d'avance : `order_id`, `provider` (`simulation`,
 
 ## 8. Plateforme
 
-### `settings` — réglages (3 lignes) 🟠
+### `settings` — réglages (6 lignes) 🟠
 Réglages modifiables **par le fondateur** dans **Console → Paramètres** (avec un motif, inscrit au journal) :
 | Clé | Valeur actuelle | Sens |
 |---|---|---|
 | `commission_bps` | `800` | commission de Hailand sur les produits : **8 %** (800 centièmes de %) |
 | `courier_share_bps` | `8000` | part des frais de livraison reversée au livreur : **80 %** |
+| `delivery_base_gnf` | `6000` | frais de livraison : montant fixe de chaque livraison (GNF) |
+| `delivery_per_km_gnf` | `2100` | frais de livraison : prix par km **à vol d'oiseau** entre la boutique et l'adresse |
+| `delivery_min_gnf` | `8000` | frais de livraison : minimum. Calcul : `max(minimum, arrondi à 500 de (fixe + prix/km × km))` (`private.delivery_fee`) |
 | `payment_mode` | `simulation` (après la migration Chap Chap Pay) | `simulation` (bouton « Simuler le paiement », équipe seulement), `chapchappay_test` (vraie page Chap Chap Pay avec les **clés de test**, équipe seulement) ou `chapchappay` (ouvert à tous : clés de **production**, compte validé). L'ancienne valeur `orange_money` (aucun fournisseur branché) est ramenée à `simulation` par la migration. |
-**Modifier à la main** : 🟠 **utilisez la Console** (elle vérifie les valeurs et tient le journal). Seules ces trois clés existent ; n'en ajoutez pas sans demander.
+**Modifier à la main** : 🟠 **utilisez la Console** (elle vérifie les valeurs et tient le journal). Seules ces six clés existent ; n'en ajoutez pas sans demander.
 
 ### `notifications` — centre de notifications (0 ligne) 🔴
 Les messages envoyés aux comptes : `user_id`, `kind` (`commande`, `suivi`, `litige`, `avis`, `certification`…), `title`, `body`, `link` (où ouvrir ; **commence par `/vendeur`** pour les notifications de HailandX Vendeur, sinon HailandX), `read_at`. **Créées automatiquement** par des déclencheurs (nouvelle commande, colis remis, avis, litige, **adresse certifiée**…). Chacun ne lit que les siennes. 🔴 ne pas en créer à la main.
