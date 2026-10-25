@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 117** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 118** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-25 (révision 117).**
+**Dernière mise à jour de cette section : 2026-10-25 (révision 118).**
 
-- **Fait (2026-10-25, `HAILANDX.md` §44)** : **frais de livraison réglables** dans Console → Paramètres (prise en charge, prix par km, minimum ; aperçu ; journal), réglages `delivery_*_gnf` (`BASE_DE_DONNEES.md` révision 17), calcul unique `private.delivery_fee`, **en service**. **Grille du fondateur : 4 000 + 1 100 GNF/km, minimum 6 000** (T8 → sa maison certifiée à Samatran : 2 877 m à vol d'oiseau → 7 000 GNF, comme le moto-taxi). ⚠️ Le livreur touche 80 % (5 600 sur 7 000) : à revoir si le recrutement bloque. **Prochaine étape** : versements aux vendeurs et remboursements par l'API Chap Chap Pay ; passage en production après le KYC.
+- **Fait (2026-10-25, `HAILANDX.md` §44)** : **frais de livraison réglables** dans Console → Paramètres (prise en charge, prix par km, minimum ; aperçu ; journal), réglages `delivery_*_gnf` (`BASE_DE_DONNEES.md` révision 18), calcul unique `private.delivery_fee`, **en service**. **Grille du fondateur : 4 000 + 1 100 GNF/km, minimum 6 000** (T8 → sa maison certifiée à Samatran : 2 877 m à vol d'oiseau → 7 000 GNF, comme le moto-taxi). Part du livreur portée à **90 %** par le fondateur (6 300 sur 7 000 ; Hailand garde 10 % des frais de livraison + 8 % des articles). **Prochaine étape** : versements aux vendeurs et remboursements par l'API Chap Chap Pay ; passage en production après le KYC.
 
 - **Fait (2026-10-25, `HAILANDX.md` §43)** : Chap Chap Pay **en service en mode test** (migration appliquée, clés dans Vercel) ; **premier paiement de test réussi** (argent bloqué au séquestre, vérifié). Annulation automatique des commandes en ligne impayées après 72 h, stock rendu (⏳ migration `2026-11-03_annulation_impayes.sql` à coller : active `pg_cron`) ; `BASE_DE_DONNEES.md` révision 15. **À faire par le fondateur** : RCCM (APIP) pour le KYC ; avis juridique sur la garde de l'argent des clients (séquestre) ; tarifs Chap Chap Pay. **Pas encore branché** : versements aux vendeurs et remboursements par API (faits à la main par l'équipe, Console → Argent).
 

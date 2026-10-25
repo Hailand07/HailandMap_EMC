@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 17** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 18** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -301,7 +301,7 @@ Réglages modifiables **par le fondateur** dans **Console → Paramètres** (ave
 | Clé | Valeur actuelle | Sens |
 |---|---|---|
 | `commission_bps` | `800` | commission de Hailand sur les produits : **8 %** (800 centièmes de %) |
-| `courier_share_bps` | `8000` | part des frais de livraison reversée au livreur : **80 %** |
+| `courier_share_bps` | `9000` (départ 8000) | part des frais de livraison reversée au livreur : **90 %** |
 | `delivery_base_gnf` | `4000` (départ 6000) | frais de livraison : montant fixe de chaque livraison (GNF) |
 | `delivery_per_km_gnf` | `1100` (départ 2100) | frais de livraison : prix par km **à vol d'oiseau** entre la boutique et l'adresse |
 | `delivery_min_gnf` | `6000` (départ 8000) | frais de livraison : minimum. Calcul : `max(minimum, arrondi à 500 de (fixe + prix/km × km))` (`private.delivery_fee`) |
