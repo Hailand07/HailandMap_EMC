@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 120** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 121** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-25 (révision 120).**
+**Dernière mise à jour de cette section : 2026-10-25 (révision 121).**
+
+- **Décidé (2026-10-25, `HAILANDX.md` §46)** : **la Flotte certifie** — à chaque livraison chez un client de niveau 1 ou 2, le livreur fait un **relevé** (nature de l'occupation demandée au client : maison familiale ou logements séparés ; bâtiments touchés et numérotés sur la vue satellite, fiche par bâtiment, sans tracé) ; HailandMap trace et certifie avec ces fiches → **niveau 3**. **Prime de 3 000 GNF payée par Hailand** ; certification **offerte**, **niveau 3 payant abandonné** (§17.3 remplacé). Plan proposé en 5 étapes (maquettes d'abord), **en attente de validation** ; rien n'est codé.
 
 - **Fait (2026-10-25, `HAILANDX.md` §45, migration appliquée)** : **annulation tardive** — l'acheteur peut annuler jusqu'au colis en route ; après le départ du livreur, il est remboursé moins l'indemnité du livreur (50 % des frais de livraison s'il allait à la boutique, 100 % si le colis était en route) et moins les frais réels de Chap Chap Pay ; Hailand ne prend pas de commission ; espèces : Hailand paie le livreur, paiement à la livraison suspendu 30 jours ; colis à rapporter visible dans Flotte. Nouvelles colonnes `parcels.cancel_*`, `return_courier_id`, `returned_at` et réglages `cancel_fee_*_bps` (`BASE_DE_DONNEES.md` révision 19). **Prix stratégique en service** : 4 500 + 1 500 GNF/km, minimum 6 000, livreur 90 % (T8 → Samatran : 9 000 payés, 8 100 au livreur contre 7 000 en moto-taxi). **Prochaine étape** : vérifier le prix sur un trajet court et un long ; plus tard, refus à la porte signalé par le livreur.
 
@@ -721,6 +723,7 @@ Ordre recommandé 💡 : **0 → 2 → 3 → 5**, puis 1 selon la décision de p
 - **Banques** : besoin réel (vérification d'adresse du client, le KYC, avec justificatif de domicile difficile à obtenir). Le blocage est **juridique, pas technique** : la banque n'acceptera l'attestation que si la réglementation de la **BCRG** le permet ou si elle l'accepte sous sa propre responsabilité comme élément supplémentaire (⚠️ à vérifier). Commencer par les **microfinances** et le **mobile money** (Orange Money, MTN MoMo : contrôles plus souples, clients souvent sans adresse). Se présenter comme « vérification d'adresse sur le terrain », pas comme « adresse officielle ». **Modèle : la banque paie** la vérification niveau 3 de ses clients (elle paie déjà des agents pour cela ; Hailand coûte moins cher).
 
 ### 17.3 Niveau 3 payant et plaque
+> ⚠️ **Remplacé le 2026-10-25 par décision du fondateur** : le niveau 3 n'est plus payant ; il est **offert** et obtenu par le **relevé de la Flotte** lors d'une livraison (`HAILANDX.md` §46). Le texte ci-dessous reste pour l'historique ; la plaque et une attestation officielle pourront rester des options payantes.
 - **Logique retenue : le niveau 3 coûte cher (agent, déplacement, plaque), il est normal qu'il soit payant**, avec deux garde-fous :
   1. **Ne jamais mettre l'accès aux secours derrière un paiement.** Indéfendable moralement et commercialement (l'État et les ONG refuseraient, la presse attaquerait). Tous les niveaux peuvent être partagés aux secours avec l'accord de l'utilisateur ; le niveau 3 apporte **la précision et la preuve**, pas l'accès.
   2. **Faire payer le service rendu, pas l'existence de l'adresse** : visite de l'agent, attestation, plaque, code reconnu par les partenaires, priorité au support.
