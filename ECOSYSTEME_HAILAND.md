@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 121** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 122** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-25 (révision 121).**
+**Dernière mise à jour de cette section : 2026-10-25 (révision 122).**
 
-- **Décidé (2026-10-25, `HAILANDX.md` §46)** : **la Flotte certifie** — à chaque livraison chez un client de niveau 1 ou 2, le livreur fait un **relevé** (nature de l'occupation demandée au client : maison familiale ou logements séparés ; bâtiments touchés et numérotés sur la vue satellite, fiche par bâtiment, sans tracé) ; HailandMap trace et certifie avec ces fiches → **niveau 3**. **Prime de 3 000 GNF payée par Hailand** ; certification **offerte**, **niveau 3 payant abandonné** (§17.3 remplacé). Plan proposé en 5 étapes (maquettes d'abord), **en attente de validation** ; rien n'est codé.
+- **Décidé (2026-10-25, `HAILANDX.md` §46)** : **la Flotte certifie** — à chaque livraison chez un client de niveau 1 ou 2, le livreur fait un **relevé** (nature de l'occupation demandée au client : maison familiale ou logements séparés ; bâtiments touchés et numérotés sur la vue satellite, fiche par bâtiment, sans tracé) ; HailandMap trace et certifie avec ces fiches → **niveau 3**. **Prime de 3 000 GNF payée par Hailand** ; certification **offerte**, **niveau 3 payant abandonné** (§17.3 remplacé). Plan **validé** (maquettes d'abord, photo de l'entrée obligatoire, questions au client **après** la remise) puis **mis en attente par le fondateur** : ne rien coder avant sa demande ; reprendre par l'étape 0 (maquettes).
 
 - **Fait (2026-10-25, `HAILANDX.md` §45, migration appliquée)** : **annulation tardive** — l'acheteur peut annuler jusqu'au colis en route ; après le départ du livreur, il est remboursé moins l'indemnité du livreur (50 % des frais de livraison s'il allait à la boutique, 100 % si le colis était en route) et moins les frais réels de Chap Chap Pay ; Hailand ne prend pas de commission ; espèces : Hailand paie le livreur, paiement à la livraison suspendu 30 jours ; colis à rapporter visible dans Flotte. Nouvelles colonnes `parcels.cancel_*`, `return_courier_id`, `returned_at` et réglages `cancel_fee_*_bps` (`BASE_DE_DONNEES.md` révision 19). **Prix stratégique en service** : 4 500 + 1 500 GNF/km, minimum 6 000, livreur 90 % (T8 → Samatran : 9 000 payés, 8 100 au livreur contre 7 000 en moto-taxi). **Prochaine étape** : vérifier le prix sur un trajet court et un long ; plus tard, refus à la porte signalé par le livreur.
 
