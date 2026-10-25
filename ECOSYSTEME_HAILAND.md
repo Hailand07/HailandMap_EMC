@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 119** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 120** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-25 (révision 119).**
+**Dernière mise à jour de cette section : 2026-10-25 (révision 120).**
 
-- **Fait, ⏳ à appliquer (2026-10-25, `HAILANDX.md` §45)** : **annulation tardive** — l'acheteur peut annuler jusqu'au colis en route ; après le départ du livreur, il est remboursé moins l'indemnité du livreur (50 % des frais de livraison s'il allait à la boutique, 100 % si le colis était en route) et moins les frais réels de Chap Chap Pay ; Hailand ne prend pas de commission ; espèces : Hailand paie le livreur, paiement à la livraison suspendu 30 jours ; colis à rapporter visible dans Flotte. Nouvelles colonnes `parcels.cancel_*`, `return_courier_id`, `returned_at` et réglages `cancel_fee_*_bps` (`BASE_DE_DONNEES.md` révision 19). **Prix stratégique en service** : 4 500 + 1 500 GNF/km, minimum 6 000, livreur 90 % (T8 → Samatran : 9 000 payés, 8 100 au livreur contre 7 000 en moto-taxi). **Prochaine étape** : le fondateur accepte d'appliquer `2026-11-05_annulation_tardive.sql` ; vérifier le prix sur un trajet court et un long ; plus tard, refus à la porte signalé par le livreur.
+- **Fait (2026-10-25, `HAILANDX.md` §45, migration appliquée)** : **annulation tardive** — l'acheteur peut annuler jusqu'au colis en route ; après le départ du livreur, il est remboursé moins l'indemnité du livreur (50 % des frais de livraison s'il allait à la boutique, 100 % si le colis était en route) et moins les frais réels de Chap Chap Pay ; Hailand ne prend pas de commission ; espèces : Hailand paie le livreur, paiement à la livraison suspendu 30 jours ; colis à rapporter visible dans Flotte. Nouvelles colonnes `parcels.cancel_*`, `return_courier_id`, `returned_at` et réglages `cancel_fee_*_bps` (`BASE_DE_DONNEES.md` révision 19). **Prix stratégique en service** : 4 500 + 1 500 GNF/km, minimum 6 000, livreur 90 % (T8 → Samatran : 9 000 payés, 8 100 au livreur contre 7 000 en moto-taxi). **Prochaine étape** : vérifier le prix sur un trajet court et un long ; plus tard, refus à la porte signalé par le livreur.
 
 - **Fait (2026-10-25, `HAILANDX.md` §44)** : **frais de livraison réglables** dans Console → Paramètres (prise en charge, prix par km, minimum ; aperçu ; journal), réglages `delivery_*_gnf` (`BASE_DE_DONNEES.md` révision 18), calcul unique `private.delivery_fee`, **en service**. **Grille du fondateur : 4 000 + 1 100 GNF/km, minimum 6 000** (T8 → sa maison certifiée à Samatran : 2 877 m à vol d'oiseau → 7 000 GNF, comme le moto-taxi). Part du livreur portée à **90 %** par le fondateur (6 300 sur 7 000 ; Hailand garde 10 % des frais de livraison + 8 % des articles). **Prochaine étape** : versements aux vendeurs et remboursements par l'API Chap Chap Pay ; passage en production après le KYC.
 
