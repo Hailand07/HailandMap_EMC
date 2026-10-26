@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 123** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 124** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-25 (révision 123).**
+**Dernière mise à jour de cette section : 2026-10-25 (révision 124).**
 
-- **Fait, ⏳ à appliquer (2026-10-25, `HAILANDX.md` §47)** : **Djomy** branché à côté de Chap Chap Pay (compte au nom de Loura Voyage SARL, aucune pièce demandée à l'ouverture) — modes `djomy_test` / `djomy` dans Console → Paramètres, webhook signé, frais réels gardés (`payments.provider_fee_gnf`, `BASE_DE_DONNEES.md` révision 20). **Prochaine étape** : le fondateur colle `2026-11-06_djomy.sql`, pose `DJOMY_CLIENT_ID` / `DJOMY_CLIENT_SECRET` (sandbox) dans Vercel, déclare l'adresse du webhook chez Djomy, puis essai en sandbox. Plan du relevé Flotte (§46) toujours en attente.
+- **Fait (2026-10-25/26, `HAILANDX.md` §47, migration appliquée, clés posées)** : **Djomy** branché à côté de Chap Chap Pay (compte au nom de Loura Voyage SARL, aucune pièce demandée à l'ouverture) — modes `djomy_test` / `djomy` dans Console → Paramètres, webhook signé, frais réels gardés (`payments.provider_fee_gnf`, `BASE_DE_DONNEES.md` révision 20). **Prochaine étape** : déclarer l'adresse du webhook chez Djomy, passer la Console en « Djomy — test, équipe » et faire l'essai en sandbox. Plan du relevé Flotte (§46) toujours en attente.
 
 - **Décidé (2026-10-25, `HAILANDX.md` §46)** : **la Flotte certifie** — à chaque livraison chez un client de niveau 1 ou 2, le livreur fait un **relevé** (nature de l'occupation demandée au client : maison familiale ou logements séparés ; bâtiments touchés et numérotés sur la vue satellite, fiche par bâtiment, sans tracé) ; HailandMap trace et certifie avec ces fiches → **niveau 3**. **Prime de 3 000 GNF payée par Hailand** ; certification **offerte**, **niveau 3 payant abandonné** (§17.3 remplacé). Plan **validé** (maquettes d'abord, photo de l'entrée obligatoire, questions au client **après** la remise) puis **mis en attente par le fondateur** : ne rien coder avant sa demande ; reprendre par l'étape 0 (maquettes).
 
