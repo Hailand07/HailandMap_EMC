@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 124** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 125** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-25 (révision 124).**
+**Dernière mise à jour de cette section : 2026-10-26 (révision 125).**
+
+- **Fait, ⏳ à appliquer (2026-10-26, `HAILANDX.md` §48)** : **versements** — chaque boutique et chaque livreur enregistre son moyen de versement (Orange Money, MTN MoMo, Kulu, Soutra Money, PayCard, banque ; changement utilisable après 48 h) ; argent disponible 48 h après la remise ; versement chaque semaine, frais payés par Hailand (Console → Argent, rappel le lundi) ; sur les espèces, le livreur garde son gain. Tables `payout_methods`, `payouts` (`BASE_DE_DONNEES.md` révision 21). **Prochaine étape** : le fondateur accepte d'appliquer `2026-11-07_versements.sql` ; demander à Djomy ses moyens et frais de versement pour l'envoi automatique.
 
 - **Fait (2026-10-25/26, `HAILANDX.md` §47, migration appliquée, clés posées)** : **Djomy** branché à côté de Chap Chap Pay (compte au nom de Loura Voyage SARL, aucune pièce demandée à l'ouverture) — modes `djomy_test` / `djomy` dans Console → Paramètres, webhook signé, frais réels gardés (`payments.provider_fee_gnf`, `BASE_DE_DONNEES.md` révision 20). **Prochaine étape** : déclarer l'adresse du webhook chez Djomy, passer la Console en « Djomy — test, équipe » et faire l'essai en sandbox. Plan du relevé Flotte (§46) toujours en attente.
 
