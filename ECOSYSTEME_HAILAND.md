@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 129** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 130** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-10-27 (révision 129).**
+**Dernière mise à jour de cette section : 2026-11-01 (révision 130).**
+
+- **Décidé / fait (2026-10-30 → 11-01, `HAILANDX.md` §49–§50)** : Chap Chap Pay **clés de production** posées par le fondateur ; premier essai réel : la page de paiement ne s'ouvrait pas (corrigé : ouverture directe depuis la commande) ; le paiement de 95 000 GNF est parti avec la clé **Test** (⚠️ en mode test un vrai numéro est débité de 1 000 GNF). Parcours client **fermé** (pas de menu ni de lien vers l'accueil). Modèle d'argent : l'argent arrive chez Hailand, versé au vendeur **48 h minimum après la remise** ; réclamation client **48 h** avec motif et preuve ; litige ouvert = part du vendeur retenue (migration `2026-11-08_reclamation_48h.sql`, ⏳ à appliquer). Distribution : à la main au début, puis PUSH API Chap Chap Pay avec confirmation (référence PUSH et frais à demander à Chap Chap Pay). **Bloqué** : vérifier dans Vercel que les clés de production sont bien en environnement Production (accès Vercel refusé à Claude) ; frais de livraison encore à 0 depuis le 27/10 (essai), à remettre à 4 500 / 1 500 / 6 000.
 
 - **Fait (2026-10-27, `HAILANDX.md` §49 étapes 1 à 4, aucune table touchée)** : HailandX **sans vitrine** — fiche produit propre au vendeur du lien (plus de comparaison entre vendeurs ni de produits d'autres boutiques), page boutique (ses seuls produits), accueil `/` pour les commerçants, recherche/favoris retirés ; **panier d'une seule boutique** et connexion SMS dans la commande ; **parcours d'adresse de NavigationX recopié** dans `packages/scorpion/src/parcours/` (guide → GPS → bâtiment sur la vue satellite → infos → prête ; écrit `declarations`, jamais `buildings`) et branché dans la commande HailandX et dans HailandX Vendeur (adresse de la boutique, déménagement) : **plus de renvoi vers NavigationX** depuis HailandX et Vendeur (NavigationX garde son propre parcours et peut toujours envoyer vers Vendeur). ⚠️ **Écart** : le parcours existe en deux copies (NavigationX et Scorpion) — toute correction se fait des deux côtés ; ajout côté Scorpion d'un **repli sans vue satellite** (💡 à reporter dans NavigationX). ⚠️ À essayer en ligne : vue satellite (jeton Mapbox limité aux domaines de production), enregistrement réel, SMS dans la commande. **Bloqué / à décider par le fondateur** : « Pas sur place ? Montrer le bâtiment sur la carte » (adresse sans mesure GPS) ; Next.js à mettre à jour (avertissement de sécurité). **Mis en attente par le fondateur** : §49 étape 5 (assistant de fiche + Console « Fiches à compléter ») après présentation du coût (≈ 0,05 $ par fiche avec Opus 5.5, ≈ 0,025 $ Sonnet 5.5, ≈ 0,0015 $ Haiku 5.5 ; détail `HAILANDX.md` §49). **Prochaine étape** : essais en ligne des étapes 1 à 4 (vue satellite, SMS, enregistrement réel), puis les choix ouverts ci-dessus.
 
