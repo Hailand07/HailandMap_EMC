@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 21** (2026-10-25) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 22** (2026-11-12) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -170,6 +170,7 @@ Données de **référence**, chargées une fois. Elles servent à fabriquer les 
 **Qui l'écrit** : l'habitant (NavigationX), les agents (rattachement, refus), des déclencheurs (code, quartier). **Qui la lit** : NavigationX, HailandX et HailandX Vendeur (choix de l'adresse de livraison / de la boutique), HailandMap, Console.
 **Colonnes importantes**
 - **Qui/quand** : `user_id` (propriétaire), `created_at`, `updated_at`, `status` (`active` en cours, `replaced` remplacée, `archived` archivée).
+- **Façon dont l'adresse a été donnée** : `located_by` — `gps` (mesurée sur place, cas normal), `hors_cercle` (sur place, bâtiment montré hors du cercle GPS après des essais ratés), `a_distance` (montrée sans y être) ; pour les deux dernières, `gps_point` vaut le point montré quand aucune mesure n'existe, et aucun rattachement à un bâtiment certifié n'est fait. `gate_photo_path` : photo du portail ou de l'entrée, montrée au livreur (⏳ migration `2026-11-09_adresse_designee.sql` à appliquer).
 - **Position** : `gps_point` (position mesurée), `gps_accuracy_m`, `anchor_point` (point touché par l'habitant), `osm_polygon_id` + `osm_polygon_geom` (contour OpenStreetMap repéré).
 - **Niveau** `detected_level` : **1** = zone approximative (25 m) · **2** = contour de bâtiment repéré. Le **niveau 3** n'est **pas** stocké : il se déduit de `certified_building_id` (bâtiment certifié rattaché) — fonction `fn_declaration_level`.
 - **Code et quartier** : `hailand_code` (**unique**, attribué par la base), `region_id`, `prefecture_id`, `commune_id`, `quartier_id`, `admin_source` (`quartier` ou `commune` si le quartier n'a pas été trouvé), `building_seq`.
@@ -453,3 +454,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-24 | 13 | HailandPay (`2026-10-31_hailandpay.sql`, à appliquer) : tables `wallets` et `wallet_movements` ; `orders.payment_method` et `payments.provider` acceptent `hailandpay` ; compte `wallet` au grand livre ; fonctions `fn_wallet_me`, `fn_wallet_topup`, `fn_wallet_lookup`, `fn_wallet_transfer`, `fn_wallet_withdraw`, `fn_shop_wallet_to_owner`, `fn_wallet_admin_adjust`, `fn_hailandpay_overview`. |
 | 2026-10-25 | 14 | Chap Chap Pay (`2026-11-02_chapchappay.sql`, à appliquer) : `payments.provider` accepte `chapchappay` ; nouvelles colonnes `operation_id`, `checkout_url`, `provider_status`, `provider_method`, `provider_test`, `updated_at` ; réglage `payment_mode` : `simulation`, `chapchappay_test`, `chapchappay` ; fonctions `fn_pay_attach`, `fn_pay_provider_status` (serveur seulement), `fn_pay_start` et `fn_payment_confirm` mises à jour. |
 | 2026-10-25 | 15 | Annulation automatique des commandes en ligne impayées après 72 h (`2026-11-03_annulation_impayes.sql`, à appliquer) : extension `pg_cron` activée, tâche horaire `hailandx-commandes-impayees`, déclencheur `orders_refund_if_cancelled` (paiement tardif → à rembourser), écriture `remboursement_tardif` au grand livre. |
+| 2026-11-12 | 22 | `declarations.located_by` et `declarations.gate_photo_path` (`2026-11-09_adresse_designee.sql`, à appliquer) ; `fn_mission_detail` renvoie `photo` et `located_by` ; délai de réclamation 48 h (`2026-11-08`, appliquée). |
