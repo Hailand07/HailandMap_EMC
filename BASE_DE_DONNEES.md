@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 23** (2026-11-13) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 24** (2026-11-13) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -54,6 +54,7 @@ categories                 orders ─► order_items          settings
 catalog_products           parcels (1 colis / boutique)   notifications
 shops ─► shop_members      delivery_events                console_journal
       ├► shop_sections     couriers                       certification_priorities
+      │                    address_requests (liens de localisation)
       ├► shop_scores       disputes ─► dispute_messages
       ├► shop_follows      payments, ledger_entries (argent)
       ├► offers ─► offer_variants
@@ -267,6 +268,7 @@ Un vendeur signale un avis : `review_id`, `shop_id`, `reported_by`, `reason` (`f
 **Un colis = les articles d'UNE boutique dans UNE commande.** C'est lui que le livreur voit et remet.
 `order_id`, `shop_id`, `courier_id`, `status`, `subtotal_gnf`, `delivery_fee_gnf`, `distance_km`, `cod_amount_gnf` (somme à encaisser si paiement à la livraison), `qr_nonce` + `handover_code` (**secrets** : QR du colis et code de remise donné à l'acheteur ; non lisibles directement, seulement par fonction), `handover_failures` (essais ratés : 5 verrouillent le colis), dates `ready_at`, `picked_up_at`, `delivered_at`. Depuis le 2026-10-23 : `discount_gnf` + `promo_code` (réduction d'un code promo, **déjà retirée** de `subtotal_gnf`), `cancel_reason` (motif d'annulation, **obligatoire quand le vendeur annule**, montré au client) et `cancelled_by` (`vendeur`, `acheteur`, `equipe`).
 **Statuts (dans l'ordre)** : `attente_vendeur` → `prepare` → `mission_proposee` → `accepte` → `retire` → `remis` ; ou `annule` ; ou `litige`.
+**Point de remise corrigé par le livreur (§51, ⏳ même migration)** : `dropoff_fix_lat`, `dropoff_fix_lng`, `dropoff_fix_at` — arrivé à la bonne porte alors que le point de l'adresse est faux, le livreur du colis enregistre sa position (`fn_mission_fix_dropoff` : colis en main, à 600 m au plus du point pour une adresse mesurée au GPS, 5 km pour une adresse montrée sur la carte) ; le contrôle de distance de la remise se fait alors sur ce point. Le code de remise reste exigé.
 **Annulation tardive (§45)** : `cancel_courier_gnf` (indemnité due au livreur parti), `cancel_provider_gnf` (frais Chap Chap Pay retenus à l'acheteur), `return_courier_id` (livreur qui doit rapporter le colis) et `returned_at` (colis rapporté).
 **Modifier à la main** : 🔴 jamais (argent, stock et score en dépendent). Un colis bloqué : Console → vue d'ensemble (« colis bloqués »).
 
@@ -327,6 +329,10 @@ La **trace de chaque action sensible de l'équipe** : `actor_id` (qui), `action`
 
 ### `certification_priorities` — demandes de certification des vendeurs (0 ligne) 🔴
 Quand un vendeur demande de faire certifier son adresse en priorité : `declaration_id`, `shop_id`, `requested_by`, `status` (`a_verifier` à examiner par la Console · `transmise` envoyée à HailandMap · `refusee`), `console_note`, `decided_by`. Circuit : **vendeur → Console → agent HailandMap**. Les demandes des **habitants** (NavigationX) ne passent pas par ici : elles vont directement à HailandMap via `declarations.certification_status`. 🔴
+
+### `address_requests` — liens de localisation envoyés au destinataire (⏳ migration `2026-11-10_lien_adresse_correction.sql` à appliquer)
+Quand un client commande pour quelqu'un d'autre (ou n'est pas sur place), il envoie un **lien** au destinataire. Celui-ci l'ouvre chez lui, **sans compte**, et repère son bâtiment ; l'adresse est créée dans `declarations` **au compte du demandeur**, avec le libellé « Autre ». Colonnes : `token` (secret du lien), `requester_id` (le client qui a créé le lien), `label` (le nom donné : « Maman »), `declaration_id` (l'adresse créée, vide tant que le lien n'a pas servi ; pas de clé étrangère vers la table partagée), `created_at`, `expires_at` (72 heures), `fulfilled_at`. Un lien ne sert **qu'une fois**. Le demandeur lit ses propres lignes ; toute écriture passe par `fn_address_request_create`, `fn_address_request_info` (état du lien, lisible sans compte) et `fn_address_request_fulfil` (enregistrement par le destinataire, sur place seulement).
+**Voir les liens en attente** : `select label, created_at, expires_at from address_requests where fulfilled_at is null and expires_at > now();`
 
 ---
 
@@ -456,3 +462,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-10-25 | 15 | Annulation automatique des commandes en ligne impayées après 72 h (`2026-11-03_annulation_impayes.sql`, à appliquer) : extension `pg_cron` activée, tâche horaire `hailandx-commandes-impayees`, déclencheur `orders_refund_if_cancelled` (paiement tardif → à rembourser), écriture `remboursement_tardif` au grand livre. |
 | 2026-11-12 | 22 | `declarations.located_by` et `declarations.gate_photo_path` (`2026-11-09_adresse_designee.sql`, à appliquer) ; `fn_mission_detail` renvoie `photo` et `located_by` ; délai de réclamation 48 h (`2026-11-08`, appliquée). |
 | 2026-11-13 | 23 | `2026-11-09_adresse_designee.sql` **appliquée en production** (accord du fondateur) : `declarations.located_by`, `declarations.gate_photo_path` existent. Frais de livraison remis dans `settings` (4 500 / 1 500 / 6 000). |
+| 2026-11-13 | 24 | Nouvelle table `address_requests` (liens de localisation) et colonnes `parcels.dropoff_fix_lat`, `dropoff_fix_lng`, `dropoff_fix_at` (`2026-11-10_lien_adresse_correction.sql`, à appliquer) ; `fn_parcel_handover` contrôle la distance sur le point corrigé ; `fn_mission_detail` renvoie `fixed`. Rappel : `declarations.declared_label` n'admet que `Domicile`, `Travail`, `Autre`. |
