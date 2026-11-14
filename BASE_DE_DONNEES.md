@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 25** (2026-11-13) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 27** (2026-11-14) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -172,6 +172,7 @@ Données de **référence**, chargées une fois. Elles servent à fabriquer les 
 **Colonnes importantes**
 - **Qui/quand** : `user_id` (propriétaire), `created_at`, `updated_at`, `status` (`active` en cours, `replaced` remplacée, `archived` archivée).
 - **Façon dont l'adresse a été donnée** : `located_by` — `gps` (mesurée sur place, cas normal), `hors_cercle` (sur place, bâtiment montré hors du cercle GPS après des essais ratés), `a_distance` (montrée sans y être) ; pour les deux dernières, `gps_point` vaut le point montré quand aucune mesure n'existe, et aucun rattachement à un bâtiment certifié n'est fait. `gate_photo_path` : photo du portail ou de l'entrée, montrée au livreur (✅ migration `2026-11-09_adresse_designee.sql` appliquée le 2026-11-13).
+- **Adresse temporaire** (✅ migration `2026-11-11_adresse_temporaire.sql` appliquée le 2026-11-14) : `temporary_until` — vide = adresse durable (domicile, travail) ; une date = adresse temporaire d'un client de HailandX livré là où il est, hors de son domicile (séjour, travail, de passage). Repérée sur place comme les autres, mais proposée seulement jusqu'à cette date (30 jours) et jamais présentée comme un domicile (HailandX l'affiche « Adresse temporaire », NavigationX ne la montre pas). Aucune règle de la base ne la lit.
 - **Position** : `gps_point` (position mesurée), `gps_accuracy_m`, `anchor_point` (point touché par l'habitant), `osm_polygon_id` + `osm_polygon_geom` (contour OpenStreetMap repéré).
 - **Niveau** `detected_level` : **1** = zone approximative (25 m) · **2** = contour de bâtiment repéré. Le **niveau 3** n'est **pas** stocké : il se déduit de `certified_building_id` (bâtiment certifié rattaché) — fonction `fn_declaration_level`.
 - **Code et quartier** : `hailand_code` (**unique**, attribué par la base), `region_id`, `prefecture_id`, `commune_id`, `quartier_id`, `admin_source` (`quartier` ou `commune` si le quartier n'a pas été trouvé), `building_seq`.
@@ -464,3 +465,5 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-11-13 | 23 | `2026-11-09_adresse_designee.sql` **appliquée en production** (accord du fondateur) : `declarations.located_by`, `declarations.gate_photo_path` existent. Frais de livraison remis dans `settings` (4 500 / 1 500 / 6 000). |
 | 2026-11-13 | 24 | Nouvelle table `address_requests` (liens de localisation) et colonnes `parcels.dropoff_fix_lat`, `dropoff_fix_lng`, `dropoff_fix_at` (`2026-11-10_lien_adresse_correction.sql`, à appliquer) ; `fn_parcel_handover` contrôle la distance sur le point corrigé ; `fn_mission_detail` renvoie `fixed`. Rappel : `declarations.declared_label` n'admet que `Domicile`, `Travail`, `Autre`. |
 | 2026-11-13 | 25 | `2026-11-10_lien_adresse_correction.sql` **appliquée en production** (accord du fondateur) : table `address_requests`, colonnes `parcels.dropoff_fix_*`, fonctions de lien et de correction ; vérifiée par un essai annulé (adresse créée au compte du demandeur, code Hailand attribué). |
+| 2026-11-14 | 26 | `declarations.temporary_until` (adresse temporaire, `2026-11-11_adresse_temporaire.sql`, à appliquer). |
+| 2026-11-14 | 27 | `2026-11-11_adresse_temporaire.sql` **appliquée en production** (accord du fondateur) : `declarations.temporary_until` existe, vide pour les 5 adresses existantes. |
