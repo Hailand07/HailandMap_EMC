@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 28** (2026-11-14) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 29** (2026-11-15) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -188,8 +188,8 @@ Des **vues** (tables calculées, en lecture seule) : `v_declarations_niveau` ajo
 
 ## 6. Boutiques et catalogue (HailandX Vendeur / HailandX)
 
-### `categories` — catégories de produits (10 lignes) 🟢
-**À quoi ça sert** : les rubriques de la place de marché. Lues par HailandX et Vendeur. **Valeurs actuelles** : `alimentation`, `auto-moto`, `autres`, `beaute`, `electronique`, `enfants`, `maison`, `mode`, `sante`, `telephones`. **Ajoutées le 2026-11-14** (⏳ migration `2026-11-12_categories_multiples.sql`) : `tissus-pagnes`, `chaussures`, `sacs-accessoires`, `bijoux-montres`, `meches-perruques`, `parfums`, `informatique`, `electromenager`, `meubles-deco`, `cuisine`, `bebe`, `jouets`, `sport`, `fournitures`, `bricolage`, `materiaux`, `agriculture`, `boissons`, `restauration`, `animaux`, `artisanat` (31 en tout).
+### `categories` — catégories de produits (31 lignes) 🟢
+**À quoi ça sert** : les rubriques de la place de marché. Lues par HailandX et Vendeur. **Valeurs actuelles** : `alimentation`, `auto-moto`, `autres`, `beaute`, `electronique`, `enfants`, `maison`, `mode`, `sante`, `telephones`. **Ajoutées le 2026-11-15** (✅ migration `2026-11-12_categories_multiples.sql` appliquée) : `tissus-pagnes`, `chaussures`, `sacs-accessoires`, `bijoux-montres`, `meches-perruques`, `parfums`, `informatique`, `electromenager`, `meubles-deco`, `cuisine`, `bebe`, `jouets`, `sport`, `fournitures`, `bricolage`, `materiaux`, `agriculture`, `boissons`, `restauration`, `animaux`, `artisanat` (31 en tout).
 **Colonnes** : `id` (court, sans espace ni accent), `name` (affiché), `parent_id` (sous-catégorie), `position` (ordre), `active` (false = masquée).
 **Modifier à la main** : 🟢 ajouter, renommer (`name`), réordonner (`position`), masquer (`active = false`). ⚠️ ne **supprimez pas** une catégorie utilisée (des produits et boutiques y renvoient) : masquez-la.
 
@@ -208,7 +208,7 @@ Des **vues** (tables calculées, en lecture seule) : `v_declarations_niveau` ajo
 ### `shops` — les boutiques (0 ligne) 🟠
 **À quoi ça sert** : une boutique d'un vendeur, **liée à une adresse** (`declaration_id`) : c'est cette adresse que le livreur visite pour récupérer les colis.
 **Colonnes** : `slug` (adresse web, 3 à 40 caractères, minuscules/chiffres/tirets), `name`, `tagline`, `category_id`, `owner_id` (propriétaire), `declaration_id` (adresse), `status`, `logo_path`, `cover_path`, `whatsapp` (format `+224…`, 8 à 15 chiffres). **Boutique en ligne** (depuis le 2026-10-23) : `hours` (horaires, ex. `{"lun": ["08:00", "20:00"], "dim": null}` ; null ou absent = fermé), `vacation_until` (dernier jour de congé, inclus : **commandes refusées** jusque-là, vitrine visible), `vacation_note` (≤ 140 caractères), `policy` (échanges et garantie, ≤ 600, affichée sur chaque produit).
-**Plusieurs catégories** (⏳ migration `2026-11-12_categories_multiples.sql`) : `category_ids` — toutes les catégories de la boutique, dans l'ordre choisi (60 au plus) ; `category_id` reste la catégorie **principale** (la première). Le déclencheur `shops_categories` garde les deux cohérents et retire les identifiants inconnus.
+**Plusieurs catégories** (✅ migration `2026-11-12_categories_multiples.sql` appliquée le 2026-11-15) : `category_ids` — toutes les catégories de la boutique, dans l'ordre choisi (60 au plus) ; `category_id` reste la catégorie **principale** (la première). Le déclencheur `shops_categories` garde les deux cohérents et retire les identifiants inconnus.
 **Qui la modifie** : le **propriétaire** seulement (et l'équipe Hailand) ; un employé ne peut pas.
 **Statuts** : `preparation` (en cours d'ouverture) → `bientot` → `ouverte` (en vente) ; `suspendue` (coupée par l'équipe, invisible du public).
 **Règles automatiques** : on ne peut pas ouvrir la boutique (`fn_shop_open`) sans adresse certifiée ; le vendeur ne peut pas se mettre `ouverte` lui-même ; changer d'adresse referme la vente.
@@ -469,3 +469,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-11-14 | 26 | `declarations.temporary_until` (adresse temporaire, `2026-11-11_adresse_temporaire.sql`, à appliquer). |
 | 2026-11-14 | 27 | `2026-11-11_adresse_temporaire.sql` **appliquée en production** (accord du fondateur) : `declarations.temporary_until` existe, vide pour les 5 adresses existantes. |
 | 2026-11-14 | 28 | 21 catégories ajoutées ; `shops.category_ids` (plusieurs catégories par boutique) et déclencheur `shops_categories` (`2026-11-12_categories_multiples.sql`, à appliquer). |
+| 2026-11-15 | 29 | `2026-11-12_categories_multiples.sql` **appliquée en production** (accord du fondateur) : 31 catégories, `shops.category_ids` rempli pour les 4 boutiques existantes, déclencheur `shops_categories` en place. |
