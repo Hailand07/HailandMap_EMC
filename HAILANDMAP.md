@@ -398,3 +398,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-11-14 | Écosystème révision 137, BASE_DE_DONNEES révision 27 : `declarations.temporary_until` appliquée en production ; règle « adresse toujours repérée sur place » commune à HailandX et NavigationX. Aucun changement de code ici. |
 | 2026-11-14 | BASE_DE_DONNEES révision 28 : 21 catégories ajoutées et `shops.category_ids` (plusieurs catégories par boutique HailandX ; migration à appliquer). Tables propres à HailandX : aucun effet ici. |
 | 2026-11-15 | BASE_DE_DONNEES révision 29 : catégories multiples des boutiques HailandX appliquées en production (31 catégories). Aucun effet ici. |
+| 2026-11-17 | ÉCOSYSTÈME révision 138 : connexion numéro + mot de passe dans HailandX en attendant la vérification par WhatsApp (`HAILANDX.md` §59). Aucun effet ici (HailandMap : code par e-mail ou SMS des agents). |
