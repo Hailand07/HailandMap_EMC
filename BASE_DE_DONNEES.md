@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 30** (2026-11-18) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 31** (2026-11-20) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -473,4 +473,5 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-11-14 | 27 | `2026-11-11_adresse_temporaire.sql` **appliquée en production** (accord du fondateur) : `declarations.temporary_until` existe, vide pour les 5 adresses existantes. |
 | 2026-11-14 | 28 | 21 catégories ajoutées ; `shops.category_ids` (plusieurs catégories par boutique) et déclencheur `shops_categories` (`2026-11-12_categories_multiples.sql`, à appliquer). |
 | 2026-11-15 | 29 | `2026-11-12_categories_multiples.sql` **appliquée en production** (accord du fondateur) : 31 catégories, `shops.category_ids` rempli pour les 4 boutiques existantes, déclencheur `shops_categories` en place. |
-| 2026-11-18 | 30 | `payout_requests` (demandes de retrait des vendeurs, minimum 10 000 GNF) et fonctions `fn_my_balance`, `fn_withdraw_request`, `fn_withdraw_cancel`, `fn_withdraw_requests`, `fn_withdraw_done`, `fn_withdraw_refuse` (`2026-11-18_retraits.sql`, à appliquer). |
+| 2026-11-18 | 30 | `payout_requests` (demandes de retrait des vendeurs, minimum 10 000 GNF) et fonctions `fn_my_balance`, `fn_withdraw_request`, `fn_withdraw_cancel`, `fn_withdraw_requests`, `fn_withdraw_done`, `fn_withdraw_refuse` (`2026-11-18_retraits.sql`). |
+| 2026-11-20 | 31 | `2026-11-18_retraits.sql` **appliquée en production** (accord du fondateur) : `payout_requests` existe (0 ligne), 6 fonctions de retrait créées. |

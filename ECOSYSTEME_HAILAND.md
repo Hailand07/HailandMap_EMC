@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 141** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 142** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,9 +448,11 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-11-18 (révision 141).**
+**Dernière mise à jour de cette section : 2026-11-20 (révision 142).**
 
-- **Fait / décidé (2026-11-18, `HAILANDX.md` §61–§62)** : photos de produit dans Vendeur installé (envoi immédiat, brouillon, appareil photo intégré, conversion HEIC) ; **solde et retraits à la demande** des vendeurs, étape 1 manuelle (minimum 10 000 GNF, l'équipe envoie depuis Chap Chap Pay puis marque « Envoyé » dans la Console). **Bloqué** : migration `2026-11-18_retraits.sql` à appliquer (accord du fondateur) ; étape 2 (PUSH API Chap Chap Pay) en attente de l'activation et de la documentation par Chap Chap Pay. Flotte reste installable (confirmé par le fondateur).
+- **Fait (2026-11-20)** : migration `2026-11-18_retraits.sql` **appliquée en production** (retraits des vendeurs, `HAILANDX.md` §62). Reste : étape 2 (PUSH API Chap Chap Pay), écran « Retirer » côté livreur (Flotte).
+
+- **Fait / décidé (2026-11-18, `HAILANDX.md` §61–§62)** : photos de produit dans Vendeur installé (envoi immédiat, brouillon, appareil photo intégré, conversion HEIC) ; **solde et retraits à la demande** des vendeurs, étape 1 manuelle (minimum 10 000 GNF, l'équipe envoie depuis Chap Chap Pay puis marque « Envoyé » dans la Console). **Bloqué** : étape 2 (PUSH API Chap Chap Pay) en attente de l'activation et de la documentation par Chap Chap Pay. Flotte reste installable (confirmé par le fondateur).
 
 - **Corrigé (2026-11-18)** : l'installation sur l'écran d'accueil ne concerne **que les vendeurs** (HailandX Vendeur) et les livreurs (Flotte, confirmé) ; HailandX et la Console ne sont plus installables.
 
