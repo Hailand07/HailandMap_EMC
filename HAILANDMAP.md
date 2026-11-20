@@ -403,3 +403,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-11-18 | ÉCOSYSTÈME révision 140 : installation sur l'écran d'accueil réservée aux vendeurs (HailandX et Console retirés). Aucun effet ici. |
 | 2026-11-18 | ÉCOSYSTÈME révision 141, BASE_DE_DONNEES révision 30 : table `payout_requests` (demandes de retrait des vendeurs HailandX, `HAILANDX.md` §62 ; migration à appliquer). Aucun effet ici. |
 | 2026-11-20 | ÉCOSYSTÈME révision 142, BASE_DE_DONNEES révision 31 : migration des retraits des vendeurs HailandX appliquée en production (`payout_requests`). Aucun effet ici. |
+| 2026-11-20 | ÉCOSYSTÈME révision 143 : HailandPay retiré des applications HailandX (base inchangée), partage iPhone corrigé, « Retirer » pour les livreurs, « Mes informations » (`HAILANDX.md` §63) — aucun changement pour ce dépôt. |
