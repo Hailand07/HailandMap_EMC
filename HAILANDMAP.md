@@ -401,3 +401,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-11-17 | ÉCOSYSTÈME révision 138 : connexion numéro + mot de passe dans HailandX en attendant la vérification par WhatsApp (`HAILANDX.md` §59). Aucun effet ici (HailandMap : code par e-mail ou SMS des agents). |
 | 2026-11-18 | ÉCOSYSTÈME révision 139 : passage au mobile décidé (`HAILANDX.md` §60). HailandMap : rien pour l'instant (décision du fondateur) ; plus tard, installable sur ordinateur puis logiciel (Tauri) si besoin. |
 | 2026-11-18 | ÉCOSYSTÈME révision 140 : installation sur l'écran d'accueil réservée aux vendeurs (HailandX et Console retirés). Aucun effet ici. |
+| 2026-11-18 | ÉCOSYSTÈME révision 141, BASE_DE_DONNEES révision 30 : table `payout_requests` (demandes de retrait des vendeurs HailandX, `HAILANDX.md` §62 ; migration à appliquer). Aucun effet ici. |

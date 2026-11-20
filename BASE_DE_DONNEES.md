@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 29** (2026-11-15) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 30** (2026-11-18) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -301,6 +301,9 @@ Un paiement par commande payée d'avance : `order_id`, `provider` (`simulation`,
 ### `payouts` — versements faits (0 ligne) 🔴 (argent)
 Chaque versement enregistré par l'équipe : `shop_id` ou `courier_id`, `amount_gnf`, **copie** du moyen utilisé (`method`, `account_number`, `holder_name`), `channel` (`manuel` aujourd'hui ; `djomy` / `chapchappay` quand l'envoi sera automatique), `provider_ref` (référence de l'envoi), `created_by`. Écrit seulement par `fn_payout_record`, qui refuse plus que le **disponible** (ventes et gains de plus de 48 h, `private.payable_gnf`) et un moyen modifié depuis moins de 48 h ; il inscrit aussi `reversement_vendeur` / `reversement_livreur` au grand livre. 🔴
 
+### `payout_requests` — demandes de retrait (0 ligne) 🔴 (argent)
+**Le vendeur retire quand il veut** (§62) : `shop_id` (une boutique) ou `courier_id` (un livreur), `amount_gnf` (au moins **10 000 GNF**, réglage `retrait_minimum_gnf`), **copie** du moyen de versement au moment de la demande (`method`, `account_number`, `holder_name`), `status` (`demande` → `envoye`, `refuse` avec `reason`, ou `annule` par le demandeur), `payout_id` (le versement fait), `requested_by`, `decided_by`, `decided_at`. **Une seule demande en cours** par boutique ou livreur ; elle **réserve** l'argent (le retirable = disponible − demande en cours). Écrite seulement par `fn_withdraw_request` (propriétaire), `fn_withdraw_cancel`, et pour l'équipe `fn_withdraw_done` (qui appelle `fn_payout_record` : versement et écriture au grand livre) et `fn_withdraw_refuse` (motif obligatoire). Le solde de l'écran vendeur vient de `fn_my_balance`. Lecture : propriétaire, livreur concerné, équipe. 🔴
+
 ### `ledger_entries` — le grand livre (0 ligne) 🔴 (argent)
 **Chaque mouvement d'argent** : `account` (`escrow` séquestre, `shop`, `courier` gains du livreur, `courier_cash` **espèces encaissées et pas encore reversées par le livreur**, `platform` Hailand, `buyer`, `wallet` portefeuilles HailandPay — `account_id` = l'identifiant du portefeuille), `account_id`, `parcel_id`, `order_id`, `kind` (type d'opération : encaissement, commission, versement…), `amount_gnf`. **Alimentée automatiquement** quand un colis est remis (commission, part du livreur, net vendeur). Ne se modifie **jamais** (on ajoute des écritures de correction, on n'efface pas). Lecture des écritures d'une boutique : son **propriétaire** seulement (pas les employés). Console → Argent la résume (à verser aux boutiques, à rembourser, espèces chez les livreurs). Types ajoutés le 2026-10-24 : `especes_encaissees` / `especes_reversees` / `solde_ouverture` (compte `courier_cash`), `remboursement_partiel_vendeur` / `remboursement_partiel_commission` (litige remboursé en partie). 🔴
 
@@ -470,3 +473,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-11-14 | 27 | `2026-11-11_adresse_temporaire.sql` **appliquée en production** (accord du fondateur) : `declarations.temporary_until` existe, vide pour les 5 adresses existantes. |
 | 2026-11-14 | 28 | 21 catégories ajoutées ; `shops.category_ids` (plusieurs catégories par boutique) et déclencheur `shops_categories` (`2026-11-12_categories_multiples.sql`, à appliquer). |
 | 2026-11-15 | 29 | `2026-11-12_categories_multiples.sql` **appliquée en production** (accord du fondateur) : 31 catégories, `shops.category_ids` rempli pour les 4 boutiques existantes, déclencheur `shops_categories` en place. |
+| 2026-11-18 | 30 | `payout_requests` (demandes de retrait des vendeurs, minimum 10 000 GNF) et fonctions `fn_my_balance`, `fn_withdraw_request`, `fn_withdraw_cancel`, `fn_withdraw_requests`, `fn_withdraw_done`, `fn_withdraw_refuse` (`2026-11-18_retraits.sql`, à appliquer). |
