@@ -99,3 +99,36 @@ export function getPositionWithFallback(): Promise<GeolocationPosition> {
     attempt(0);
   });
 }
+
+/**
+ * Position reçue mais imprécise (au-delà de 30 m) : le plus souvent le GPS du téléphone n'est pas utilisé
+ * (« Position précise » coupée pour le navigateur) ou l'appareil n'en a pas (ordinateur). Gestes à faire, selon l'appareil.
+ */
+export function describeImprecise(accuracyM: number, ua: string = navigator.userAgent, touchPoints: number = navigator.maxTouchPoints): GeoHelp {
+  const ios = isIOS(ua, /iPhone|iPad|iPod/.test(ua) ? 'iPhone' : '', touchPoints);
+  const android = /Android/i.test(ua);
+  const inApp = isInAppBrowser(ua);
+  const km = accuracyM >= 1000 ? `${(accuracyM / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km` : `${Math.round(accuracyM)} m`;
+  if (!ios && !android && touchPoints === 0) {
+    return {
+      problem: 'signal', inAppBrowser: false,
+      title: 'Position imprécise sur ordinateur',
+      message: `Un ordinateur n’a pas de GPS : sa position vient du Wi-Fi ou de l’adresse Internet (± ${km}) et peut être fausse de plusieurs kilomètres.`,
+      steps: ['Sur le terrain, utilisez HailandMap sur un téléphone, GPS activé.'],
+    };
+  }
+  return {
+    problem: 'signal', inAppBrowser: inApp,
+    title: `Position imprécise (± ${km})`,
+    message: accuracyM > 150 ? 'Le téléphone ne donne pas sa position GPS au navigateur : elle vient du réseau et peut être loin de vous.' : 'Le signal GPS est faible ici.',
+    steps: [
+      ...(inApp ? ['Ouvrez HailandMap dans Chrome ou Safari, pas dans WhatsApp ou Facebook.'] : []),
+      ...(ios
+        ? ['Réglages > Confidentialité et sécurité > Service de localisation > Safari (ou Chrome) : « Lors de l’utilisation » et « Position exacte » activée.']
+        : android
+          ? ['Paramètres > Localisation : activée, et « Précision de la localisation Google » activée.', 'Chrome : cadenas à gauche de l’adresse > Autorisations > Position > Autoriser, avec « Utiliser la position exacte ».']
+          : []),
+      'Sortez à découvert quelques secondes : le point se précise tout seul.',
+    ],
+  };
+}

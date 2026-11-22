@@ -33,6 +33,8 @@ interface Props {
   pendingContour: GeoJSON.Polygon | null;
   /** Lance le retraçage du contour sur la carte (la fiche se referme jusqu'à la fin du tracé). */
   onStartContour: () => void;
+  /** Ajuste le contour existant sur la carte (angles déplaçables), au lieu de le redessiner. */
+  onAdjustContour: () => void;
   onClearContour: () => void;
   /** Onglet à ouvrir (ex. « modifier » au retour du retraçage). */
   initialTab?: 'fiche' | 'historique' | 'modifier';
@@ -62,7 +64,7 @@ const FIELD_INPUT: Record<EditableField, 'text' | 'number' | 'type' | 'status'> 
  * Fiche d'un bâtiment ENREGISTRÉ (jamais d'un bâtiment OSM) : identité, codes, origine, occupation, historique des révisions,
  * et modification contrôlée — justification obligatoire ; un administrateur applique, un agent propose (décision d'un administrateur).
  */
-export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profiles, onClose, onOpenRegistre, onChanged, pendingContour, onStartContour, onClearContour, initialTab }) => {
+export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profiles, onClose, onOpenRegistre, onChanged, pendingContour, onStartContour, onAdjustContour, onClearContour, initialTab }) => {
   const [tab, setTab] = useState<'fiche' | 'historique' | 'modifier'>(initialTab ?? 'fiche');
   const [unitsDraft, setUnitsDraft] = useState<UnitInput[] | null>(null);
   const [unitsBase, setUnitsBase] = useState<UnitInput[] | null>(null);
@@ -253,11 +255,12 @@ export const BuildingSheet: React.FC<Props> = ({ building: b, residents, profile
                 <span className="text-[12.5px] font-semibold">Contour {pendingContour && <span className="ml-1 font-normal text-hx-warn">· modifié</span>}</span>
                 <span className="flex gap-1.5">
                   {pendingContour && <button type="button" onClick={onClearContour} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px]">Annuler le nouveau contour</button>}
-                  <button type="button" onClick={onStartContour} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px] transition hover:bg-hx-hover/40">{pendingContour ? 'Retracer' : 'Retracer le contour…'}</button>
+                  <button type="button" onClick={onAdjustContour} disabled={!oldArea} className="h-8 rounded-md bg-hx-accent px-2.5 text-[12px] font-semibold text-white transition disabled:opacity-40">Ajuster…</button>
+                  <button type="button" onClick={onStartContour} className="h-8 rounded-md border border-hx-line2 px-2.5 text-[12px] transition hover:bg-hx-hover/40">Retracer…</button>
                 </span>
               </div>
               <div className="mt-1 text-[12px] text-hx-dim">
-                {pendingContour ? `Nouveau contour : ${Math.round(newArea).toLocaleString('fr-FR')} m² (actuel : ${Math.round(oldArea).toLocaleString('fr-FR')} m²). Il doit recouvrir l’ancien.` : `Actuel : ${Math.round(oldArea).toLocaleString('fr-FR')} m². Un clic par angle, double-clic pour terminer.`}
+                {pendingContour ? `Nouveau contour : ${Math.round(newArea).toLocaleString('fr-FR')} m² (actuel : ${Math.round(oldArea).toLocaleString('fr-FR')} m²). Il doit recouvrir l’ancien.` : `Actuel : ${Math.round(oldArea).toLocaleString('fr-FR')} m². « Ajuster » : déplacez les angles du contour actuel. « Retracer » : redessinez-le entièrement.`}
               </div>
             </div>
             {!b.has_courtyard && unitsDraft && (

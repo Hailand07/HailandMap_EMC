@@ -35,3 +35,22 @@ export function nextGpsAction(mode: GpsMode): 'start' | 'follow' | 'stop' | 'non
   if (mode === 'follow') return 'stop';
   return 'none';
 }
+
+/** Au-delà (m), la position vient du réseau ou de l'adresse Internet, pas du GPS : elle n'est jamais suivie par la carte. */
+export const COARSE_M = 150;
+
+/**
+ * Faut-il afficher cette nouvelle position ? On garde la meilleure position récente : une lecture nettement moins précise
+ * (réponse du réseau intercalée entre deux lectures GPS) est ignorée tant que la meilleure a moins de `keepMs`.
+ * C'est ce qui faisait « sauter » le point bleu (2026-11-23).
+ */
+export function acceptFix(best: { acc: number; at: number } | null, acc: number, now: number, keepMs = 20000): boolean {
+  if (!best) return true;
+  if (acc <= best.acc * 1.5 || acc <= PRECISE_M) return true;
+  return now - best.at > keepMs;
+}
+
+/** Zoom qui laisse voir tout le cercle de précision : 18 pour ± 40 m ou mieux, 12 au plus large. */
+export function zoomForAccuracy(acc: number): number {
+  return Math.min(18, Math.max(12, 18 - Math.log2(Math.max(1, acc / 40))));
+}
