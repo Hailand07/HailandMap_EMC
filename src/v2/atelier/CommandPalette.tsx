@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Building, TerritorySearchResult } from '../../types';
 import { searchAdministrativeEntities } from '../../lib/interactiveMapService';
 import { parseCoordinates, searchPlaces, type PlaceHit } from '../../lib/placeSearch';
+import { areaStyle, isCountryQuery } from '../../map/areaStyles';
 
 interface PaletteCommand {
   id: string;
@@ -15,6 +16,8 @@ export interface GoToTarget {
   label: string;
   center: [number, number];
   geom?: GeoJSON.Geometry | null;
+  /** Niveau administratif (pays, region, prefecture, commune, quartier) : il donne le style de la surface. */
+  level?: string;
 }
 
 interface Props {
@@ -33,10 +36,11 @@ type Row =
   | { kind: 'building'; b: Building }
   | { kind: 'coords'; lat: number; lng: number }
   | { kind: 'territory'; t: TerritorySearchResult }
+  | { kind: 'country' }
   | { kind: 'place'; p: PlaceHit }
   | { kind: 'cmd'; c: PaletteCommand };
 
-const LEVEL: Record<string, string> = { quartier: 'Quartier', commune: 'Commune', prefecture: 'Préfecture', region: 'Région' };
+
 
 const centerOf = (t: TerritorySearchResult): [number, number] | null => {
   const c = t.centroid?.coordinates;
@@ -84,7 +88,9 @@ export const CommandPalette: React.FC<Props> = ({ open, onClose, buildings, onSe
         searchPlaces(needle, mapboxToken, prox.current, ctrl.signal),
       ]);
       if (ctrl.signal.aborted) return;
-      setTerritories(terr.filter((x) => (x.level === 'quartier' || x.level === 'commune') && (x.geom || centerOf(x))).slice(0, 8));
+      // Tous les niveaux : région, préfecture (ville), commune, quartier ; les plus grands d'abord.
+      const rank: Record<string, number> = { region: 0, prefecture: 1, commune: 2, quartier: 3 };
+      setTerritories(terr.filter((x) => x.geom || centerOf(x)).sort((a, b) => (rank[a.level] ?? 9) - (rank[b.level] ?? 9)).slice(0, 10));
       setPlaces(pl);
       setSearching(false);
     }, 300);
@@ -103,6 +109,7 @@ export const CommandPalette: React.FC<Props> = ({ open, onClose, buildings, onSe
     const cmds = commands.filter((c) => !needle || c.label.toLowerCase().includes(needle)).slice(0, needle ? 4 : 8).map((c) => ({ kind: 'cmd' as const, c }));
     return [
       ...(coords ? [{ kind: 'coords' as const, ...coords }] : []),
+      ...(isCountryQuery(q) ? [{ kind: 'country' as const }] : []),
       ...bs,
       ...territories.map((t) => ({ kind: 'territory' as const, t })),
       ...places.map((p) => ({ kind: 'place' as const, p })),
@@ -119,13 +126,18 @@ export const CommandPalette: React.FC<Props> = ({ open, onClose, buildings, onSe
     else if (r.kind === 'building') onSelectBuilding(r.b);
     else if (r.kind === 'coords') onGoTo({ label: `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`, center: [r.lng, r.lat] });
     else if (r.kind === 'place') onGoTo({ label: r.p.name, center: r.p.center });
+    else if (r.kind === 'country') {
+      // Frontière du pays (simplifiée, 31 Ko), chargée seulement quand on la demande.
+      fetch('/geo/guinee.geojson').then((x) => x.json()).then((f: GeoJSON.Feature) => onGoTo({ label: 'Guinée', center: [-11.0, 10.4], geom: f.geometry, level: 'pays' })).catch(() => onGoTo({ label: 'Guinée', center: [-11.0, 10.4], level: 'pays' }));
+    }
     else {
       const c = centerOf(r.t);
-      onGoTo({ label: r.t.nom, center: c ?? [-13.65, 9.6], geom: r.t.geom ?? null });
+      onGoTo({ label: r.t.nom, center: c ?? [-13.65, 9.6], geom: r.t.geom ?? null, level: r.t.level });
     }
   };
   const head = (i: number, label: string) => (i === 0 || rows[i - 1]!.kind !== rows[i]!.kind ? <li className="px-3 pb-1 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-hx-faint">{label}</li> : null);
-  const titles: Record<Row['kind'], string> = { coords: 'Coordonnées', building: 'Fiches relevées', territory: 'Quartiers et communes', place: 'Lieux et rues', cmd: 'Commandes' };
+  const titles: Record<Row['kind'], string> = { coords: 'Coordonnées', country: 'Pays', building: 'Fiches relevées', territory: 'Découpage administratif', place: 'Lieux et rues', cmd: 'Commandes' };
+  const swatch = (level: string) => { const st = areaStyle(level); return <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-sm border-2" style={{ borderColor: st.line, background: `${st.color}55` }} />; };
 
   return (
     <div role="dialog" aria-label="Recherche" className="fixed inset-0 z-[120] flex items-start justify-center bg-black/50 px-4 pt-[10vh] max-md:px-2 max-md:pt-3" onMouseDown={onClose}>
@@ -142,7 +154,7 @@ export const CommandPalette: React.FC<Props> = ({ open, onClose, buildings, onSe
           }}
           type="search"
           enterKeyHint="search"
-          placeholder="Quartier, lieu, rue, code, ou coordonnées GPS…"
+          placeholder="Quartier, commune, ville, région, Guinée, lieu, code, coordonnées…"
           aria-label="Rechercher"
           className="h-12 w-full border-b border-hx-line bg-transparent px-4 text-[16px] text-hx-text outline-none placeholder:text-hx-faint"
         />
@@ -172,13 +184,21 @@ export const CommandPalette: React.FC<Props> = ({ open, onClose, buildings, onSe
                       <span className="font-mono text-[12.5px]">{r.lat.toFixed(5)}, {r.lng.toFixed(5)}</span>
                       <span className="text-[11.5px] text-hx-faint">aller au point</span>
                     </>
+                  ) : r.kind === 'country' ? (
+                    <>
+                      <span className="flex min-w-0 items-center gap-2.5">{swatch('pays')}<span className="truncate">Guinée</span></span>
+                      <span className="text-[11.5px] text-hx-faint">{areaStyle('pays').label}</span>
+                    </>
                   ) : r.kind === 'territory' ? (
                     <>
-                      <span className="min-w-0">
-                        <span className="block truncate">{r.t.nom}</span>
-                        <span className="block truncate text-[12px] text-hx-dim">{[r.t.parentChain.commune?.nom, r.t.parentChain.prefecture?.nom].filter(Boolean).join(' · ')}</span>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        {swatch(r.t.level)}
+                        <span className="min-w-0">
+                          <span className="block truncate">{r.t.nom}</span>
+                          <span className="block truncate text-[12px] text-hx-dim">{[r.t.parentChain.commune?.nom, r.t.parentChain.prefecture?.nom, r.t.parentChain.region?.nom].filter(Boolean).join(' · ')}</span>
+                        </span>
                       </span>
-                      <span className="text-[11.5px] text-hx-faint">{LEVEL[r.t.level] ?? r.t.level}</span>
+                      <span className="text-[11.5px] text-hx-faint">{areaStyle(r.t.level).label}</span>
                     </>
                   ) : (
                     <>
