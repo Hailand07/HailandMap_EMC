@@ -11,8 +11,8 @@ import {
   } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { actorId } from './lib/actor';
-import { describeGeoError } from './lib/geoDiagnostic';
-import { accuracyDiameterPx, accuracyText, isPrecise, nextGpsAction, type GpsMode } from './lib/geoTrack';
+import { describeGeoError, describeImprecise, isDesktopDevice } from './lib/geoDiagnostic';
+import { acceptFix, accuracyDiameterPx, accuracyText, COARSE_M, isPrecise, nextGpsAction, zoomForAccuracy, type GpsMode } from './lib/geoTrack';
 import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
@@ -57,7 +57,7 @@ import { registeredMaskZone } from './map/registered';
 import { declarationPoint, linkDeclaration, loadAdminCodes, saveUnits, type Declaration } from './lib/attachment';
 import { BuildingSheet } from './v2/atelier/BuildingSheet';
 import { RegistrationBanner } from './v2/atelier/RegistrationBanner';
-import { findRegisteredAt } from './map/registered';
+import { findRegisteredAt, footprintOf } from './map/registered';
 import { SettingsModal } from './shell/SettingsModal';
 import { handleMapLoad, handleMapClick, handleMapMouseMove } from './map/handlers';
 
@@ -520,11 +520,15 @@ export default function App() {
   }, [drawPoints]);
 
   // Le contrôleur de tracé s'active avec le mode tracé (il coupe aussi le zoom au double-clic) et repart en phase « tracer ».
+  // « Ajuster le contour » (2026-11-23) : le tracé démarre fermé, sur le contour existant, ses angles prêts à être déplacés.
+  const drawStartEditingRef = useRef(false);
   useEffect(() => {
     const ed = drawEditorRef.current;
     if (!ed) return;
-    drawPhaseRef.current = 'drawing';
-    setDrawPhase('drawing');
+    const startPhase: DrawPhase = isDrawMode && drawStartEditingRef.current ? 'editing' : 'drawing';
+    drawStartEditingRef.current = false;
+    drawPhaseRef.current = startPhase;
+    setDrawPhase(startPhase);
     if (isDrawMode) ed.enable(); else { ed.disable(); setDrawStatus(null); }
   }, [isDrawMode]);
   // Points vidés de l'extérieur (validation, annulation, nouvel enfant de cour) : on recommence un tracé.
@@ -608,6 +612,7 @@ export default function App() {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Retraçage du contour d'un bâtiment enregistré (modification contrôlée) : tracé en cours, puis contour en attente de justification.
   const [contourTracing, setContourTracing] = useState(false);
+  const [contourAdjusting, setContourAdjusting] = useState(false);
   const contourTracingRef = useRef(false);
   const [pendingContour, setPendingContour] = useState<GeoJSON.Polygon | null>(null);
   const [sheetTab, setSheetTab] = useState<'fiche' | 'historique' | 'modifier' | undefined>(undefined);
@@ -1373,6 +1378,7 @@ export default function App() {
     if (contourTracingRef.current) {
       setPendingContour({ type: 'Polygon', coordinates: [[...points, points[0]]] });
       setContourTracing(false);
+      setContourAdjusting(false);
       setSheetTab('modifier');
       setIsDrawMode(false);
       setDrawPoints([]);
@@ -2080,44 +2086,70 @@ export default function App() {
     gpsWarnedRef.current = false;
     gpsFollowRef.current = true;
     setGpsMode('searching');
-    let fixed = false;
-    let lastAcc = Infinity;
+    // Seule source : le GPS du téléphone (haute précision). Plus de « position rapide » par le réseau : elle pouvait tomber à des
+    // kilomètres, et l'alternance réseau / GPS faisait sauter le point bleu (retour du fondateur, 2026-11-23).
+    let best: { acc: number; at: number } | null = null;
+    let helped = false;
+    const startedAt = Date.now();
+    // Ordinateur : aucune puce GPS ; Windows et Chrome estiment la position par les réseaux Wi-Fi voisins, souvent à des kilomètres
+    // à Conakry, même quand la précision annoncée est bonne (capture du fondateur, 2026-11-22 : point dans la mer au large de Coléah).
+    const desktop = isDesktopDevice();
     const onFix = (pos: GeolocationPosition) => {
       const { latitude, longitude, accuracy } = pos.coords;
-      // Une position moins précise que la précédente (réponse réseau tardive) ne remplace pas une bonne position récente.
-      if (fixed && accuracy > lastAcc * 3 && lastAcc <= 50) return;
-      fixed = true;
-      lastAcc = accuracy;
+      const now = Date.now();
+      if (!acceptFix(best, accuracy, now)) return;
+      best = { acc: accuracy, at: now };
       setUserLocation({ latitude, longitude, accuracy });
       const map = mapRef.current;
+      const coarse = desktop || accuracy > COARSE_M;
+      if (gpsFirstFixRef.current && desktop) {
+        gpsFirstFixRef.current = false;
+        gpsFollowRef.current = false;
+        setGpsMode('free');
+        map?.flyTo({ center: [longitude, latitude], zoom: Math.min(zoomForAccuracy(accuracy), 15), bearing: 0, duration: 1200, essential: true });
+        helped = true;
+        const h = describeImprecise(Math.max(accuracy, 1000));
+        setMapNotification({ type: 'warning', title: 'Position estimée par l’ordinateur', message: `${h.message} ${h.steps.join(' ')}` });
+        return;
+      }
+      if (desktop) return;
       if (gpsFirstFixRef.current) {
         gpsFirstFixRef.current = false;
-        setGpsMode('follow');
-        map?.flyTo({ center: [longitude, latitude], zoom: Math.max(map.getZoom(), 18), bearing: 0, duration: 1200, essential: true });
+        // Position grossière : on montre le cercle entier, sans suivre ; la carte suivra dès que le GPS sera précis.
+        gpsFollowRef.current = !coarse;
+        setGpsMode(coarse ? 'free' : 'follow');
+        map?.flyTo({ center: [longitude, latitude], zoom: zoomForAccuracy(accuracy), bearing: 0, duration: 1200, essential: true });
         if (isPrecise(accuracy)) {
           setMapNotification({ type: 'success', title: 'Position trouvée', message: `Précision ${accuracyText(accuracy)}. La carte vous suit ; déplacez-la pour arrêter de suivre.` });
         } else {
           gpsWarnedRef.current = true;
-          setMapNotification({ type: 'warning', title: 'Position approximative', message: `Précision ${accuracyText(accuracy)} : le point bleu peut être décalé (cercle bleu). Sortez ou approchez-vous d’une fenêtre ; la position se précise toute seule.` });
+          setMapNotification({ type: 'warning', title: coarse ? 'Position très imprécise' : 'Position approximative', message: `Précision ${accuracyText(accuracy)} : vous êtes quelque part dans le cercle bleu. ${coarse ? 'Ce n’est pas encore la position GPS ; attendez quelques secondes à découvert.' : 'La position se précise toute seule.'}` });
         }
       } else {
-        if (gpsFollowRef.current) map?.easeTo({ center: [longitude, latitude], duration: 600 });
         if (gpsWarnedRef.current && isPrecise(accuracy)) {
           gpsWarnedRef.current = false;
-          setMapNotification({ type: 'success', title: 'Position précisée', message: `Précision ${accuracyText(accuracy)}.` });
+          if (!gpsFollowRef.current) { gpsFollowRef.current = true; setGpsMode('follow'); }
+          map?.flyTo({ center: [longitude, latitude], zoom: Math.max(map.getZoom(), 18), bearing: 0, duration: 900 });
+          setMapNotification({ type: 'success', title: 'Position précisée', message: `Précision ${accuracyText(accuracy)}. La carte vous suit.` });
+        } else if (gpsFollowRef.current) {
+          map?.easeTo({ center: [longitude, latitude], duration: 600 });
         }
+      }
+      // Toujours imprécis après 20 s : ce n'est plus le signal, c'est un réglage (position exacte coupée, ordinateur…).
+      if (!helped && !isPrecise(accuracy) && now - startedAt > 20000) {
+        helped = true;
+        const h = describeImprecise(accuracy);
+        setMapNotification({ type: 'warning', title: h.title, message: `${h.message} ${h.steps.join(' ')}` });
       }
     };
     const onError = (error: GeolocationPositionError) => {
       // Refus : inutile d'insister. Délai ou signal faible : le suivi continue d'essayer ; on explique une seule fois.
       if (error.code === 1) stopGps();
-      if (fixed && error.code !== 1) return;
+      if (best && error.code !== 1) return;
       const help = describeGeoError(Number(error?.code) || 3);
       setMapNotification({ type: 'warning', title: help.title, message: `${help.message} ${help.steps.slice(0, help.inAppBrowser ? 1 : 3).join(' ')}` });
     };
-    // Position rapide (réseau, Wi-Fi) pour commencer, puis suivi en haute précision.
-    navigator.geolocation.getCurrentPosition(onFix, () => {}, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
-    gpsWatchRef.current = navigator.geolocation.watchPosition(onFix, onError, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    gpsWatchRef.current = navigator.geolocation.watchPosition(onFix, onError, { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
   }, [gpsMode, userLocation, stopGps]);
 
   // Gestionnaire pour le mode interactif de sélection d'entrée (verrouillage / snapping mur de cour)
@@ -2640,13 +2672,29 @@ export default function App() {
                 setDrawPoints([]);
                 setIsDrawMode(true);
               }}
+              onAdjustContour={() => {
+                const f = footprintOf(selectedBuilding);
+                const ring = (f?.type === 'Polygon' ? f.coordinates[0] : f?.type === 'MultiPolygon' ? f.coordinates[0]?.[0] : null) as [number, number][] | null | undefined;
+                if (!ring || ring.length < 4) return;
+                const open = ring.slice(0, -1).map((p) => [p[0], p[1]] as [number, number]);
+                setPendingContour(null);
+                setContourTracing(true);
+                setContourAdjusting(true);
+                setIsSelectionMode(true);
+                drawPointsRef.current = open;
+                setDrawPoints(open);
+                drawStartEditingRef.current = true;
+                setIsDrawMode(true);
+              }}
             />
           </div>
         )}
         {contourTracing && selectedBuilding && (
           <div role="status" className="absolute left-1/2 top-16 z-40 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-hx-warn/50 bg-hx-panel px-4 py-2.5 text-[13px] text-hx-text shadow-2xl">
-            <span><b className="text-hx-warn">Retraçage du contour</b> · {selectedBuilding.landmark_note || selectedBuilding.admin_code || selectedBuilding.id} — un clic par angle, double-clic pour terminer</span>
-            <button type="button" onClick={() => { setContourTracing(false); setIsDrawMode(false); setDrawPoints([]); setSheetTab('modifier'); }} className="h-8 rounded-md border border-hx-line2 px-3 text-[12.5px]">Annuler</button>
+            <span>{contourAdjusting
+              ? <><b className="text-hx-warn">Ajustement du contour</b> · glissez un angle ; tirez le milieu d’un mur pour ajouter un angle ; clic droit sur un angle pour le retirer ; « Terminer » pour valider</>
+              : <><b className="text-hx-warn">Retraçage du contour</b> · {selectedBuilding.landmark_note || selectedBuilding.admin_code || selectedBuilding.id} — un clic par angle, double-clic pour terminer</>}</span>
+            <button type="button" onClick={() => { setContourTracing(false); setContourAdjusting(false); setIsDrawMode(false); setDrawPoints([]); setSheetTab('modifier'); }} className="h-8 rounded-md border border-hx-line2 px-3 text-[12.5px]">Annuler</button>
           </div>
         )}
 

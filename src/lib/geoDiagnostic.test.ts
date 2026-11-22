@@ -47,3 +47,21 @@ describe('describeGeoError', () => {
     expect(h.steps.join(' ')).not.toMatch(/Safari/);
   });
 });
+
+describe('position imprécise', () => {
+  it('ordinateur : explique l’absence de GPS ; Android : position exacte', async () => {
+    const { describeImprecise } = await import('./geoDiagnostic');
+    expect(describeImprecise(3000, 'Mozilla/5.0 (Windows NT 10.0) Chrome/120', 0).title).toMatch(/ordinateur/);
+    const a = describeImprecise(1200, 'Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile', 5);
+    expect(a.message).toMatch(/réseau/);
+    expect(a.steps.join(' ')).toMatch(/Précision de la localisation Google/);
+  });
+});
+
+describe('ordinateur ou téléphone', () => {
+  it('Windows sans écran tactile = ordinateur ; Android = téléphone', async () => {
+    const { isDesktopDevice } = await import('./geoDiagnostic');
+    expect(isDesktopDevice('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120', 0)).toBe(true);
+    expect(isDesktopDevice('Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile', 5)).toBe(false);
+  });
+});

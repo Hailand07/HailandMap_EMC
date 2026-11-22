@@ -21,3 +21,20 @@ describe('suivi GPS de l’Atelier', () => {
     expect(nextGpsAction('searching')).toBe('none');
   });
 });
+
+describe('positions qui sautent', () => {
+  it('une lecture réseau après une lecture GPS est ignorée, sauf si la bonne est ancienne', async () => {
+    const { acceptFix } = await import('./geoTrack');
+    expect(acceptFix(null, 2500, 0)).toBe(true);
+    expect(acceptFix({ acc: 8, at: 0 }, 1200, 5000)).toBe(false);
+    expect(acceptFix({ acc: 8, at: 0 }, 11, 5000)).toBe(true);
+    expect(acceptFix({ acc: 8, at: 0 }, 1200, 30000)).toBe(true);
+    expect(acceptFix({ acc: 2500, at: 0 }, 15, 1000)).toBe(true);
+  });
+  it('zoom adapté à la précision', async () => {
+    const { zoomForAccuracy } = await import('./geoTrack');
+    expect(zoomForAccuracy(10)).toBe(18);
+    expect(Math.round(zoomForAccuracy(1000))).toBe(13);
+    expect(zoomForAccuracy(50000)).toBe(12);
+  });
+});
