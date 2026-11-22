@@ -305,6 +305,35 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 - La certification des lieux reste **ici** ; la validation des livreurs, les litiges et la modération des produits iront dans une console d'administration de HailandX (proposition).
 - Détail : `ECOSYSTEME_HAILAND.md` §18 et `HAILANDX.md` (dépôt `Hailand07/HailandX_Scorpion`).
 
+## 11. Chantier « relevé sur le terrain » (demande du fondateur, 2026-11-22)
+
+Liste tenue à jour : le fondateur peut en ajouter. ✅ fait · ⏳ à faire · 🗄️ demande une migration (accord du fondateur).
+
+**A. Barre d'outils de l'Atelier** — ✅ (2026-11-22)
+- Gardés : **Sélection** (toucher un bâtiment : sa fiche s'il est relevé ; sinon « Créer la fiche », « Dans une concession », « Corriger le contour ») et **Tracer** (contour là où la carte n'en a pas), plus la vue 2D / 3D.
+- Retirés : **Bâtiment** et **Concession** (doublons des boutons de la fiche « Bâtiment sans fiche »), **Carreau 200 m** et l'interrupteur **Grille 200 m** du satellite (la grille ne sert plus qu'au code interne ; adresse publique = administrative). La grille reste affichable dans Couches, masquée par défaut.
+- Barre du tracé gardée telle quelle (Fermer, Équerrer, Arrondir, Terminer, Annuler / Rétablir, Quitter).
+
+**B. Bouton GPS** — ✅ (2026-11-22), ⚠️ à essayer sur téléphone
+- Avant : une seule lecture, aucune vérification de précision (une position réseau à plusieurs centaines de mètres s'affichait « Position actualisée »), halo décoratif, carte tournée selon le cap.
+- Maintenant (`lib/geoTrack.ts`) : **suivi continu** (`watchPosition`, haute précision, après une première position rapide) ; **cercle de précision réelle** recalculé au zoom ; message « Position trouvée · ± 12 m » ou **« Position approximative · ± 250 m »** (au-delà de 30 m) puis « Position précisée » quand elle s'améliore ; la carte **suit l'agent** jusqu'à ce qu'il la déplace ; bouton : 1er appui = chercher et suivre, carte déplacée = recentrer, carte qui suit = arrêter ; carte toujours orientée au nord ; point bleu conservé au changement de fond.
+
+**C. Recherche** — ✅ (2026-11-22), ⚠️ à essayer
+- Avant : seulement les bâtiments déjà relevés (59).
+- Maintenant (`CommandPalette`, `lib/placeSearch.ts`) : **coordonnées collées** (« 9.6412, -13.6203 », dans les deux ordres) ; **fiches relevées** (code public ou interne, repère, quartier) ; **quartiers et communes** (403 quartiers en base : la carte cadre la limite et la surligne en jaune) ; **lieux et rues** (Mapbox Search Box, Guinée, les plus proches d'abord — la couverture des lieux guinéens par Mapbox est inégale ⚠️) ; puis les commandes.
+- La commune et le quartier affichés pour un bâtiment pas encore relevé viennent des **vraies limites** (point dans le polygone), et non plus de tranches de longitude.
+- Chargement des bâtiments **par pages de 1 000** (au-delà, la réponse était tronquée sans message).
+
+**D. Modifier un bâtiment ou une concession** — ⏳
+1. « **Ajuster le contour** » : l'ancien tracé s'affiche avec ses angles déplaçables (aujourd'hui « Retracer » repart de zéro).
+2. **Point d'entrée** déplaçable sur la carte (aujourd'hui seule la note texte se modifie).
+3. 🗄️ « **Déplacer** » un contour mal placé (aujourd'hui refusé : le nouveau contour doit recouvrir la moitié de l'ancien), administrateur, avec justification ; quartier et commune recalculés.
+4. 🗄️ **Quartier et commune corrigeables** (aujourd'hui bloqués par la base même s'ils sont faux).
+5. 🗄️ **Concession** : ajouter ou retirer un bâtiment dans une concession déjà enregistrée ; unités modifiables depuis la fiche.
+
+**E. Autres points relevés** — ⏳
+- Le repli « commune inconnue → Ratoma » du calcul administratif (`resolveAdministrativeHierarchy`) peut annoncer Ratoma hors de Conakry : à remplacer par « hors des limites connues ».
+
 ## 10. Journal des mises à jour
 
 | Date | Changement |
@@ -405,3 +434,4 @@ Le bouton « Recentrer sur ma position » essayait une seule fois en haute préc
 | 2026-11-20 | ÉCOSYSTÈME révision 142, BASE_DE_DONNEES révision 31 : migration des retraits des vendeurs HailandX appliquée en production (`payout_requests`). Aucun effet ici. |
 | 2026-11-20 | ÉCOSYSTÈME révision 143 : HailandPay retiré des applications HailandX (base inchangée), partage iPhone corrigé, « Retirer » pour les livreurs, « Mes informations » (`HAILANDX.md` §63) — aucun changement pour ce dépôt. |
 | 2026-11-22 | ÉCOSYSTÈME révision 144, BASE_DE_DONNEES révision 32 : créneau et zone de livraison de la Flotte HailandX (`orders.delivery_date`, réglages `livraison_*`, `HAILANDX.md` §64) — aucun changement pour ce dépôt. |
+| 2026-11-22 | §11 (nouveau) : chantier « relevé sur le terrain ». **Outils** : Sélection et Tracer seulement (Bâtiment, Concession, Carreau 200 m retirés ; grille masquée). **GPS** : suivi continu, cercle de précision réelle, avertissement au-delà de 30 m, carte qui suit l'agent. **Recherche** : coordonnées, quartiers et communes (limite surlignée), lieux Mapbox ; commune et quartier par les vraies limites ; bâtiments chargés par pages. Reste : ajuster le contour, point d'entrée, et 3 changements de base. |

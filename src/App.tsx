@@ -11,7 +11,8 @@ import {
   } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { actorId } from './lib/actor';
-import { describeGeoError, getPositionWithFallback } from './lib/geoDiagnostic';
+import { describeGeoError } from './lib/geoDiagnostic';
+import { accuracyDiameterPx, accuracyText, isPrecise, nextGpsAction, type GpsMode } from './lib/geoTrack';
 import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
 import { Building3DDetailModal } from './components/Building3DDetailModal';
@@ -21,14 +22,14 @@ import {
   insertBuildingInSupabase,
   saveZoneInSupabase,
   } from './lib/supabase';
-import { computeDualAddressing } from './lib/administrativeAddressingService';
+import { computeDualAddressing, resolveAdministrativeHierarchy } from './lib/administrativeAddressingService';
 import { sanitizeGeometry, safeJsonStringify, safeCalculateArea } from './utils/safeJson';
 import * as turf from '@turf/turf';
 import { AtelierTopBar, ModuleRail, AtelierStatusBar, AtelierToolbar, AssistantAside, TOOLS, type AtelierTool } from './shell/AtelierShell';
 import { AtelierLeftPanel } from './v2/atelier/LeftPanel';
 import { CandidateCard, BuildingCard } from './v2/atelier/FloatingCards';
 import { MapStyleControl, SatelliteOptions, ZoomCluster, PanelHandle } from './shell/MapControls';
-import { CommandPalette } from './v2/atelier/CommandPalette';
+import { CommandPalette, type GoToTarget } from './v2/atelier/CommandPalette';
 import { ActivityPanel, type ActivityEntry } from './v2/atelier/Activity';
 import { RevueView } from './v2/views/RevueView';
 import { RegistreView } from './v2/views/RegistreView';
@@ -121,6 +122,37 @@ export default function App() {
         console.warn('Centrage impossible :', e);
       }
     }, 350);
+  };
+
+  // Résultat de recherche (quartier, commune, lieu, coordonnées) : la carte y va ; une limite est cadrée et surlignée, un point est marqué.
+  const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const handleGoTo = (t: GoToTarget) => {
+    setActiveAdminView('carte');
+    setTimeout(() => {
+      const map = mapRef.current;
+      if (!map) return;
+      searchMarkerRef.current?.remove();
+      searchMarkerRef.current = null;
+      const hl = { type: 'FeatureCollection', features: t.geom ? [{ type: 'Feature', properties: {}, geometry: t.geom }] : [] } as GeoJSON.FeatureCollection;
+      try {
+        const src = map.getSource('hx-search-hl') as mapboxgl.GeoJSONSource | undefined;
+        if (src) src.setData(hl);
+        else if (map.isStyleLoaded()) {
+          map.addSource('hx-search-hl', { type: 'geojson', data: hl });
+          map.addLayer({ id: 'hx-search-hl-line', type: 'line', source: 'hx-search-hl', paint: { 'line-color': '#ffd166', 'line-width': 3, 'line-dasharray': [2, 1] } });
+        }
+      } catch { /* fond de carte en cours de chargement : le cadrage suffit */ }
+      if (t.geom) {
+        try {
+          const [w, so, e, n] = turf.bbox(t.geom as any);
+          map.fitBounds([[w, so], [e, n]], { padding: 60, maxZoom: 17, bearing: 0, duration: 1200 });
+          return;
+        } catch { /* géométrie illisible : on va au centre */ }
+      }
+      searchMarkerRef.current = new mapboxgl.Marker({ color: '#ffd166' }).setLngLat(t.center).addTo(map);
+      map.flyTo({ center: t.center, zoom: Math.max(map.getZoom(), 17.5), bearing: 0, duration: 1200, essential: true });
+    }, 60);
+    setMapNotification({ type: 'info', title: 'Recherche', message: t.label });
   };
 
   const handleSelectBuildingFromAdmin = (b: Building) => {
@@ -528,7 +560,8 @@ export default function App() {
     isHdEnhanceForceRef.current = isHdEnhanceForce;
   }, [isHdEnhanceForce]);
 
-  const [is200mGridActive, setIs200mGridActive] = useState(true);
+  // Grille 200 m masquée par défaut (2026-11-22) : elle ne sert qu'au code interne ; elle reste affichable dans Couches.
+  const [is200mGridActive, setIs200mGridActive] = useState(false);
   const is200mGridActiveRef = useRef(true);
 
   useEffect(() => {
@@ -545,9 +578,13 @@ export default function App() {
 
     
   // Position utilisateur (Réelle)
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [isLocating] = useState(false);
-  const [isRecentering, setIsRecentering] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  // Suivi GPS (2026-11-22) : position suivie en continu, la carte suit l'agent jusqu'à ce qu'il la déplace.
+  const [gpsMode, setGpsMode] = useState<GpsMode>('off');
+  const gpsWatchRef = useRef<number | null>(null);
+  const gpsFollowRef = useRef(false);
+  const gpsFirstFixRef = useRef(true);
+  const gpsWarnedRef = useRef(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Mode Sélection de Zone
@@ -1687,45 +1724,57 @@ export default function App() {
     }
   }, [selectionTargetNature, selectedBuilding, clickedCoords?.geometry]);
 
-  // Mettre à jour l'affichage de notre position d'utilisateur (Point bleu officiel Google Maps)
+  // Point bleu de l'agent et cercle de précision réelle (taille recalculée à chaque zoom). Recréé quand la carte change de fond.
+  const userAccuracyRef = useRef<{ lat: number; acc: number } | null>(null);
   useEffect(() => {
-    if (!mapRef.current) return;
-
+    const map = mapRef.current;
+    if (!map) return;
     if (!userLocation) {
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove();
-        userMarkerRef.current = null;
-      }
+      userMarkerRef.current?.remove();
+      userMarkerRef.current = null;
+      userAccuracyRef.current = null;
       return;
     }
-
-    if (userMarkerRef.current) {
-      userMarkerRef.current.setLngLat([userLocation.longitude, userLocation.latitude]);
-    } else {
+    userAccuracyRef.current = { lat: userLocation.latitude, acc: userLocation.accuracy };
+    if (!userMarkerRef.current) {
       const el = document.createElement('div');
-      el.className = 'google-maps-user-marker';
+      el.className = 'hx-user-marker';
+      el.style.cssText = 'position:relative;width:22px;height:22px;pointer-events:none';
       el.innerHTML = `
-        <div class="relative flex items-center justify-center pointer-events-none select-none" style="width: 32px; height: 32px;">
-          <!-- Halo de pulsation radar / onde de précision GPS -->
-          <div class="absolute w-8 h-8 rounded-full bg-blue-500/25 animate-ping pointer-events-none"></div>
-          <div class="absolute w-6 h-6 rounded-full bg-blue-500/20 pointer-events-none"></div>
-          
-          <!-- Point bleu compact Google Maps -->
-          <div class="relative w-[16px] h-[16px] bg-[#1a73e8] rounded-full border-[2.5px] border-white shadow-[0_1px_4px_rgba(0,0,0,0.35),0_0_8px_rgba(26,115,232,0.5)] z-10 flex items-center justify-center">
-            <div class="w-1.5 h-1.5 bg-white/40 rounded-full"></div>
-          </div>
-        </div>
-      `;
-
-      const marker = new mapboxgl.Marker({ 
-        element: el,
-        anchor: 'center'
-      })
-        .setLngLat([userLocation.longitude, userLocation.latitude])
-        .addTo(mapRef.current);
-      userMarkerRef.current = marker;
+        <div data-acc style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:9999px;background:rgba(26,115,232,0.16);border:1px solid rgba(26,115,232,0.45)"></div>
+        <div style="position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:9999px;background:#1a73e8;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`;
+      userMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([userLocation.longitude, userLocation.latitude]).addTo(map);
+    } else {
+      userMarkerRef.current.setLngLat([userLocation.longitude, userLocation.latitude]);
     }
-  }, [userLocation]);
+    const size = () => {
+      const a = userAccuracyRef.current;
+      const ring = userMarkerRef.current?.getElement().querySelector<HTMLElement>('[data-acc]');
+      if (!a || !ring) return;
+      const d = accuracyDiameterPx(a.acc, a.lat, map.getZoom());
+      ring.style.width = `${d}px`;
+      ring.style.height = `${d}px`;
+    };
+    size();
+    map.on('zoom', size);
+    return () => { map.off('zoom', size); };
+  }, [userLocation, currentStyle]);
+
+  // L'agent déplace la carte à la main : elle cesse de le suivre (le point bleu reste à jour).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || gpsMode === 'off') return;
+    const stopFollow = (e: { originalEvent?: unknown }) => {
+      if (!e.originalEvent || !gpsFollowRef.current) return;
+      gpsFollowRef.current = false;
+      setGpsMode('free');
+    };
+    map.on('dragstart', stopFollow);
+    return () => { map.off('dragstart', stopFollow); };
+  }, [gpsMode === 'off', currentStyle]);
+
+  // Fin du suivi quand l'Atelier se ferme.
+  useEffect(() => () => { if (gpsWatchRef.current !== null) navigator.geolocation.clearWatch(gpsWatchRef.current); }, []);
 
   // Événement Ma Position GPS
   
@@ -1733,43 +1782,13 @@ export default function App() {
   
   // Sélectionner un bâtiment depuis les suggestions de recherche
   
+  // Commune d'un point : limites officielles (point dans le polygone), au lieu des anciennes tranches de longitude (2026-11-22).
   const detectCommuneFromCoords = (lng: number, lat: number): string => {
-    // Si on est dans la région élargie de Conakry / Grand Conakry
-    if (lng >= -14.0 && lng <= -13.4) {
-      if (lng < -13.68) return 'Kaloum';
-      if (lng < -13.64) return 'Dixinn';
-      if (lng < -13.60) return 'Matam';
-      if (lng < -13.55) return 'Ratoma';
-      if (lng < -13.45) return 'Matoto';
-      return 'Coyah';
-    }
-    // Si on est plus à l'ouest (Boké / Kamsar / Fria / Boffa)
-    if (lng < -14.0) {
-      if (lat > 10.5) return 'Boké';
-      if (lat > 10.1) return 'Fria';
-      return 'Boffa';
-    }
-    // Si on est à Kindia / Forécariah
-    if (lng >= -13.4 && lng < -12.5) {
-      if (lat < 9.5) return 'Forécariah';
-      return 'Kindia';
-    }
-    // Si on est au Fouta (Mamou / Labé)
-    if (lng >= -12.5 && lng < -11.5) {
-      if (lat > 11.0) return 'Labé';
-      return 'Mamou';
-    }
-    // Haute-Guinée Ouest (Faranah / Dabola)
-    if (lng >= -11.5 && lng < -10.5) {
-      return 'Faranah';
-    }
-    // Haute-Guinée Est (Kankan / Siguiri / Mandiana)
-    if (lng >= -10.5 && lng < -9.0) {
-      if (lat > 11.2) return 'Siguiri';
-      return 'Kankan';
-    }
-    // Guinée Forestière (Nzérékoré / Macenta / Lola)
-    return 'Nzérékoré';
+    try { return resolveAdministrativeHierarchy([lng, lat]).communeNom || ''; } catch { return ''; }
+  };
+  // « Quartier · Commune » d'un point, pour la fiche d'un bâtiment pas encore relevé.
+  const placeFromCoords = (lng: number, lat: number): string => {
+    try { const h = resolveAdministrativeHierarchy([lng, lat]); return [h.quartierNom, h.communeNom].filter(Boolean).join(' · '); } catch { return ''; }
   };
 
   // Création / Enregistrement du bâtiment / Adresse Nationale HailandCode & Administrative (Module 1)
@@ -2034,65 +2053,72 @@ export default function App() {
   
   // Réinitialiser complètement le tracé et stopper tous les trackers GPS
   
-  // Fonction de recentrage sur la position GPS en temps réel style Google Maps (Zoom 18 & FlyTo)
-  const recenterMap = useCallback(() => {
-    if (isRecentering) return;
+  // Bouton de position : 1er appui = chercher puis suivre ; si la carte a été déplacée = recentrer et suivre ; carte qui suit = arrêter.
+  const stopGps = useCallback(() => {
+    if (gpsWatchRef.current !== null) navigator.geolocation.clearWatch(gpsWatchRef.current);
+    gpsWatchRef.current = null;
+    gpsFollowRef.current = false;
+    setGpsMode('off');
+    setUserLocation(null);
+  }, []);
 
-    if (!navigator.geolocation) {
-      setMapNotification({
-        type: 'warning',
-        title: 'Géolocalisation non supportée',
-        message: "L'API de géolocalisation n'est pas prise en charge par votre navigateur."
-      });
+  const recenterMap = useCallback(() => {
+    const action = nextGpsAction(gpsMode);
+    if (action === 'none') return;
+    if (action === 'stop') { stopGps(); return; }
+    if (action === 'follow') {
+      gpsFollowRef.current = true;
+      setGpsMode('follow');
+      if (userLocation) mapRef.current?.easeTo({ center: [userLocation.longitude, userLocation.latitude], zoom: Math.max(mapRef.current.getZoom(), 18), bearing: 0, duration: 800 });
       return;
     }
-
-    setIsRecentering(true);
-
-    // Précision maximale d'abord, repli automatique en précision réduite (iPhone en intérieur), puis consignes précises en cas d'échec.
-    getPositionWithFallback()
-      .then((position) => {
-        const { latitude, longitude, heading } = position.coords;
-        const validHeading = (heading !== null && typeof heading === 'number' && !isNaN(heading)) ? heading : 0;
-
-        // 1. Mettre à jour l'état de localisation utilisateur (affiche automatiquement le point bleu Google Maps)
-        setUserLocation({ latitude, longitude });
-
-        // 3. Effectuer un recentrage fluide de la vue de la carte sur cette position avec zoom 18
-        if (mapRef.current && typeof longitude === 'number' && typeof latitude === 'number' && !isNaN(longitude) && !isNaN(latitude)) {
-          try {
-            mapRef.current.flyTo({
-              center: [longitude, latitude],
-              zoom: 18,
-              pitch: currentStyle === 'satellite' ? 0 : 45,
-              bearing: validHeading || 0,
-              duration: 1500,
-              essential: true
-            });
-          } catch (e) {
-            console.warn("Erreur lors du recentrage flyTo:", e);
-          }
+    if (!navigator.geolocation) {
+      setMapNotification({ type: 'warning', title: 'Géolocalisation non supportée', message: 'Ce navigateur ne sait pas lire la position. Ouvrez HailandMap dans Chrome ou Safari.' });
+      return;
+    }
+    gpsFirstFixRef.current = true;
+    gpsWarnedRef.current = false;
+    gpsFollowRef.current = true;
+    setGpsMode('searching');
+    let fixed = false;
+    let lastAcc = Infinity;
+    const onFix = (pos: GeolocationPosition) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      // Une position moins précise que la précédente (réponse réseau tardive) ne remplace pas une bonne position récente.
+      if (fixed && accuracy > lastAcc * 3 && lastAcc <= 50) return;
+      fixed = true;
+      lastAcc = accuracy;
+      setUserLocation({ latitude, longitude, accuracy });
+      const map = mapRef.current;
+      if (gpsFirstFixRef.current) {
+        gpsFirstFixRef.current = false;
+        setGpsMode('follow');
+        map?.flyTo({ center: [longitude, latitude], zoom: Math.max(map.getZoom(), 18), bearing: 0, duration: 1200, essential: true });
+        if (isPrecise(accuracy)) {
+          setMapNotification({ type: 'success', title: 'Position trouvée', message: `Précision ${accuracyText(accuracy)}. La carte vous suit ; déplacez-la pour arrêter de suivre.` });
+        } else {
+          gpsWarnedRef.current = true;
+          setMapNotification({ type: 'warning', title: 'Position approximative', message: `Précision ${accuracyText(accuracy)} : le point bleu peut être décalé (cercle bleu). Sortez ou approchez-vous d’une fenêtre ; la position se précise toute seule.` });
         }
-
-        setIsRecentering(false);
-
-        setMapNotification({
-          type: 'success',
-          title: 'Position actualisée',
-          message: `Carte recentrée sur votre position GPS (${latitude.toFixed(5)}, ${longitude.toFixed(5)}).`
-        });
-      })
-      .catch((error: { code?: number; message?: string }) => {
-        setIsRecentering(false);
-        console.warn("Erreur d'acquisition GPS:", error);
-        const help = describeGeoError(Number(error?.code) || 3);
-        setMapNotification({
-          type: 'warning',
-          title: help.title,
-          message: `${help.message} ${help.steps.slice(0, help.inAppBrowser ? 1 : 3).join(' ')}`
-        });
-      });
-  }, [isRecentering, currentStyle]);
+      } else {
+        if (gpsFollowRef.current) map?.easeTo({ center: [longitude, latitude], duration: 600 });
+        if (gpsWarnedRef.current && isPrecise(accuracy)) {
+          gpsWarnedRef.current = false;
+          setMapNotification({ type: 'success', title: 'Position précisée', message: `Précision ${accuracyText(accuracy)}.` });
+        }
+      }
+    };
+    const onError = (error: GeolocationPositionError) => {
+      // Refus : inutile d'insister. Délai ou signal faible : le suivi continue d'essayer ; on explique une seule fois.
+      if (error.code === 1) stopGps();
+      if (fixed && error.code !== 1) return;
+      const help = describeGeoError(Number(error?.code) || 3);
+      setMapNotification({ type: 'warning', title: help.title, message: `${help.message} ${help.steps.slice(0, help.inAppBrowser ? 1 : 3).join(' ')}` });
+    };
+    // Position rapide (réseau, Wi-Fi) pour commencer, puis suivi en haute précision.
+    navigator.geolocation.getCurrentPosition(onFix, () => {}, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+    gpsWatchRef.current = navigator.geolocation.watchPosition(onFix, onError, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  }, [gpsMode, userLocation, stopGps]);
 
   // Gestionnaire pour le mode interactif de sélection d'entrée (verrouillage / snapping mur de cour)
   // Assistant de création ouvert (téléphone : il occupe le bas de l'écran, sans barre des modules ni colonne d'outils).
@@ -2180,9 +2206,7 @@ export default function App() {
     setSelectedBuilding(null);
     setDrawPoints([]);
     setIsDrawMode(t === 'trace');
-    if (t === 'carreau') {
-      setClickSelectionTarget('grid_cell');
-    } else if (t === 'selection' || t === 'batiment') {
+    if (t === 'selection' || t === 'batiment') {
       setClickSelectionTarget('building');
       setSelectionTargetNature('single');
     } else if (t === 'concession') {
@@ -2295,7 +2319,7 @@ export default function App() {
     if (drawSource) drawSource.setData({ type: 'FeatureCollection', features: [] });
   };
 
-  // Raccourcis clavier de l'Atelier v2 (V, B, C, P) : seulement sur la carte, hors champs de saisie.
+  // Raccourcis clavier de l'Atelier v2 (V, P) : seulement sur la carte, hors champs de saisie.
   useEffect(() => {
     if (activeAdminView !== 'carte') return;
     const onKey = (e: KeyboardEvent) => {
@@ -2556,8 +2580,6 @@ export default function App() {
               <SatelliteOptions
                 hd={isHdEnhanceForce}
                 onToggleHd={() => { setIsHdEnhanceForce(!isHdEnhanceForce);}}
-                grid={is200mGridActive}
-                onToggleGrid={() => { setIs200mGridActive(!is200mGridActive);}}
                 zoom={zoomLevel}
               />
             )}
@@ -2575,8 +2597,7 @@ export default function App() {
               onZoomOut={() => mapRef.current?.zoomOut()}
               onNorth={() => mapRef.current?.easeTo({ bearing: 0, pitch: 45, duration: 800 })}
               onLocate={recenterMap}
-              locating={isRecentering || isLocating}
-              located={!!userLocation}
+              gps={gpsMode}
             />
           </div>
         )}
@@ -2588,8 +2609,8 @@ export default function App() {
           <CandidateCard
             map={mapRef.current}
             coords={clickedCoords}
-            zone={detect200mZoneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
-            commune={detectCommuneFromCoords(clickedCoords.longitude, clickedCoords.latitude) || ''}
+            zone=""
+            commune={placeFromCoords(clickedCoords.longitude, clickedCoords.latitude)}
             buildings={buildings}
             onCreate={() => startAssistant('single')}
             onConcession={() => startAssistant('courtyard')}
@@ -2975,6 +2996,9 @@ export default function App() {
           onClose={() => setPaletteOpen(false)}
           buildings={buildings}
           onSelectBuilding={handleSelectBuildingFromAdmin}
+          onGoTo={handleGoTo}
+          mapboxToken={accessToken}
+          proximity={mapRef.current ? [mapRef.current.getCenter().lng, mapRef.current.getCenter().lat] : undefined}
           commands={[
             ...TOOLS.map((t) => ({ id: `tool-${t.id}`, label: `Outil : ${t.label}`, hint: t.key, run: () => { setActiveAdminView('carte'); selectAtelierTool(t.id); } })),
             { id: 'go-atelier', label: 'Aller à l’Atelier', run: () => setActiveAdminView('carte') },

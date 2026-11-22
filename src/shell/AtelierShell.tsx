@@ -175,32 +175,27 @@ export const AtelierStatusBar: React.FC<StatusProps> = ({ buildingsCount, zonesC
   </footer>
 );
 
-/** Outils de l'Atelier : chacun correspond à un réglage existant de la carte (voir `App.tsx`). */
-export type AtelierTool = 'selection' | 'batiment' | 'concession' | 'trace' | 'carreau';
+/**
+ * Outils de l'Atelier (revus le 2026-11-22, `HAILANDMAP.md` §11) : deux outils seulement.
+ * - « Sélection » : toucher un bâtiment ouvre sa fiche s'il est relevé ; sinon la carte propose « Créer la fiche »,
+ *   « Dans une concession » ou « Corriger le contour » (les anciens outils Bâtiment et Concession faisaient la même chose).
+ * - « Tracer » : dessiner un contour là où la carte n'en a pas (terrain vide, bâtiment absent d'OSM).
+ * L'outil « Carreau 200 m » est retiré : la grille ne sert plus qu'au code interne, l'adresse publique est administrative.
+ * `batiment` et `concession` restent des états internes (assistant ouvert directement), sans bouton.
+ */
+export type AtelierTool = 'selection' | 'batiment' | 'concession' | 'trace';
 
 export const TOOLS: { id: AtelierTool; label: string; dock: string; key: string; hint: string }[] = [
-  { id: 'selection', label: 'Sélection', dock: 'Sélection', key: 'V', hint: 'Cliquez un bâtiment pour l\u2019inspecter, puis choisissez quoi en faire' },
-  { id: 'batiment', label: 'Bâtiment', dock: 'Bâtiment', key: 'B', hint: 'Cliquez un bâtiment OSM pour créer sa fiche' },
-  { id: 'concession', label: 'Concession', dock: 'Concession', key: 'C', hint: 'Cliquez le bâtiment d\u2019une concession ou tracez son enceinte' },
-  { id: 'trace', label: 'Tracé libre', dock: 'Tracé libre', key: 'P', hint: 'Posez les sommets, double-clic pour fermer' },
-  { id: 'carreau', label: 'Carreau 200 m', dock: 'Carreau', key: 'G', hint: 'Cliquez un carreau de la grille pour voir ou relever ses bâtiments' },
+  { id: 'selection', label: 'Sélection', dock: 'Sélection', key: 'V', hint: 'Touchez un bâtiment : sa fiche s\u2019il est relevé, sinon « Créer la fiche », « Dans une concession » ou « Corriger le contour »' },
+  { id: 'trace', label: 'Tracer un contour', dock: 'Tracer', key: 'P', hint: 'Bâtiment sans contour sur la carte : un point par angle, touchez le premier point pour fermer' },
 ];
 
-const TOOL_ICONS: Record<AtelierTool, React.ReactNode> = {
+const TOOL_ICONS: Partial<Record<AtelierTool, React.ReactNode>> = {
   selection: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m4 4 7 17 2.5-7.5L21 11z" /></svg>
   ),
-  batiment: (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="3" width="14" height="18" rx="1" /><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4" /></svg>
-  ),
-  concession: (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1" strokeDasharray="3 2" /><rect x="7" y="7" width="5" height="5" /><rect x="13" y="12" width="5" height="5" /></svg>
-  ),
   trace: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20 8 6l9 3-4 11z" /><circle cx="4" cy="20" r="1.5" /><circle cx="8" cy="6" r="1.5" /><circle cx="17" cy="9" r="1.5" /><circle cx="13" cy="20" r="1.5" /></svg>
-  ),
-  carreau: (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
   ),
 };
 

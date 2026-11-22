@@ -45,13 +45,11 @@ export const MapStyleControl: React.FC<StyleProps> = ({ current, onChange, onOpe
 interface SatProps {
   hd: boolean;
   onToggleHd: () => void;
-  grid: boolean;
-  onToggleGrid: () => void;
   zoom: number;
 }
 
 /** Réglages propres à l'imagerie satellite (remplace l'ancien bouton « Option IA & Grille »). */
-export const SatelliteOptions: React.FC<SatProps> = ({ hd, onToggleHd, grid, onToggleGrid, zoom }) => {
+export const SatelliteOptions: React.FC<SatProps> = ({ hd, onToggleHd, zoom }) => {
   const row = (label: string, short: string, hint: string, on: boolean, toggle: () => void, icon: React.ReactNode) => (
     <button type="button" role="switch" aria-checked={on} onClick={toggle} className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-hx-hover/50 max-md:h-11 max-md:w-auto max-md:gap-2 max-md:px-2.5 max-md:py-0">
       <span className="text-hx-accent-text">{icon}</span>
@@ -66,10 +64,9 @@ export const SatelliteOptions: React.FC<SatProps> = ({ hd, onToggleHd, grid, onT
     </button>
   );
   return (
-    // Mobile : deux interrupteurs côte à côte (une seule ligne) pour ne pas recouvrir les boutons de zoom et de position.
+    // Mobile : interrupteur sur une ligne (une seule ligne) pour ne pas recouvrir les boutons de zoom et de position.
     <div className={`w-[264px] rounded-xl p-1.5 max-md:flex max-md:w-auto max-md:gap-1 max-md:p-1 ${FLOAT}`} role="group" aria-label="Réglages du satellite">
-      {row('Super-netteté', 'Netteté', hd ? 'Convolution active' : 'Image brute', hd, onToggleHd, <Sparkles size={16} />)}
-      {row('Grille 200 m', 'Grille 200 m', grid ? 'Affichée' : 'Masquée', grid, onToggleGrid, <Layers size={16} />)}
+      {row('Super-netteté', 'Netteté', hd ? 'Contours des toits renforcés' : 'Image brute', hd, onToggleHd, <Sparkles size={16} />)}
       <div className="px-2.5 pb-1 pt-1.5 font-mono text-[11px] text-hx-faint max-md:hidden">zoom {zoom.toFixed(1)} / 22</div>
     </div>
   );
@@ -80,12 +77,12 @@ interface ZoomProps {
   onZoomOut: () => void;
   onNorth: () => void;
   onLocate: () => void;
-  locating: boolean;
-  located: boolean;
+  /** État du suivi GPS : éteint, recherche, carte qui suit l'agent, position affichée sans suivre. */
+  gps: 'off' | 'searching' | 'follow' | 'free';
 }
 
 /** En bas à droite : zoom, boussole et position, regroupés. */
-export const ZoomCluster: React.FC<ZoomProps> = ({ onZoomIn, onZoomOut, onNorth, onLocate, locating, located }) => (
+export const ZoomCluster: React.FC<ZoomProps> = ({ onZoomIn, onZoomOut, onNorth, onLocate, gps }) => (
   <div className="flex flex-col items-end gap-2">
     <div className={`flex flex-col overflow-hidden rounded-[10px] ${FLOAT}`}>
       <button type="button" onClick={onZoomIn} aria-label="Zoomer" className="flex h-[38px] w-10 items-center justify-center text-[#d0d0d0] transition hover:bg-hx-hover max-md:h-11 max-md:w-[46px]"><Plus size={17} /></button>
@@ -95,13 +92,13 @@ export const ZoomCluster: React.FC<ZoomProps> = ({ onZoomIn, onZoomOut, onNorth,
     <button
       type="button"
       onClick={onLocate}
-      disabled={locating}
       id="btn-recenter-gps"
-      aria-label="Recentrer sur ma position"
-      title="Recentrer sur ma position"
-      className={`flex h-10 w-10 items-center justify-center rounded-[10px] transition hover:bg-hx-hover max-md:h-[46px] max-md:w-[46px] ${FLOAT} ${located ? 'text-hx-accent-text' : 'text-[#d0d0d0]'}`}
+      aria-pressed={gps === 'follow'}
+      aria-label={gps === 'off' ? 'Afficher ma position' : gps === 'searching' ? 'Recherche de la position…' : gps === 'free' ? 'Recentrer sur ma position' : 'Arrêter le suivi de ma position'}
+      title={gps === 'off' ? 'Afficher ma position' : gps === 'searching' ? 'Recherche de la position…' : gps === 'free' ? 'Recentrer sur ma position' : 'La carte vous suit — toucher pour arrêter'}
+      className={`flex h-10 w-10 items-center justify-center rounded-[10px] transition hover:bg-hx-hover max-md:h-[46px] max-md:w-[46px] ${FLOAT} ${gps === 'follow' ? 'text-[#4c8dff]' : gps === 'free' ? 'text-hx-accent-text' : 'text-[#d0d0d0]'}`}
     >
-      {locating ? <Loader2 size={17} className="animate-spin" /> : located ? <LocateFixed size={17} /> : <Locate size={17} />}
+      {gps === 'searching' ? <Loader2 size={17} className="animate-spin" /> : gps === 'off' ? <Locate size={17} /> : <LocateFixed size={17} />}
     </button>
   </div>
 );

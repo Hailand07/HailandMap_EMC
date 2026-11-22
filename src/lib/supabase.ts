@@ -111,14 +111,22 @@ export function generateHailandCode(
 // Une table vide est un résultat normal (liste vide), pas un échec.
 
 export async function loadRealBuildings(): Promise<Building[]> {
-  const { data, error } = await supabase
-    .from('buildings')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
+  // Lecture par pages de 1 000 : au-delà, Supabase tronque la réponse sans prévenir (2026-11-22).
+  const data: Building[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error } = await supabase
+      .from('buildings')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + 999);
+    if (error) throw error;
+    data.push(...((page ?? []) as Building[]));
+    if (!page || page.length < 1000) break;
+  }
 
   // Enrichissement dynamique du double adressage (Grille 200m + Hiérarchie Administrative)
-  return ((data ?? []) as Building[]).map((b) => {
+  return data.map((b) => {
     try {
       const dual = computeDualAddressing(b);
       return {
