@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 31** (2026-11-20) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 32** (2026-11-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -261,7 +261,7 @@ Un vendeur signale un avis : `review_id`, `shop_id`, `reported_by`, `reason` (`f
 **Le parcours d'une commande** : l'acheteur valide son panier → `fn_place_order` crée **1 commande** (`orders`) + **1 colis par boutique** (`parcels`) + les lignes (`order_items`) → le vendeur prépare (`fn_parcel_ready`) → un livreur accepte (`fn_courier_accept`) → il scanne le QR (`fn_parcel_pickup`) → il remet au client (`fn_parcel_handover`) → l'argent est réparti (`ledger_entries`).
 
 ### `orders` — commandes (0 ligne) 🔴
-`buyer_id`, `delivery_declaration_id` (adresse de livraison, vers `declarations`), `buyer_phone` (téléphone pour le livreur), `payment_method` (`livraison` = à la remise · `orange_money` · `hailandpay` = payé en Syli, argent de test), `payment_status` (`en_attente`, `bloque` = argent en séquestre, `libere`, `rembourse`), `subtotal_gnf`, `delivery_fee_gnf`, `total_gnf`, `source` (d'où vient la commande : `application`, `tiktok`, `whatsapp`, `facebook`, `autre`). Lecture : l'acheteur, les boutiques et livreurs concernés, l'équipe. **Écrite seulement par fonction** (le serveur recalcule prix, stock et frais). Frais de livraison actuels : **6 000 GNF + 2 100 GNF/km, arrondi à 500, minimum 8 000** (valeurs provisoires, dans `fn_place_order`). 🔴
+`buyer_id`, `delivery_declaration_id` (adresse de livraison, vers `declarations`), `buyer_phone` (téléphone pour le livreur), `payment_method` (`livraison` = à la remise · `orange_money` · `hailandpay` = payé en Syli, argent de test), `payment_status` (`en_attente`, `bloque` = argent en séquestre, `libere`, `rembourse`), `subtotal_gnf`, `delivery_fee_gnf`, `total_gnf`, `source` (d'où vient la commande : `application`, `tiktok`, `whatsapp`, `facebook`, `autre`). Lecture : l'acheteur, les boutiques et livreurs concernés, l'équipe. **Écrite seulement par fonction** (le serveur recalcule prix, stock et frais). Frais de livraison actuels : **6 000 GNF + 2 100 GNF/km, arrondi à 500, minimum 8 000** (valeurs provisoires, dans `fn_place_order`). 🔴 **`delivery_date`** (§64, `2026-11-22_creneau_zone_livraison.sql`) : jour de livraison promis au client à la commande, dans le créneau `livraison_debut`–`livraison_fin` ; lisible par l'acheteur et le vendeur ; `fn_delivery_window` donne le prochain créneau et dit si une adresse du compte est dans la zone.
 
 ### `order_items` — lignes de commande 🔴
 `order_id`, `parcel_id`, `offer_id`, `variant_id`, `name_snapshot` + `price_gnf_snapshot` (**nom et prix au moment de l'achat**, jamais modifiés), `quantity` (> 0), `variant_label`. 🔴
@@ -311,7 +311,7 @@ Chaque versement enregistré par l'équipe : `shop_id` ou `courier_id`, `amount_
 
 ## 8. Plateforme
 
-### `settings` — réglages (8 lignes) 🟠
+### `settings` — réglages (8 lignes ; 13 après `2026-11-22_creneau_zone_livraison.sql`) 🟠
 Réglages modifiables **par le fondateur** dans **Console → Paramètres** (avec un motif, inscrit au journal) :
 | Clé | Valeur actuelle | Sens |
 |---|---|---|
@@ -323,7 +323,12 @@ Réglages modifiables **par le fondateur** dans **Console → Paramètres** (ave
 | `cancel_fee_accepte_bps` | `5000` | annulation par l'acheteur quand le livreur est parti vers la boutique : **50 %** des frais de livraison retenus pour le livreur |
 | `cancel_fee_retire_bps` | `10000` | annulation par l'acheteur quand le colis est en route : **100 %** des frais de livraison pour le livreur |
 | `payment_mode` | `chapchappay_test` | `simulation` (bouton « Simuler le paiement », équipe seulement), `chapchappay_test` (vraie page Chap Chap Pay avec les **clés de test**, équipe seulement) ou `chapchappay` (ouvert à tous : clés de **production**, compte validé). L'ancienne valeur `orange_money` (aucun fournisseur branché) est ramenée à `simulation` par la migration. | Depuis la révision 20 : aussi `djomy_test` (sandbox Djomy, équipe seulement) et `djomy` (production Djomy, ouvert à tous).
-**Modifier à la main** : 🟠 **utilisez la Console** (elle vérifie les valeurs et tient le journal). Seules ces huit clés existent ; n'en ajoutez pas sans demander.
+| `livraison_jours` | `1,2,3,4,5,6` (§64) | jours où la Flotte livre (1 = lundi … 7 = dimanche) : **du lundi au samedi** |
+| `livraison_debut` | `14:00` (§64) | début du créneau de livraison (le vendeur prépare avant) |
+| `livraison_fin` | `18:00` (§64) | fin du créneau de livraison |
+| `livraison_heure_limite` | `13:00` (§64) | commande passée avant cette heure, un jour de livraison : livrée **le jour même** ; sinon le prochain jour de livraison (`private.delivery_date`) |
+| `livraison_communes` | `com-ratoma` (§64) | communes où la Flotte livre (identifiants de `communes`, séparés par des virgules ; vide = partout). Une commande vers une adresse hors zone est **refusée** (`private.delivery_zone_ok`) |
+**Modifier à la main** : 🟠 **utilisez la Console** (elle vérifie les valeurs et tient le journal). Seules ces clés existent (8, puis 13 avec les 5 réglages `livraison_*` du §64) ; n'en ajoutez pas sans demander. Heures : Conakry est à l'heure UTC toute l'année.
 
 ### `notifications` — centre de notifications (0 ligne) 🔴
 Les messages envoyés aux comptes : `user_id`, `kind` (`commande`, `suivi`, `litige`, `avis`, `certification`…), `title`, `body`, `link` (où ouvrir ; **commence par `/vendeur`** pour les notifications de HailandX Vendeur, sinon HailandX), `read_at`. **Créées automatiquement** par des déclencheurs (nouvelle commande, colis remis, avis, litige, **adresse certifiée**…). Chacun ne lit que les siennes. 🔴 ne pas en créer à la main.
@@ -475,3 +480,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-11-15 | 29 | `2026-11-12_categories_multiples.sql` **appliquée en production** (accord du fondateur) : 31 catégories, `shops.category_ids` rempli pour les 4 boutiques existantes, déclencheur `shops_categories` en place. |
 | 2026-11-18 | 30 | `payout_requests` (demandes de retrait des vendeurs, minimum 10 000 GNF) et fonctions `fn_my_balance`, `fn_withdraw_request`, `fn_withdraw_cancel`, `fn_withdraw_requests`, `fn_withdraw_done`, `fn_withdraw_refuse` (`2026-11-18_retraits.sql`). |
 | 2026-11-20 | 31 | `2026-11-18_retraits.sql` **appliquée en production** (accord du fondateur) : `payout_requests` existe (0 ligne), 6 fonctions de retrait créées. |
+| 2026-11-22 | 32 | `2026-11-22_creneau_zone_livraison.sql` (⏳ à appliquer avec l'accord du fondateur) : `orders.delivery_date`, 5 réglages `livraison_*` (jours, créneau 14 h–18 h, heure limite 13 h, communes servies : Ratoma), fonction `fn_delivery_window` ; `fn_place_order` refuse une adresse hors zone et enregistre le jour promis. |
