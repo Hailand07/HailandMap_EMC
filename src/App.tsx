@@ -126,6 +126,8 @@ export default function App() {
 
   // Résultat de recherche (quartier, commune, lieu, coordonnées) : la carte y va ; une limite est cadrée et surlignée, un point est marqué.
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  // Surface du quartier ou de la commune trouvé (2026-11-23) : toute la surface teintée, la frontière en trait plein, jusqu'à « ✕ ».
+  const [searchArea, setSearchArea] = useState<{ label: string; geom: GeoJSON.Geometry } | null>(null);
   const handleGoTo = (t: GoToTarget) => {
     setActiveAdminView('carte');
     setTimeout(() => {
@@ -133,15 +135,7 @@ export default function App() {
       if (!map) return;
       searchMarkerRef.current?.remove();
       searchMarkerRef.current = null;
-      const hl = { type: 'FeatureCollection', features: t.geom ? [{ type: 'Feature', properties: {}, geometry: t.geom }] : [] } as GeoJSON.FeatureCollection;
-      try {
-        const src = map.getSource('hx-search-hl') as mapboxgl.GeoJSONSource | undefined;
-        if (src) src.setData(hl);
-        else if (map.isStyleLoaded()) {
-          map.addSource('hx-search-hl', { type: 'geojson', data: hl });
-          map.addLayer({ id: 'hx-search-hl-line', type: 'line', source: 'hx-search-hl', paint: { 'line-color': '#ffd166', 'line-width': 3, 'line-dasharray': [2, 1] } });
-        }
-      } catch { /* fond de carte en cours de chargement : le cadrage suffit */ }
+      setSearchArea(t.geom && (t.geom.type === 'Polygon' || t.geom.type === 'MultiPolygon') ? { label: t.label, geom: t.geom } : null);
       if (t.geom) {
         try {
           const [w, so, e, n] = turf.bbox(t.geom as any);
@@ -1766,6 +1760,28 @@ export default function App() {
     return () => { map.off('zoom', size); };
   }, [userLocation, currentStyle]);
 
+  // Dessin de la surface cherchée : remplissage translucide (plus léger de près, pour voir les toits) sous les noms de rues,
+  // et frontière en trait plein. Redessinée après un changement de fond de carte.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const data = { type: 'FeatureCollection', features: searchArea ? [{ type: 'Feature', properties: {}, geometry: searchArea.geom }] : [] } as GeoJSON.FeatureCollection;
+    const draw = () => {
+      try {
+        const src = map.getSource('hx-search-hl') as mapboxgl.GeoJSONSource | undefined;
+        if (src) { src.setData(data); return; }
+        if (!searchArea) return;
+        map.addSource('hx-search-hl', { type: 'geojson', data });
+        const firstLabel = map.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
+        map.addLayer({ id: 'hx-search-hl-fill', type: 'fill', source: 'hx-search-hl', paint: { 'fill-color': '#ffd166', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0.32, 15, 0.2, 18, 0.1] } }, firstLabel);
+        map.addLayer({ id: 'hx-search-hl-line', type: 'line', source: 'hx-search-hl', paint: { 'line-color': '#ffb703', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2, 17, 4] } }, firstLabel);
+      } catch { /* fond de carte en cours de chargement : redessiné à son chargement */ }
+    };
+    if (map.isStyleLoaded()) draw(); else map.once('load', draw);
+    return () => { map.off('load', draw); };
+  }, [searchArea, currentStyle]);
+  const searchAreaKm2 = useMemo(() => { try { return searchArea ? turf.area(searchArea.geom as any) / 1e6 : 0; } catch { return 0; } }, [searchArea]);
+
   // L'agent déplace la carte à la main : elle cesse de le suivre (le point bleu reste à jour).
   useEffect(() => {
     const map = mapRef.current;
@@ -2603,6 +2619,16 @@ export default function App() {
         <AnimatePresence>
           
         </AnimatePresence>
+
+        {/* Surface cherchée : nom, superficie, et « ✕ » pour l'effacer (2026-11-23). */}
+        {activeAdminView === 'carte' && searchArea && (
+          <div role="status" className="absolute left-1/2 top-3.5 z-20 flex max-w-[calc(100%-120px)] -translate-x-1/2 items-center gap-2.5 rounded-full border border-[#ffb703]/60 bg-hx-panel py-1.5 pl-3.5 pr-1.5 text-[13px] text-hx-text shadow-xl max-md:top-auto max-md:bottom-24">
+            <span className="h-3 w-3 shrink-0 rounded-sm border-2 border-[#ffb703] bg-[#ffd166]/40" />
+            <span className="min-w-0 truncate font-semibold">{searchArea.label}</span>
+            {searchAreaKm2 > 0 && <span className="shrink-0 font-mono text-[11.5px] text-hx-faint">{searchAreaKm2 < 1 ? `${Math.round(searchAreaKm2 * 100)} ha` : `${searchAreaKm2.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km²`}</span>}
+            <button type="button" onClick={() => setSearchArea(null)} aria-label="Effacer la surface surlignée" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-hx-faint transition hover:bg-hx-hover hover:text-hx-text">✕</button>
+          </div>
+        )}
 
         {/* Atelier v2 : fond de carte et réglages du satellite en haut à droite */}
         {activeAdminView === 'carte' && (
