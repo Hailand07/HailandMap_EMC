@@ -113,8 +113,8 @@ export function describeImprecise(accuracyM: number, ua: string = navigator.user
     return {
       problem: 'signal', inAppBrowser: false,
       title: 'Position imprécise sur ordinateur',
-      message: `Un ordinateur n’a pas de GPS : sa position vient du Wi-Fi ou de l’adresse Internet (± ${km}) et peut être fausse de plusieurs kilomètres.`,
-      steps: ['Sur le terrain, utilisez HailandMap sur un téléphone, GPS activé.'],
+      message: 'Un ordinateur n’a pas de GPS : sa position vient des réseaux Wi-Fi voisins ou de l’adresse Internet, et peut être fausse de plusieurs kilomètres (même dans la mer).',
+      steps: ['Sur le terrain, utilisez HailandMap sur un téléphone, GPS activé. Au bureau, cherchez le quartier ou collez des coordonnées dans la recherche.'],
     };
   }
   return {
@@ -132,3 +132,7 @@ export function describeImprecise(accuracyM: number, ua: string = navigator.user
     ],
   };
 }
+
+/** Ordinateur (ni téléphone ni tablette) : pas de puce GPS ; sa position vient du Wi-Fi ou d'Internet, même quand le navigateur l'annonce précise. */
+export const isDesktopDevice = (ua: string = navigator.userAgent, touchPoints: number = navigator.maxTouchPoints): boolean =>
+  !/Android|iPhone|iPad|iPod|Mobile/i.test(ua) && touchPoints === 0;

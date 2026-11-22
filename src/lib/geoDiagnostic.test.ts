@@ -57,3 +57,11 @@ describe('position imprécise', () => {
     expect(a.steps.join(' ')).toMatch(/Précision de la localisation Google/);
   });
 });
+
+describe('ordinateur ou téléphone', () => {
+  it('Windows sans écran tactile = ordinateur ; Android = téléphone', async () => {
+    const { isDesktopDevice } = await import('./geoDiagnostic');
+    expect(isDesktopDevice('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120', 0)).toBe(true);
+    expect(isDesktopDevice('Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile', 5)).toBe(false);
+  });
+});

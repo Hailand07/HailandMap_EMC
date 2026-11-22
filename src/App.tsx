@@ -11,7 +11,7 @@ import {
   } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { actorId } from './lib/actor';
-import { describeGeoError, describeImprecise } from './lib/geoDiagnostic';
+import { describeGeoError, describeImprecise, isDesktopDevice } from './lib/geoDiagnostic';
 import { acceptFix, accuracyDiameterPx, accuracyText, COARSE_M, isPrecise, nextGpsAction, zoomForAccuracy, type GpsMode } from './lib/geoTrack';
 import GridPanel from './components/GridPanel';
 import InteractiveBuildingForm from './components/InteractiveBuildingForm';
@@ -2091,6 +2091,9 @@ export default function App() {
     let best: { acc: number; at: number } | null = null;
     let helped = false;
     const startedAt = Date.now();
+    // Ordinateur : aucune puce GPS ; Windows et Chrome estiment la position par les réseaux Wi-Fi voisins, souvent à des kilomètres
+    // à Conakry, même quand la précision annoncée est bonne (capture du fondateur, 2026-11-22 : point dans la mer au large de Coléah).
+    const desktop = isDesktopDevice();
     const onFix = (pos: GeolocationPosition) => {
       const { latitude, longitude, accuracy } = pos.coords;
       const now = Date.now();
@@ -2098,7 +2101,18 @@ export default function App() {
       best = { acc: accuracy, at: now };
       setUserLocation({ latitude, longitude, accuracy });
       const map = mapRef.current;
-      const coarse = accuracy > COARSE_M;
+      const coarse = desktop || accuracy > COARSE_M;
+      if (gpsFirstFixRef.current && desktop) {
+        gpsFirstFixRef.current = false;
+        gpsFollowRef.current = false;
+        setGpsMode('free');
+        map?.flyTo({ center: [longitude, latitude], zoom: Math.min(zoomForAccuracy(accuracy), 15), bearing: 0, duration: 1200, essential: true });
+        helped = true;
+        const h = describeImprecise(Math.max(accuracy, 1000));
+        setMapNotification({ type: 'warning', title: 'Position estimée par l’ordinateur', message: `${h.message} ${h.steps.join(' ')}` });
+        return;
+      }
+      if (desktop) return;
       if (gpsFirstFixRef.current) {
         gpsFirstFixRef.current = false;
         // Position grossière : on montre le cercle entier, sans suivre ; la carte suivra dès que le GPS sera précis.
