@@ -58,6 +58,7 @@ import { declarationPoint, linkDeclaration, loadAdminCodes, saveUnits, type Decl
 import { BuildingSheet } from './v2/atelier/BuildingSheet';
 import { RegistrationBanner } from './v2/atelier/RegistrationBanner';
 import { findRegisteredAt, footprintOf } from './map/registered';
+import { areaStyle, areaText, areaTitle } from './map/areaStyles';
 import { SettingsModal } from './shell/SettingsModal';
 import { handleMapLoad, handleMapClick, handleMapMouseMove } from './map/handlers';
 
@@ -127,7 +128,7 @@ export default function App() {
   // Résultat de recherche (quartier, commune, lieu, coordonnées) : la carte y va ; une limite est cadrée et surlignée, un point est marqué.
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
   // Surface du quartier ou de la commune trouvé (2026-11-23) : toute la surface teintée, la frontière en trait plein, jusqu'à « ✕ ».
-  const [searchArea, setSearchArea] = useState<{ label: string; geom: GeoJSON.Geometry } | null>(null);
+  const [searchArea, setSearchArea] = useState<{ label: string; geom: GeoJSON.Geometry; level: string } | null>(null);
   const handleGoTo = (t: GoToTarget) => {
     setActiveAdminView('carte');
     setTimeout(() => {
@@ -135,11 +136,11 @@ export default function App() {
       if (!map) return;
       searchMarkerRef.current?.remove();
       searchMarkerRef.current = null;
-      setSearchArea(t.geom && (t.geom.type === 'Polygon' || t.geom.type === 'MultiPolygon') ? { label: t.label, geom: t.geom } : null);
+      setSearchArea(t.geom && (t.geom.type === 'Polygon' || t.geom.type === 'MultiPolygon') ? { label: t.label, geom: t.geom, level: t.level ?? 'quartier' } : null);
       if (t.geom) {
         try {
           const [w, so, e, n] = turf.bbox(t.geom as any);
-          map.fitBounds([[w, so], [e, n]], { padding: 60, maxZoom: 17, bearing: 0, duration: 1200 });
+          map.fitBounds([[w, so], [e, n]], { padding: 60, maxZoom: 17, bearing: 0, pitch: 0, duration: 1200 });
           return;
         } catch { /* géométrie illisible : on va au centre */ }
       }
@@ -1765,16 +1766,26 @@ export default function App() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const st = areaStyle(searchArea?.level);
     const data = { type: 'FeatureCollection', features: searchArea ? [{ type: 'Feature', properties: {}, geometry: searchArea.geom }] : [] } as GeoJSON.FeatureCollection;
+    // Style propre au niveau (pays, région, préfecture, commune, quartier) : couleur, teinte et épaisseur du trait.
+    const restyle = () => {
+      if (!map.getLayer('hx-search-hl-fill')) return;
+      map.setPaintProperty('hx-search-hl-fill', 'fill-color', st.color);
+      map.setPaintProperty('hx-search-hl-fill', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], 6, st.fill * 1.3, 15, st.fill, 18, st.fill * 0.45]);
+      map.setPaintProperty('hx-search-hl-line', 'line-color', st.line);
+      map.setPaintProperty('hx-search-hl-line', 'line-width', ['interpolate', ['linear'], ['zoom'], 6, st.width * 0.6, 12, st.width, 17, st.width * 1.5]);
+    };
     const draw = () => {
       try {
         const src = map.getSource('hx-search-hl') as mapboxgl.GeoJSONSource | undefined;
-        if (src) { src.setData(data); return; }
+        if (src) { src.setData(data); restyle(); return; }
         if (!searchArea) return;
         map.addSource('hx-search-hl', { type: 'geojson', data });
         const firstLabel = map.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
         map.addLayer({ id: 'hx-search-hl-fill', type: 'fill', source: 'hx-search-hl', paint: { 'fill-color': '#ffd166', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0.32, 15, 0.2, 18, 0.1] } }, firstLabel);
         map.addLayer({ id: 'hx-search-hl-line', type: 'line', source: 'hx-search-hl', paint: { 'line-color': '#ffb703', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2, 17, 4] } }, firstLabel);
+        restyle();
       } catch { /* fond de carte en cours de chargement : redessiné à son chargement */ }
     };
     if (map.isStyleLoaded()) draw(); else map.once('load', draw);
@@ -2622,10 +2633,10 @@ export default function App() {
 
         {/* Surface cherchée : nom, superficie, et « ✕ » pour l'effacer (2026-11-23). */}
         {activeAdminView === 'carte' && searchArea && (
-          <div role="status" className="absolute left-1/2 top-3.5 z-20 flex max-w-[calc(100%-120px)] -translate-x-1/2 items-center gap-2.5 rounded-full border border-[#ffb703]/60 bg-hx-panel py-1.5 pl-3.5 pr-1.5 text-[13px] text-hx-text shadow-xl max-md:top-auto max-md:bottom-24">
-            <span className="h-3 w-3 shrink-0 rounded-sm border-2 border-[#ffb703] bg-[#ffd166]/40" />
-            <span className="min-w-0 truncate font-semibold">{searchArea.label}</span>
-            {searchAreaKm2 > 0 && <span className="shrink-0 font-mono text-[11.5px] text-hx-faint">{searchAreaKm2 < 1 ? `${Math.round(searchAreaKm2 * 100)} ha` : `${searchAreaKm2.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km²`}</span>}
+          <div role="status" className="absolute left-1/2 top-3.5 z-20 flex max-w-[calc(100%-120px)] -translate-x-1/2 items-center gap-2.5 rounded-full border border-hx-line2 bg-hx-panel py-1.5 pl-3.5 pr-1.5 text-[13px] text-hx-text shadow-xl max-md:top-auto max-md:bottom-24">
+            <span className="h-3 w-3 shrink-0 rounded-sm border-2" style={{ borderColor: areaStyle(searchArea.level).line, background: `${areaStyle(searchArea.level).color}66` }} />
+            <span className="min-w-0 truncate font-semibold">{areaTitle(searchArea.level, searchArea.label)}</span>
+            {searchAreaKm2 > 0 && <span className="shrink-0 font-mono text-[11.5px] text-hx-faint">{areaText(searchAreaKm2)}</span>}
             <button type="button" onClick={() => setSearchArea(null)} aria-label="Effacer la surface surlignée" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-hx-faint transition hover:bg-hx-hover hover:text-hx-text">✕</button>
           </div>
         )}
