@@ -165,8 +165,8 @@ export const CandidateCard: React.FC<CandidateProps> = ({ map, coords, zone, com
         </div>
       </div>
       <div className="flex flex-col gap-2 px-4 pb-4">
-        <button type="button" onClick={onCreate} className="flex h-[42px] items-center justify-between rounded-[9px] bg-hx-accent px-3.5 text-sm font-semibold text-white transition hover:brightness-110 max-md:h-[54px] max-md:justify-center max-md:text-base">
-          Créer la fiche <span className="font-mono text-[11.5px] opacity-75 max-md:hidden">B</span>
+        <button type="button" onClick={onCreate} className="flex h-[42px] items-center justify-center rounded-[9px] bg-hx-accent px-3.5 text-sm font-semibold text-white transition hover:brightness-110 max-md:h-[54px] max-md:justify-center max-md:text-base">
+          Créer la fiche
         </button>
         <div className="flex gap-2">
           <button type="button" onClick={onConcession} className="h-9 flex-1 rounded-lg border border-[#5a5a5a] bg-[#454545] text-[12.5px] transition hover:bg-hx-hover max-md:h-[46px] max-md:text-[13.5px]">Dans une concession</button>

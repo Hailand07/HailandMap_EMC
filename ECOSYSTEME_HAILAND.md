@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 144** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 145** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -448,7 +448,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-11-22 (révision 144).**
+**Dernière mise à jour de cette section : 2026-11-22 (révision 145).**
+
+- **Fait / à faire (2026-11-22, `HAILANDMAP.md` §11)** : HailandMap, chantier « relevé sur le terrain » — outils réduits à Sélection et Tracer ; GPS en suivi continu avec précision réelle ; recherche de quartiers, lieux et coordonnées ; commune et quartier par les vraies limites. **À faire** : ajuster le contour et le point d'entrée ; 🗄️ déplacer un contour, corriger quartier et commune, compléter une concession (migration, accord du fondateur). Le fondateur ajoutera d'autres demandes.
 
 - **Décidé / fait (2026-11-22, `HAILANDX.md` §64)** : la **Flotte Hailand roulera en scooters et motos électriques** ; au départ, un livreur (ami du fondateur, son scooter) **du lundi au samedi, 14 h–18 h**, basé à Kobaya ; **zone : Ratoma**. Créneau et zone réglables dans la Console ; jour promis affiché au client et au vendeur ; commande hors zone refusée. Base : `orders.delivery_date` + 5 réglages (`BASE_DE_DONNEES.md` révision 32) — ⏳ migration à appliquer avec l'accord du fondateur. Prochaine étape : le fondateur recrute trois vendeurs e-commerce qui ont déjà des clients.
 
