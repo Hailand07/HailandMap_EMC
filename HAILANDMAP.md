@@ -441,3 +441,4 @@ Liste tenue à jour : le fondateur peut en ajouter. ✅ fait · ⏳ à faire · 
 | 2026-11-23 | §11 C : quartier ou commune trouvé par la recherche — **toute la surface teintée** (et non plus seulement la frontière), pastille « nom · superficie · ✕ », conservée au changement de fond de carte. |
 | 2026-11-23 | §11 C : recherche de **tous les niveaux administratifs** (pays, région, préfecture / ville, commune, quartier), chacun avec **son style** de surface et de frontière ; frontière simplifiée de la Guinée ajoutée (`public/geo/guinee.geojson`). |
 | 2026-11-23 | ÉCOSYSTÈME révision 146 : §20 — vision Flotte Hailand (colis, repas, transport de personnes, scooters électriques ; une application client, une par métier) — aucun changement pour ce dépôt. |
+| 2026-11-23 | ÉCOSYSTÈME révision 147 : §20.4 — règle de l'escalier (première marche : l'e-commerce) — aucun changement pour ce dépôt. |

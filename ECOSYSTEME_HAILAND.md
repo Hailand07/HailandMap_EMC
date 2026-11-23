@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 146** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 147** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -449,9 +449,11 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-11-23 (révision 146).**
+**Dernière mise à jour de cette section : 2026-11-23 (révision 147).**
 
-- **Décidé / proposé (2026-11-23, §20)** : vision « livreur de référence » — boutiques, **colis**, **repas**, plus tard **transport de personnes**, Flotte 100 % électrique. Avis de Claude : ordre boutiques → colis → repas en essai → transport de personnes ; **une seule application client** (HailandX avec onglets), une application par métier côté professionnels (Vendeur avec mode restaurant, Flotte pour tous les livreurs, Console). **Prochaine étape** : plan détaillé d'« Envoyer un colis » à faire valider par le fondateur.
+- **Décidé (2026-11-23, §20.4)** : **règle de l'escalier** — on ne passe à la marche suivante que si la précédente marche vraiment ; **première marche : l'e-commerce** (boutiques HailandX, 3 vendeurs, un livreur, Ratoma, 14 h–18 h). Colis, repas et transport de personnes attendent. Critères « la marche marche » proposés, à fixer par le fondateur.
+
+- **Décidé / proposé (2026-11-23, §20)** : vision « livreur de référence » — boutiques, **colis**, **repas**, plus tard **transport de personnes**, Flotte 100 % électrique. Avis de Claude : ordre boutiques → colis → repas en essai → transport de personnes ; **une seule application client** (HailandX avec onglets), une application par métier côté professionnels (Vendeur avec mode restaurant, Flotte pour tous les livreurs, Console). **Prochaine étape** : réussir l'e-commerce (première marche) ; « Envoyer un colis » ensuite seulement.
 
 - **Fait / à faire (2026-11-22, `HAILANDMAP.md` §11)** : HailandMap, chantier « relevé sur le terrain » — outils réduits à Sélection et Tracer ; GPS en suivi continu avec précision réelle ; recherche de quartiers, lieux et coordonnées ; commune et quartier par les vraies limites. **À faire** : ajuster le contour et le point d'entrée ; 🗄️ déplacer un contour, corriger quartier et commune, compléter une concession (migration, accord du fondateur). Le fondateur ajoutera d'autres demandes.
 
@@ -893,7 +895,7 @@ Pilote dans une zone dense (10 à 20 vendeurs, 3 à 5 livreurs) avant toute ouve
 ### 19.4 Risques
 Fausses alertes (compte vérifié, limites, rappel de confirmation, sanctions) ; responsabilité (Hailand transmet et guide, il n'est pas le service de secours) ; réseau faible (carte de la zone gardée sur le téléphone de l'équipage) ; ⚠️ loi guinéenne sur la protection des données personnelles à vérifier avant tout lancement ; ⚠️ numéros d'urgence officiels à confirmer auprès des autorités (décision ouverte §9, point 18).
 
-## 20. Flotte Hailand : colis, repas et transport de personnes 📄💡 (fondateur, 2026-11-23 — **vision et avis de Claude ; rien n'est codé ni créé en base**)
+## 20. Flotte Hailand : colis, repas et transport de personnes 📄💡 (fondateur, 2026-11-23 — **vision ; règle de l'escalier et première marche décidées ; rien d'autre n'est codé ni créé en base**)
 
 ### 20.1 La vision du fondateur
 - Hailand devient **le livreur de référence** en Guinée : livraisons des boutiques en ligne, **courses de colis** (récupérer quelque chose et le remettre ailleurs), **livraison de repas** des restaurants, et à terme **transport de personnes** (« le Uber de la Guinée »).
@@ -917,7 +919,10 @@ Fausses alertes (compte vérifié, limites, rappel de confirmation, sanctions) ;
 - **Vol et entretien** : antivol, traceur GPS par scooter, mécanicien qui connaît l'électrique.
 - **Argent liquide** : remise quotidienne de l'argent encaissé (déjà prévu : plafond d'espèces par livreur, Console) ; rémunération fixe par course décidée d'avance.
 
-### 20.4 Ordre conseillé (avis de Claude, 2026-11-23 — à valider par le fondateur)
+### 20.4 Ordre et règle de l'escalier — ✅ **décidé par le fondateur (2026-11-23)**
+**Règle** : Hailand avance **marche par marche**. On ne passe à la marche suivante que lorsque la précédente **marche vraiment**. **Première marche : l'e-commerce** (livraison des boutiques en ligne HailandX). Les colis, les repas et le transport de personnes attendent.
+**« La marche marche » — critères proposés** 💡 (à fixer par le fondateur) : des commandes régulières chaque semaine chez les vendeurs partenaires ; la grande majorité des colis livrés dans le créneau promis ; peu de réclamations et d'annulations ; des vendeurs qui reviennent d'eux-mêmes ; chaque livraison rapporte plus qu'elle ne coûte (livreur, recharge, frais de paiement).
+Les marches, dans l'ordre (avis de Claude, ordre accepté) :
 1. **Maintenant** : boutiques — 3 vendeurs, un livreur, Ratoma, 14 h–18 h ; mesurer temps de course, prix et problèmes réels.
 2. **Ensuite** : **« Envoyer un colis »** — même Flotte, même zone, mêmes horaires. Plan détaillé (écrans, prix, paiement, base) à faire valider avant de coder.
 3. **Puis** : plus de livreurs (location-vente), plus de communes, horaires plus larges.
@@ -925,7 +930,7 @@ Fausses alertes (compte vérifié, limites, rappel de confirmation, sanctions) ;
 5. **Plus tard** : transport de personnes, une fois l'assurance, le cadre légal et assez de scooters réunis. Les colis et les repas construisent d'abord la Flotte, la recharge, la confiance et la marque.
 Raison : les repas en premier, avec une Flotte pas rodée, donneraient des repas froids et en retard et abîmeraient la réputation de Hailand.
 
-### 20.5 Une application ou plusieurs ? (question du fondateur, avis de Claude 💡)
+### 20.5 Une application ou plusieurs ? (question du fondateur, avis de Claude 💡 — noté à la demande du fondateur, 2026-11-23)
 - **Côté client : une seule application, HailandX**, avec des onglets par service — Boutiques, Colis, Repas, plus tard Trajets. Un seul compte, une seule adresse enregistrée (Hailand), un seul paiement, un seul historique ; un client qui vient pour un colis découvre les repas. En Guinée, beaucoup de téléphones ont peu de place et les données coûtent cher : une seule application installée (ou un seul lien) vaut mieux que quatre. Les grandes applications de la région qui réussissent regroupent souvent plusieurs services dans une seule.
 - **Côté professionnels : une application par métier**, parce que leur travail est différent :
   - **HailandX Vendeur** pour les boutiques **et les restaurants** (un restaurant est une boutique avec un « mode restaurant » : plats, options, temps de préparation, accepter / refuser une commande, « épuisé ») ;
@@ -1022,3 +1027,4 @@ Raison : les repas en premier, avec une Flotte pas rodée, donneraient des repas
 | 2026-10-23 | Révision 102 : §19 — urgences et application « Hailand Secours » (plan validé, règles de visibilité, quatre canaux, étapes) ; §14 — impacte : NavigationX / HailandMap / HailandX. |
 | 2026-10-23 | Révision 103 : §19 et §14 — maquettes v7 faites, plan approuvé ; application en attente de la demande du fondateur — impacte : NavigationX / HailandMap / HailandX. |
 | 2026-11-23 | Révision 146 : §20 — Flotte : colis, repas, transport de personnes, scooters électriques ; ordre conseillé ; une application client, une par métier — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-23 | Révision 147 : §20.4 — règle de l'escalier décidée (marche par marche, première marche : l'e-commerce), critères proposés ; §20.5 noté à la demande du fondateur ; §14 — impacte : HailandX / NavigationX / HailandMap. |
