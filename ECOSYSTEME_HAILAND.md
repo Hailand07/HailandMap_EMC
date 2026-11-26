@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 149** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 150** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -450,7 +450,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-11-26 (révision 149).**
+**Dernière mise à jour de cette section : 2026-11-26 (révision 150).**
+
+- **Changement (2026-11-26)** : l'ami du fondateur **ne pourra pas livrer**. **Décidé** : marche 1 avec un **livreur partenaire qui a déjà sa moto ou son scooter**, payé à la course (90 % des frais de livraison), à recruter maintenant ; en attendant, **le fondateur livre lui-même** les premiers jours. Scooter de 12 M : même condition (≥ 8 commandes/jour pendant 4 semaines). Ajout d'un livreur : Console → Livreurs (pas de candidature publique). Créneau et zone (`HAILANDX.md` §64) à régler selon les horaires et la zone du futur livreur, après application de la migration (accord du fondateur).
 
 - **Fait (2026-11-26)** : **plan d'affaires et prévisionnel** pour les investisseurs familiaux (Chérif, les oncles), document « Hailand — Plan d'affaires et prévisionnel » (Claude Docs : https://claude.ai/artifact/CLbyffcxcDvTzhUSQHFwWd, privé tant que le fondateur ne le partage pas). Points clés : commission 8 % seule au début, abonnement + commission réduite plus tard ; ≈ 8 100 GNF par commande (scooter du livreur) ou ≈ 11 100 GNF (scooter de Hailand, livreur à 50 % des frais) ; charges ≈ 850 000 GNF/mois + 420 000 par scooter ; seuil ≈ 4 commandes/jour ; scooter de 12 M à la **marche 2** seulement (≥ 8 commandes/jour pendant 4 semaines), remboursé en ≈ 14 mois à 8/jour, 6,5 mois à 12/jour ; besoin marche 2 ≈ 19,3 M GNF ; règle de partage des gains (réserve, 50 % investisseurs, 40 % croissance, 10 % fondateur). Hypothèses à vérifier pendant la marche 1 (panier moyen, frais réels, part en ligne, assurance, électricité).
 
@@ -906,7 +908,7 @@ Fausses alertes (compte vérifié, limites, rappel de confirmation, sanctions) ;
 - Hailand devient **le livreur de référence** en Guinée : livraisons des boutiques en ligne, **courses de colis** (récupérer quelque chose et le remettre ailleurs), **livraison de repas** des restaurants, et à terme **transport de personnes** (« le Uber de la Guinée »).
 - **Flotte 100 % électrique** : scooters et motos électriques (recharge sur une prise, coût par course bien plus bas que l'essence) pour **casser le prix des moto-taxis**.
 - L'atout de Hailand : **la localisation précise** (codes d'adresse, bâtiments relevés, lien de localisation envoyé au destinataire, suivi en direct, QR et code de remise, photo de preuve). À Conakry, trouver la bonne porte est le vrai problème ; Hailand le résout.
-- Départ (2026-11-22, `HAILANDX.md` §64) : un livreur (ami du fondateur, son scooter), du lundi au samedi de 14 h à 18 h, basé à Kobaya, zone Ratoma ; trois vendeurs e-commerce qui ont déjà des clients.
+- Départ (2026-11-22, `HAILANDX.md` §64) : un livreur (ami du fondateur, son scooter), du lundi au samedi de 14 h à 18 h, basé à Kobaya, zone Ratoma ; trois vendeurs e-commerce qui ont déjà des clients. **Mise à jour 2026-11-26** : l'ami ne pourra pas livrer ; un livreur partenaire avec sa propre moto ou son scooter est recherché, le fondateur livre en attendant.
 
 ### 20.2 Les quatre services
 | Service | Ce que c'est | Difficulté | Ce qui existe déjà ✅ | Ce qu'il manque |
@@ -1089,3 +1091,4 @@ Paiement : Orange Money / Mobile Money (Chap Chap Pay), ou **prélevé sur le so
 | 2026-11-23 | Révision 147 : §20.4 — règle de l'escalier décidée (marche par marche, première marche : l'e-commerce), critères proposés ; §20.5 noté à la demande du fondateur ; §14 — impacte : HailandX / NavigationX / HailandMap. |
 | 2026-11-26 | Révision 148 : §21 — services d'intelligence artificielle pour les vendeurs (liste, fonctionnement, coûts, formules, ordre) ; §14 — impacte : HailandX / NavigationX / HailandMap. |
 | 2026-11-26 | Révision 149 : §14 — plan d'affaires et prévisionnel (document Claude Docs) : modèle de facturation, rentabilité par commande, seuil, retour du scooter, escalier financier, partage des gains — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-26 | Révision 150 : §14, §20.1 — l'ami ne livrera pas ; marche 1 avec un livreur partenaire (sa moto, payé à la course), le fondateur livre en attendant — impacte : HailandX / NavigationX / HailandMap. |
