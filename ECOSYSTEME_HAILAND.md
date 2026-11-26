@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 150** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 151** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -450,7 +450,9 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-11-26 (révision 150).**
+**Dernière mise à jour de cette section : 2026-11-26 (révision 151).**
+
+- **Fait (2026-11-26)** : migration du **créneau et de la zone de livraison appliquée en production** (accord du fondateur, `HAILANDX.md` §64, `BASE_DE_DONNEES.md` révision 33) : lundi–samedi 14 h–18 h, commande avant 13 h livrée le jour même, zone Ratoma — à ajuster dans Console → Paramètres selon le livreur partenaire. **Accord de livraison** du livreur partenaire rédigé (document Claude Docs « Accord de livraison — livreur partenaire Hailand », https://claude.ai/artifact/HE4HcsUx9QgBv6beBSxDTZ, privé). Prochaine étape : recruter le livreur (annonce, entretien, essai), l'ajouter dans Console → Livreurs ; le fondateur livre en attendant et note temps, distances, paniers et paiements pour refaire le prévisionnel.
 
 - **Changement (2026-11-26)** : l'ami du fondateur **ne pourra pas livrer**. **Décidé** : marche 1 avec un **livreur partenaire qui a déjà sa moto ou son scooter**, payé à la course (90 % des frais de livraison), à recruter maintenant ; en attendant, **le fondateur livre lui-même** les premiers jours. Scooter de 12 M : même condition (≥ 8 commandes/jour pendant 4 semaines). Ajout d'un livreur : Console → Livreurs (pas de candidature publique). Créneau et zone (`HAILANDX.md` §64) à régler selon les horaires et la zone du futur livreur, après application de la migration (accord du fondateur).
 
@@ -1092,3 +1094,4 @@ Paiement : Orange Money / Mobile Money (Chap Chap Pay), ou **prélevé sur le so
 | 2026-11-26 | Révision 148 : §21 — services d'intelligence artificielle pour les vendeurs (liste, fonctionnement, coûts, formules, ordre) ; §14 — impacte : HailandX / NavigationX / HailandMap. |
 | 2026-11-26 | Révision 149 : §14 — plan d'affaires et prévisionnel (document Claude Docs) : modèle de facturation, rentabilité par commande, seuil, retour du scooter, escalier financier, partage des gains — impacte : HailandX / NavigationX / HailandMap. |
 | 2026-11-26 | Révision 150 : §14, §20.1 — l'ami ne livrera pas ; marche 1 avec un livreur partenaire (sa moto, payé à la course), le fondateur livre en attendant — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-26 | Révision 151 : §14 — créneau et zone de livraison en production ; accord du livreur partenaire rédigé — impacte : HailandX / NavigationX / HailandMap. |

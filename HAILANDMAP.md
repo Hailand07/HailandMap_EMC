@@ -445,3 +445,4 @@ Liste tenue à jour : le fondateur peut en ajouter. ✅ fait · ⏳ à faire · 
 | 2026-11-26 | ÉCOSYSTÈME révision 148 : §21 — services d'intelligence artificielle pour les vendeurs HailandX (piste future) — aucun changement pour ce dépôt. |
 | 2026-11-26 | ÉCOSYSTÈME révision 149 : §14 — plan d'affaires et prévisionnel de Hailand référencé — aucun changement pour ce dépôt. |
 | 2026-11-26 | ÉCOSYSTÈME révision 150 : livreur partenaire à la place de l'ami du fondateur (§14, §20.1) — aucun changement pour ce dépôt. |
+| 2026-11-26 | ÉCOSYSTÈME révision 151, BASE_DE_DONNEES révision 33 : créneau et zone de livraison HailandX appliqués en production — aucun changement pour ce dépôt. |
