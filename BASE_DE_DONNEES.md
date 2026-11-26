@@ -1,7 +1,7 @@
 # BASE_DE_DONNEES.md — La base de données de l'écosystème Hailand, expliquée table par table
 
 > Ce fichier est **identique dans les trois dépôts** (HailandX_Scorpion, Lynx/NavigationX, HailandMap_EMC) : on le recopie quand il change.
-> **Révision : 32** (2026-11-22) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 33** (2026-11-26) — quand deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > Base : projet Supabase `sffowxfozwynmuaesvdk`, schéma `public`. État des chiffres : **2026-10-16, juste après la seconde remise à zéro des comptes**.
 
 **À quoi sert ce fichier.** Vous expliquer, sans jargon, ce que contient chaque table, qui l'utilise, ce que vous pouvez modifier vous-même (et comment) et ce qu'il vaut mieux ne jamais toucher. Il est tenu à jour à chaque changement de la base (voir la dernière section).
@@ -311,7 +311,7 @@ Chaque versement enregistré par l'équipe : `shop_id` ou `courier_id`, `amount_
 
 ## 8. Plateforme
 
-### `settings` — réglages (8 lignes ; 13 après `2026-11-22_creneau_zone_livraison.sql`) 🟠
+### `settings` — réglages (13 lignes) 🟠
 Réglages modifiables **par le fondateur** dans **Console → Paramètres** (avec un motif, inscrit au journal) :
 | Clé | Valeur actuelle | Sens |
 |---|---|---|
@@ -481,3 +481,4 @@ Ce sont les « boutons » que les applications appuient. Vous n'avez pas à les 
 | 2026-11-18 | 30 | `payout_requests` (demandes de retrait des vendeurs, minimum 10 000 GNF) et fonctions `fn_my_balance`, `fn_withdraw_request`, `fn_withdraw_cancel`, `fn_withdraw_requests`, `fn_withdraw_done`, `fn_withdraw_refuse` (`2026-11-18_retraits.sql`). |
 | 2026-11-20 | 31 | `2026-11-18_retraits.sql` **appliquée en production** (accord du fondateur) : `payout_requests` existe (0 ligne), 6 fonctions de retrait créées. |
 | 2026-11-22 | 32 | `2026-11-22_creneau_zone_livraison.sql` (⏳ à appliquer avec l'accord du fondateur) : `orders.delivery_date`, 5 réglages `livraison_*` (jours, créneau 14 h–18 h, heure limite 13 h, communes servies : Ratoma), fonction `fn_delivery_window` ; `fn_place_order` refuse une adresse hors zone et enregistre le jour promis. |
+| 2026-11-26 | 33 | `2026-11-22_creneau_zone_livraison.sql` **appliquée en production** (accord du fondateur) : `orders.delivery_date` et les 5 réglages `livraison_*` existent ; `fn_delivery_window` créée ; `fn_place_order` refuse une adresse hors de Ratoma. |

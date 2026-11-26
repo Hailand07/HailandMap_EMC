@@ -442,3 +442,7 @@ Liste tenue à jour : le fondateur peut en ajouter. ✅ fait · ⏳ à faire · 
 | 2026-11-23 | §11 C : recherche de **tous les niveaux administratifs** (pays, région, préfecture / ville, commune, quartier), chacun avec **son style** de surface et de frontière ; frontière simplifiée de la Guinée ajoutée (`public/geo/guinee.geojson`). |
 | 2026-11-23 | ÉCOSYSTÈME révision 146 : §20 — vision Flotte Hailand (colis, repas, transport de personnes, scooters électriques ; une application client, une par métier) — aucun changement pour ce dépôt. |
 | 2026-11-23 | ÉCOSYSTÈME révision 147 : §20.4 — règle de l'escalier (première marche : l'e-commerce) — aucun changement pour ce dépôt. |
+| 2026-11-26 | ÉCOSYSTÈME révision 148 : §21 — services d'intelligence artificielle pour les vendeurs HailandX (piste future) — aucun changement pour ce dépôt. |
+| 2026-11-26 | ÉCOSYSTÈME révision 149 : §14 — plan d'affaires et prévisionnel de Hailand référencé — aucun changement pour ce dépôt. |
+| 2026-11-26 | ÉCOSYSTÈME révision 150 : livreur partenaire à la place de l'ami du fondateur (§14, §20.1) — aucun changement pour ce dépôt. |
+| 2026-11-26 | ÉCOSYSTÈME révision 151, BASE_DE_DONNEES révision 33 : créneau et zone de livraison HailandX appliqués en production — aucun changement pour ce dépôt. |

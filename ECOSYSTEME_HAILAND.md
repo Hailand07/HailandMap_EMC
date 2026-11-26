@@ -4,7 +4,7 @@
 > Ce fichier est **identique dans les trois dépôts** (copie, hors la ligne « Fichiers liés »). Quand on le modifie dans l'un, on le recopie dans les deux autres.
 > Fichiers liés : `NAVIGATIONX.md` (dépôt Lynx) · [`HAILANDMAP.md`](./HAILANDMAP.md) (dépôt HailandMap_EMC) · [`CLAUDE.md`](./CLAUDE.md) (règles de travail).
 >
-> **Révision : 147** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
+> **Révision : 151** — quand les deux copies diffèrent, celle dont la révision est la plus élevée fait foi (augmenter de 1 à chaque modification).
 > **Dernière mise à jour :** 2026-10-12 · **État de la base observé :** 2026-10-02 (lecture seule via le connecteur Supabase : tables, politiques RLS, fonctions, triggers, vues, extensions, comptes, stockage, alertes de sécurité)
 
 ---
@@ -27,6 +27,7 @@
 | **Comptes, administrateurs, un compte = son application** | §4.9 |
 | **Stratégie de déploiement**, partenariats, niveau 3 payant, positionnement envers l'État | §17 |
 | **Flotte : colis, repas, transport de personnes, scooters électriques, une appli ou plusieurs** | §20 |
+| **Services d'intelligence artificielle pour les vendeurs** (fiches, photos, assistant, essayage, coûts, formules) | §21 |
 
 ---
 
@@ -449,7 +450,15 @@ Gravité : 🔴 critique · 🟠 important · 🟡 à corriger
 
 ## 14. Reprise de session (à mettre à jour en fin de chaque session)
 
-**Dernière mise à jour de cette section : 2026-11-23 (révision 147).**
+**Dernière mise à jour de cette section : 2026-11-26 (révision 151).**
+
+- **Fait (2026-11-26)** : migration du **créneau et de la zone de livraison appliquée en production** (accord du fondateur, `HAILANDX.md` §64, `BASE_DE_DONNEES.md` révision 33) : lundi–samedi 14 h–18 h, commande avant 13 h livrée le jour même, zone Ratoma — à ajuster dans Console → Paramètres selon le livreur partenaire. **Accord de livraison** du livreur partenaire rédigé (document Claude Docs « Accord de livraison — livreur partenaire Hailand », https://claude.ai/artifact/HE4HcsUx9QgBv6beBSxDTZ, privé). Prochaine étape : recruter le livreur (annonce, entretien, essai), l'ajouter dans Console → Livreurs ; le fondateur livre en attendant et note temps, distances, paniers et paiements pour refaire le prévisionnel.
+
+- **Changement (2026-11-26)** : l'ami du fondateur **ne pourra pas livrer**. **Décidé** : marche 1 avec un **livreur partenaire qui a déjà sa moto ou son scooter**, payé à la course (90 % des frais de livraison), à recruter maintenant ; en attendant, **le fondateur livre lui-même** les premiers jours. Scooter de 12 M : même condition (≥ 8 commandes/jour pendant 4 semaines). Ajout d'un livreur : Console → Livreurs (pas de candidature publique). Créneau et zone (`HAILANDX.md` §64) à régler selon les horaires et la zone du futur livreur, après application de la migration (accord du fondateur).
+
+- **Fait (2026-11-26)** : **plan d'affaires et prévisionnel** pour les investisseurs familiaux (Chérif, les oncles), document « Hailand — Plan d'affaires et prévisionnel » (Claude Docs : https://claude.ai/artifact/CLbyffcxcDvTzhUSQHFwWd, privé tant que le fondateur ne le partage pas). Points clés : commission 8 % seule au début, abonnement + commission réduite plus tard ; ≈ 8 100 GNF par commande (scooter du livreur) ou ≈ 11 100 GNF (scooter de Hailand, livreur à 50 % des frais) ; charges ≈ 850 000 GNF/mois + 420 000 par scooter ; seuil ≈ 4 commandes/jour ; scooter de 12 M à la **marche 2** seulement (≥ 8 commandes/jour pendant 4 semaines), remboursé en ≈ 14 mois à 8/jour, 6,5 mois à 12/jour ; besoin marche 2 ≈ 19,3 M GNF ; règle de partage des gains (réserve, 50 % investisseurs, 40 % croissance, 10 % fondateur). Hypothèses à vérifier pendant la marche 1 (panier moyen, frais réels, part en ligne, assurance, électricité).
+
+- **Noté (2026-11-26, §21)** : idée d'Elhaj — **services d'IA pour les vendeurs** (fiche produit depuis une photo, photo propre, textes, assistant client, mise en situation, essayage virtuel), coûts estimés, formules Gratuit / Pro / Business / crédits proposées. Pas pour maintenant (règle de l'escalier). Fait le même jour : position à l'étape « adresse » corrigée (`HAILANDX.md` §66).
 
 - **Décidé (2026-11-23, §20.4)** : **règle de l'escalier** — on ne passe à la marche suivante que si la précédente marche vraiment ; **première marche : l'e-commerce** (boutiques HailandX, 3 vendeurs, un livreur, Ratoma, 14 h–18 h). Colis, repas et transport de personnes attendent. Critères « la marche marche » proposés, à fixer par le fondateur.
 
@@ -901,7 +910,7 @@ Fausses alertes (compte vérifié, limites, rappel de confirmation, sanctions) ;
 - Hailand devient **le livreur de référence** en Guinée : livraisons des boutiques en ligne, **courses de colis** (récupérer quelque chose et le remettre ailleurs), **livraison de repas** des restaurants, et à terme **transport de personnes** (« le Uber de la Guinée »).
 - **Flotte 100 % électrique** : scooters et motos électriques (recharge sur une prise, coût par course bien plus bas que l'essence) pour **casser le prix des moto-taxis**.
 - L'atout de Hailand : **la localisation précise** (codes d'adresse, bâtiments relevés, lien de localisation envoyé au destinataire, suivi en direct, QR et code de remise, photo de preuve). À Conakry, trouver la bonne porte est le vrai problème ; Hailand le résout.
-- Départ (2026-11-22, `HAILANDX.md` §64) : un livreur (ami du fondateur, son scooter), du lundi au samedi de 14 h à 18 h, basé à Kobaya, zone Ratoma ; trois vendeurs e-commerce qui ont déjà des clients.
+- Départ (2026-11-22, `HAILANDX.md` §64) : un livreur (ami du fondateur, son scooter), du lundi au samedi de 14 h à 18 h, basé à Kobaya, zone Ratoma ; trois vendeurs e-commerce qui ont déjà des clients. **Mise à jour 2026-11-26** : l'ami ne pourra pas livrer ; un livreur partenaire avec sa propre moto ou son scooter est recherché, le fondateur livre en attendant.
 
 ### 20.2 Les quatre services
 | Service | Ce que c'est | Difficulté | Ce qui existe déjà ✅ | Ce qu'il manque |
@@ -938,6 +947,60 @@ Raison : les repas en premier, avec une Flotte pas rodée, donneraient des repas
   - **Console** pour l'équipe Hailand.
 - **Exception possible plus tard** : le transport de personnes pourrait avoir sa propre application conducteur si la loi impose des règles très différentes (licence, assurance, contrôle) ; côté client, il resterait dans HailandX.
 - Techniquement, c'est déjà la forme du monorepo `HailandX_Scorpion` (une application par métier, composants communs, une seule base) : ajouter un service, c'est un onglet chez le client, un mode chez le vendeur et un type de mission dans la Flotte.
+
+## 21. Services d'intelligence artificielle pour les vendeurs 📄💡 (idée d'Elhaj, 2026-11-26 — **piste pour une marche future ; rien n'est codé**)
+
+### 21.1 L'idée
+Sur les grandes plateformes de boutiques en ligne (ex. Shopify), des entreprises vendent des **modules** qui font **une tâche précise avec l'IA** (essayage virtuel de vêtements, photos de produits, descriptions, assistant client…) ; le vendeur s'**abonne** (ou paie à l'usage). HailandX étant la plateforme des vendeurs guinéens, **Hailand peut proposer ces services à ses propres vendeurs**. (Elhaj peut aussi, de son côté, créer de tels modules pour Shopify et autres : un business séparé, vendu dans le monde entier.)
+**Règle de l'escalier (§20.4)** : ce n'est **pas pour maintenant** ; la première marche reste l'e-commerce et la livraison.
+
+### 21.2 Les services possibles
+| Service | Ce qu'il fait pour le vendeur | Outil | Difficulté |
+|---|---|---|---|
+| **Fiche produit automatique** | photo du produit → titre, description, catégorie, variantes (tailles, couleurs) proposés ; le vendeur corrige et publie | IA de texte capable de lire une image (ex. Claude) | faible |
+| **Traduction / réécriture** | description en français, anglais ; langues nationales (pular, malinké, soussou ⚠️ qualité à tester) | IA de texte | faible |
+| **Textes de vente** | posts Facebook / TikTok / WhatsApp, promotions, réponses aux avis | IA de texte | faible |
+| **Résumé des avis, conseils de vente** | « ce que les clients aiment », « vos produits qui marchent », prix conseillés | IA de texte + données HailandX | moyenne |
+| **Assistant client** | répond aux questions fréquentes (prix, tailles, livraison, disponibilité) sur la fiche produit, puis sur WhatsApp | IA de texte + catalogue ; WhatsApp : API WhatsApp Business (Meta) | moyenne |
+| **Photo propre** | fond retiré, fond blanc ou coloré, lumière et netteté corrigées | détourage (outil libre sur notre serveur, quasi gratuit) ou service d'images | faible |
+| **Mise en situation** | produit posé sur un mannequin, dans un salon, sur une table | service de génération d'images (pas Claude) | moyenne |
+| **Essayage virtuel** | le client voit le vêtement porté sur sa propre photo | service spécialisé de génération d'images | élevée (coût, qualité, photos personnelles) |
+| **Recherche intelligente, recommandations** | « robe rouge pour un mariage » ; « les clients ont aussi acheté » | IA de texte / vecteurs | moyenne |
+| **Contrôle des annonces** (interne) | repérer produits interdits, arnaques, photos volées | IA de texte et d'image | moyenne |
+
+### 21.3 Comment ça marche concrètement
+1. Le vendeur touche un bouton (« Écrire la fiche avec l'IA », « Nettoyer la photo »).
+2. L'application envoie la photo ou le texte **au serveur de Hailand** (jamais directement au fournisseur : la clé secrète du fournisseur reste sur le serveur, comme les clés Chap Chap Pay).
+3. Le serveur appelle le fournisseur d'IA (API), reçoit le résultat, **décompte le crédit** du vendeur et note l'usage (table d'usage — migration à faire le moment venu).
+4. Le vendeur **voit, corrige et valide** avant publication : l'IA propose, le vendeur décide (elle peut se tromper sur un prix, une taille, une matière).
+5. Photos de clients (essayage) : utilisées seulement pour l'essai, **effacées ensuite**, et dit clairement au client.
+
+### 21.4 Ce que ça coûte à Hailand (ordres de grandeur ⚠️ à mesurer)
+Les fournisseurs facturent **à l'usage, en dollars** : pour le texte, au nombre de « jetons » (≈ morceaux de mots) lus et écrits ; pour les images, à l'image produite. Prix publics Anthropic (novembre 2026, par million de jetons lus / écrits) : Claude Haiku 5.5 0,10 $ / 0,50 $ ; Claude Sonnet 5.5 2 $ / 10 $ ; Claude Opus 5.5 4 $ / 20 $. Conversion supposée : 1 $ ≈ 8 600 GNF ⚠️.
+| Tâche | Hypothèse | Coût estimé |
+|---|---|---|
+| Fiche produit (photo + texte) | ≈ 1 500 jetons lus, 300 écrits | Haiku ≈ 0,0003 $ (≈ 3 GNF) ; Sonnet ≈ 0,006 $ (≈ 50 GNF) ; Opus ≈ 0,012 $ (≈ 100 GNF) |
+| Conversation de l'assistant client | ≈ 5 échanges, catalogue gardé en mémoire (cache) | Haiku ≈ 0,002 $ (≈ 20 GNF) ; Sonnet ≈ 0,04 $ (≈ 350 GNF) |
+| Photo détourée | outil libre sur notre serveur | ≈ 0 (temps de serveur) |
+| Image générée (mise en situation, essayage) | service d'images | ≈ 0,01 à 0,10 $ par image ⚠️ selon le fournisseur (≈ 90 à 900 GNF) |
+À retenir : **le texte coûte très peu**, les **images générées coûtent nettement plus** ; il faut **mesurer** sur de vrais produits avant de fixer les prix, et choisir le modèle par tâche (le plus économique qui donne une qualité suffisante).
+
+### 21.5 Facturation et plan pour rentabiliser 💡 (proposition de Claude, à valider)
+**Principe** : un service IA rapporte de deux façons — **directement** (abonnement, crédits) et **indirectement** : de meilleures fiches et des réponses rapides font **plus de ventes**, donc plus de commission (8 %) et de livraisons pour Hailand. D'où un niveau gratuit généreux sur ce qui coûte peu.
+| Formule | Contenu (exemple) | Prix (exemple ⚠️) |
+|---|---|---|
+| **Gratuit** (tous les vendeurs) | 20 fiches automatiques / mois, 20 photos détourées / mois | 0 GNF — coûte quelques centaines de GNF par vendeur |
+| **Pro** | fiches et traductions sans compter (usage raisonnable), 200 photos propres, assistant client sur la fiche produit, textes de vente | ≈ 50 000 GNF / mois |
+| **Business** | Pro + assistant WhatsApp, 50 mises en situation / mois, conseils de vente | ≈ 150 000 GNF / mois |
+| **Crédits** (à l'unité) | images générées, essayage virtuel, au-delà du forfait | prix ≥ 3 à 5 fois le coût réel |
+Paiement : Orange Money / Mobile Money (Chap Chap Pay), ou **prélevé sur le solde** du vendeur (ses ventes) — le plus simple pour lui.
+**Règles de rentabilité** : prix toujours ≥ 3 à 5 fois le coût mesuré (le dollar peut monter) ; plafonds par formule (pas d'abus) ; modèle économique par tâche, le plus cher seulement si la qualité l'exige ; tableau de bord dans la Console (coût réel par vendeur et par service, marge) ; commencer petit et mesurer.
+
+### 21.6 Ordre conseillé, le moment venu (avis de Claude)
+1. **Fiche produit automatique** + **photo propre** : coût presque nul, effet immédiat sur la qualité du catalogue (les vendeurs guinéens prennent leurs photos au téléphone et écrivent peu).
+2. **Textes de vente** et **traductions**.
+3. **Assistant client** sur la fiche produit, puis sur WhatsApp (API WhatsApp Business à mettre en place).
+4. **Mise en situation**, puis **essayage virtuel** (le plus coûteux et le plus délicat), seulement si les vendeurs de vêtements le demandent et paient.
 
 ## 11. Journal des mises à jour
 
@@ -1028,3 +1091,7 @@ Raison : les repas en premier, avec une Flotte pas rodée, donneraient des repas
 | 2026-10-23 | Révision 103 : §19 et §14 — maquettes v7 faites, plan approuvé ; application en attente de la demande du fondateur — impacte : NavigationX / HailandMap / HailandX. |
 | 2026-11-23 | Révision 146 : §20 — Flotte : colis, repas, transport de personnes, scooters électriques ; ordre conseillé ; une application client, une par métier — impacte : HailandX / NavigationX / HailandMap. |
 | 2026-11-23 | Révision 147 : §20.4 — règle de l'escalier décidée (marche par marche, première marche : l'e-commerce), critères proposés ; §20.5 noté à la demande du fondateur ; §14 — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-26 | Révision 148 : §21 — services d'intelligence artificielle pour les vendeurs (liste, fonctionnement, coûts, formules, ordre) ; §14 — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-26 | Révision 149 : §14 — plan d'affaires et prévisionnel (document Claude Docs) : modèle de facturation, rentabilité par commande, seuil, retour du scooter, escalier financier, partage des gains — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-26 | Révision 150 : §14, §20.1 — l'ami ne livrera pas ; marche 1 avec un livreur partenaire (sa moto, payé à la course), le fondateur livre en attendant — impacte : HailandX / NavigationX / HailandMap. |
+| 2026-11-26 | Révision 151 : §14 — créneau et zone de livraison en production ; accord du livreur partenaire rédigé — impacte : HailandX / NavigationX / HailandMap. |
